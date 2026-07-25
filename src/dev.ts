@@ -31,6 +31,12 @@ export {
 } from "./core/regions.js";
 export { createCanvas2DRenderer } from "./core/render/canvas2d.js";
 export {
+  type CreatedRenderer,
+  createRenderer,
+  detectBackend,
+  type RenderBackend,
+} from "./core/render/createRenderer.js";
+export {
   type Camera,
   DEFAULT_CAMERA,
   DEFAULT_STYLE,
