@@ -68,7 +68,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       ensureCapacity(count);
 
       const b = cameraBasis(frame.camera);
-      const { positions, normals, center } = pointSet;
+      const { positions, normals, center, occlusion } = pointSet;
       const radius = pointSet.radius || 1;
       const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
@@ -95,6 +95,19 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const glyphMode = cssSize <= 32;
       const glyphSkinRadius = glyphMode ? 0.8 : 1;
       const glyphSkinAlpha = glyphMode ? 0.58 : 1;
+
+      // Above ~96px the head crosses into sculpted mode: per-region brightness coding fades out
+      // toward a uniform base and the key light takes over the modelling, the way a real head
+      // reads from shading rather than from painted-on features. Cartoon-bright eye dots on a
+      // large realistic head would fight the sculpt.
+      const sculptT = Math.min(1, Math.max(0, (cssSize - 96) / 160));
+
+      // Fixed key light in view space: upper-front-left, the default portrait key.
+      const LX = -0.42;
+      const LY = 0.55;
+      const LZ = 0.72;
+      const ambient = 0.28;
+      const lighting = Math.max(0, Math.min(1, style.lighting));
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -136,10 +149,27 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           baseRadius * persp * drawScaleOf(region) * (feature ? featureEmphasis : glyphSkinRadius);
         depth[visible] = rz;
 
+        // Lambertian shade against the key light plus baked occlusion. Lambert models which way
+        // the surface faces; occlusion models what it sits inside — sockets and creases go dark
+        // even where their floor still catches the light. Both scale off the one lighting knob.
+        const nxV = nx * b.cosYaw + nz * b.sinYaw;
+        const nyV = ny * b.cosPitch - nzYaw * b.sinPitch;
+        const diffuse = Math.max(0, nxV * LX + nyV * LY + facing * LZ);
+        const ao = occlusion[i];
+        const lit = (ambient + (1 - ambient) * diffuse) * (0.4 + 0.6 * ao);
+        const shade = 1 - lighting * (1 - lit);
+
+        // Region brightness coding fades toward uniform as sculpted mode takes over — features
+        // only partway, so the eyes never vanish entirely into the sculpt.
+        const regionAlpha = intensityOf(region);
+        const flatten = feature ? sculptT * 0.55 : sculptT;
+        const baseAlpha = regionAlpha + (0.82 - regionAlpha) * flatten;
+
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
         const depthT = (b.distance - rz) / (b.distance + radius);
         const alpha =
-          intensityOf(region) *
+          baseAlpha *
+          shade *
           (feature ? 1 : glyphSkinAlpha) *
           (1 - backness * style.backfaceDim) *
           (1 - Math.min(1, depthT) * style.depthDim);

@@ -42,6 +42,12 @@ export interface RenderStyle {
    * on tiny heads — the favicon principle. Applied on top of the per-region draw scale.
    */
   featureBoost: number;
+  /**
+   * Strength of the directional key light, 0..1. At 0 particles are flat; at 1 brightness is
+   * fully Lambertian against a fixed upper-front key. Lighting is what turns the point cloud
+   * into a sculpted head: sockets fall dark, the nose bridge and cheekbones catch light.
+   */
+  lighting: number;
 }
 
 export const DEFAULT_STYLE: RenderStyle = {
@@ -51,6 +57,7 @@ export const DEFAULT_STYLE: RenderStyle = {
   backfaceDim: 0.88,
   depthDim: 0.35,
   featureBoost: 0.3,
+  lighting: 0.75,
 };
 
 export interface RenderFrame {

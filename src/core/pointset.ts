@@ -26,6 +26,14 @@ export interface HeadPointSet {
    * buys nothing. If Phase 2 reconstruction needs it, adding channels is an additive change.
    */
   weight: Float32Array;
+  /**
+   * Baked ambient occlusion per particle, 0..1 where 1 is fully open surface. Directional
+   * lighting alone cannot darken a concavity whose floor still faces the light; occlusion is
+   * what makes eye sockets, the nose creases and the underside of the jaw read dark, which is
+   * most of what separates a sculpted head from a lit egg. Computed from the field at
+   * generation time — for Phase 2 it is equally derivable from reconstructed geometry.
+   */
+  occlusion: Float32Array;
   count: number;
   /** Axis-aligned half-extents of the actual generated points. */
   bounds: { x: number; y: number; z: number };
@@ -50,6 +58,7 @@ export function emptyPointSet(): HeadPointSet {
     normals: new Float32Array(0),
     regionId: new Uint8Array(0),
     weight: new Float32Array(0),
+    occlusion: new Float32Array(0),
     count: 0,
     bounds: { x: 0, y: 0, z: 0 },
     center: { x: 0, y: 0, z: 0 },
@@ -113,5 +122,8 @@ export function validatePointSet(set: HeadPointSet): void {
   }
   if (set.weight.length !== count) {
     throw new Error(`weight length ${set.weight.length}, expected ${count}`);
+  }
+  if (set.occlusion.length !== count) {
+    throw new Error(`occlusion length ${set.occlusion.length}, expected ${count}`);
   }
 }

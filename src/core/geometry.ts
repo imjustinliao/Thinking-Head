@@ -10,7 +10,7 @@ import {
   type SurfaceCloud,
   sampleSurface,
 } from "./sample.js";
-import { DEFAULT_HEAD_PARAMS, type HeadParams } from "./sdf.js";
+import { DEFAULT_HEAD_PARAMS, type HeadParams, sdHead } from "./sdf.js";
 
 /**
  * Full geometry generation: SDF -> surface cloud -> explicit features -> progressive blue-noise
@@ -35,8 +35,8 @@ export interface GenerateOptions {
 export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
   head: DEFAULT_HEAD_PARAMS,
   features: DEFAULT_FEATURE_PARAMS,
-  candidates: 12000,
-  maxParticles: 1400,
+  candidates: 15000,
+  maxParticles: 1800,
   rimBoost: 1.1,
   seed: 20260724,
 };
@@ -174,11 +174,34 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
     outWeight[i] = weight[src];
   }
 
+  // Baked occlusion: probe the field a short and a longer step out along each normal. On open
+  // surface the distance grows with the step; inside a concavity nearby geometry folds over and
+  // the probe reads short. Two taps are enough at particle scale, and it runs at generation
+  // time so the renderer pays nothing.
+  // Tap radii sized to the features being shaded (sockets ~0.17): larger far taps let every
+  // concavity darken half the face into murk.
+  const occlusion = new Float32Array(count);
+  const near = 0.055;
+  const far = 0.13;
+  for (let i = 0; i < count; i++) {
+    const x = positions[i * 3];
+    const y = positions[i * 3 + 1];
+    const z = positions[i * 3 + 2];
+    const nx = normals[i * 3];
+    const ny = normals[i * 3 + 1];
+    const nz = normals[i * 3 + 2];
+    const dNear = sdHead(x + nx * near, y + ny * near, z + nz * near, opts.head) / near;
+    const dFar = sdHead(x + nx * far, y + ny * far, z + nz * far, opts.head) / far;
+    const open = Math.max(0, Math.min(1, dNear)) * 0.6 + Math.max(0, Math.min(1, dFar)) * 0.4;
+    occlusion[i] = open;
+  }
+
   const set: HeadPointSet = {
     positions,
     normals,
     regionId,
     weight: outWeight,
+    occlusion,
     count,
     ...measureExtents(positions, count),
   };
