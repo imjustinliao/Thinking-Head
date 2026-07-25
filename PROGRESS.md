@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Voxel-lattice rewrite done** (v3.5–v3.7) — the render model is now grid-based. Next: `idle` — the motion system |
-| **Last commit** | `bccccf7` — v3.7 - Switch region intensity to albedo and drive definition from light and occlusion |
+| **Step** | **`idle` + motion system done** (v4.0). Next: the remaining nine states, one at a time |
+| **Last commit** | `4688658` — v4.0 - Add shared animation clock with visibility pause and Node safe scheduling |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
+| **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
 ---
 
@@ -271,6 +271,43 @@ LOD ("resolution where it counts"), and hierarchical rasterisation-style voxelis
 Licensed parametric head models (FLAME/BFM) were re-checked and rejected: registration,
 attribution and a binary asset all conflict with the MIT/zero-asset constraints.
 
+### `idle` and the motion system (v4.0)
+
+The first continuous motion, and the machinery every other state will reuse.
+
+- **`motion.ts` — `MotionParams`, a scalar vector per state.** Blending two states later is
+  `mix()` over these scalars, exactly as the architecture requires. Only `idle` is tuned; the
+  other nine inherit it so nothing renders frozen before its milestone.
+- **Built from sinusoids at irrational ratios**, not keyframes. Two consequences fall straight
+  out of that and both are hard requirements: the combined period is effectively infinite so
+  there is no perceptible loop, and a sinusoid has no start or end so entering a state at an
+  arbitrary moment is always phase-safe. There is no timeline to be part-way through.
+- **Phase is seeded from each particle's rest position**, not from a per-particle random value.
+  This is what makes the motion read as a purposeful swarm rather than static: neighbours sit at
+  nearly the same phase and move together, so the surface ripples as a body. Tested directly.
+- **Amplitudes are in lattice cell units**, so motion is the same visual magnitude at every LOD.
+  In world units a wobble would be invisible on a fine lattice and violent on a coarse one.
+- **Sway rotates the head as a rigid body** via the camera basis — two trig calls per frame
+  rather than the same work repeated per particle, and it actually looks like a head turning.
+- **`clock.ts` — one clock for the page.** Verified: ten visible instances are *pixel-identical*
+  (mean alpha difference 0.000), which is only true with a single shared time source.
+  Per-instance rAF loops start at different moments and immediately drift apart.
+- **Offscreen pause verified end to end**: scrolled away → 0 listeners and the loop stopped;
+  scrolled into view → 10 listeners, running. Instances unsubscribe entirely rather than
+  rendering into a canvas nobody sees. Page Visibility pause is wired the same way.
+- **`prefers-reduced-motion` simplifies, never deletes** — the head still renders fully shaded,
+  it just holds still, so the status signal survives the preference. Subscribed live, since the
+  preference can flip mid-session.
+- **The clock degrades outside a browser.** `requestAnimationFrame` is absent under SSR and in
+  the test runner, so scheduling is resolved once with a `setTimeout` fallback; importing the
+  package server-side must not throw.
+
+**Verification note that cost time:** the first animation check measured zero movement, which
+looked like a broken motion system. It was the offscreen pause working correctly — the sampled
+canvas was below the fold. Isolating the renderer (drawing the same frame at t=0 and t=3.7)
+showed 3510 changed pixels on WebGL and 2583 on Canvas 2D, proving the motion path was fine and
+pointing at the test, not the code. **Sample a canvas that is actually on screen.**
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -316,13 +353,11 @@ replace it with defaults.
 
 ## Next
 
-1. **`idle` — the motion system.** 4D simplex noise plus incommensurate sinusoids evaluated
-   in the vertex shader from uniforms. Justin's target quality is an organised, purposeful
-   swarm ("nano robots"), not loose drift. This milestone also brings the pieces that only
-   matter once things move: shared animation clock across instances, offscreen pause via
-   `IntersectionObserver`, Page Visibility pause, and `prefers-reduced-motion` (the Canvas 2D
-   path is the static/reduced-motion renderer).
-2. Then the remaining nine states one at a time, with a check-in after each.
+1. **The remaining nine states**, one at a time with a check-in after each. Each needs an
+   expression (region deformation driven by `weight` and the region tags) *and* a motion
+   signature in `STATE_MOTION`. `listening` is the natural next one.
+2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+   triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 5. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
