@@ -1,6 +1,11 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
-import { generateHead, particleCountForSize, type RenderStyle } from "thinking-head/dev";
+import {
+  generateHead,
+  particleCountForSize,
+  type RenderBackend,
+  type RenderStyle,
+} from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
 import { HeadSlot } from "./HeadSlot.js";
 import { STATE_NOTES } from "./states.js";
@@ -24,6 +29,10 @@ export function App() {
   const [speed, setSpeed] = useState(1);
   const [modality, setModality] = useState<ModalityOption>("none");
   const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
+  const [backend, setBackend] = useState<RenderBackend | null>(null);
+
+  // Stable so it does not retrigger every instance's renderer effect on each render.
+  const onBackend = useCallback((next: RenderBackend) => setBackend(next), []);
 
   const shellRef = useSpotlight<HTMLDivElement>();
   const modalityIndex = MODALITY_OPTIONS.indexOf(modality);
@@ -68,7 +77,10 @@ export function App() {
   const READOUT = [
     { value: String(pointSet.count), label: "particles generated" },
     { value: String(particleCountForSize(size, maxParticles)), label: `drawn at ${size}px` },
-    { value: "0", label: "runtime deps" },
+    {
+      value: backend === "webgl2" ? "WebGL2" : backend === "canvas2d" ? "2D" : "—",
+      label: "backend",
+    },
     { value: "1", label: "GL context" },
   ];
 
@@ -179,6 +191,7 @@ export function App() {
                 camera={camera}
                 style={style}
                 maxParticles={maxParticles}
+                onBackend={onBackend}
               />
               <span className="transcript-text">
                 Thinking through the request

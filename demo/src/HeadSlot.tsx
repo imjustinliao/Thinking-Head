@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef } from "react";
 import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
-  createCanvas2DRenderer,
+  createRenderer,
   type HeadPointSet,
   type HeadRenderer,
   particleCountForSize,
+  type RenderBackend,
   type RenderStyle,
 } from "thinking-head/dev";
 
@@ -16,6 +17,8 @@ interface HeadSlotProps {
   camera: Camera;
   style: RenderStyle;
   maxParticles: number;
+  /** Reports which backend this instance actually got, for the demo readout. */
+  onBackend?: (backend: RenderBackend) => void;
 }
 
 /**
@@ -26,20 +29,31 @@ interface HeadSlotProps {
  * Static for now: the renderer draws on mount and whenever inputs change. The animation
  * milestone turns this into a per-frame `draw()` without changing the shape of the component.
  */
-export function HeadSlot({ state, size, pointSet, camera, style, maxParticles }: HeadSlotProps) {
+export function HeadSlot({
+  state,
+  size,
+  pointSet,
+  camera,
+  style,
+  maxParticles,
+  onBackend,
+}: HeadSlotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<HeadRenderer | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const renderer = createCanvas2DRenderer(canvas);
+    const { renderer, backend } = createRenderer(canvas);
     rendererRef.current = renderer;
+    onBackend?.(backend);
     return () => {
+      // Explicit teardown: with the shared GL context this is what drops the instance's
+      // reference, and the context itself is released when the last head unmounts.
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, []);
+  }, [onBackend]);
 
   // Pose is a function of size, like density: the three-quarter turn that reads alive at 256px
   // smears the features sideways at 20px, so small heads straighten toward face-on. The camera
