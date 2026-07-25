@@ -35,7 +35,12 @@ export interface FeatureParams {
   mouthWidth: number;
   /** Downward bow of the mouth. Positive curves the corners up into a faint smile. */
   mouthCurve: number;
+  /** Vertical gap between the upper and lower lip strokes. 0 collapses to a single line. */
+  mouthLipGap: number;
   mouthDensity: number;
+
+  /** Explicit nose landmark dots (tip, alae, bridge) so the nose reads front-on. 0 disables. */
+  noseDots: number;
 }
 
 export const DEFAULT_FEATURE_PARAMS: FeatureParams = {
@@ -53,7 +58,10 @@ export const DEFAULT_FEATURE_PARAMS: FeatureParams = {
   mouthHeight: -0.31,
   mouthWidth: 0.15,
   mouthCurve: 0.03,
-  mouthDensity: 16,
+  mouthLipGap: 0.032,
+  mouthDensity: 20,
+
+  noseDots: 5,
 };
 
 export interface LandmarkPoints {
@@ -158,13 +166,39 @@ export function generateLandmarks(
     }
   }
 
-  // --- Mouth: a single bowed stroke; corners lift slightly into a resting half-smile ---
-  for (let i = 0; i < features.mouthDensity; i++) {
-    const t = features.mouthDensity === 1 ? 0.5 : i / (features.mouthDensity - 1);
-    const along = (t - 0.5) * 2;
-    const x = along * features.mouthWidth;
-    const y = features.mouthHeight + along * along * features.mouthCurve;
-    push(x, y, REGION.mouth, 1 - Math.abs(along) * 0.6);
+  // --- Mouth: two lip strokes that converge at the corners; corners bow into a half-smile ---
+  // Two lips rather than one line is most of what makes the mouth read as a mouth instead of a
+  // scratch. The gap collapses toward the corners so the strokes meet like real lips.
+  const upperCount = Math.max(3, Math.round(features.mouthDensity * 0.45));
+  const lowerCount = Math.max(3, features.mouthDensity - upperCount);
+  for (const [rowCount, rowOffset] of [
+    [upperCount, features.mouthLipGap / 2],
+    [lowerCount, -features.mouthLipGap / 2],
+  ] as const) {
+    for (let i = 0; i < rowCount; i++) {
+      const t = rowCount === 1 ? 0.5 : i / (rowCount - 1);
+      const along = (t - 0.5) * 2;
+      const gapT = 1 - Math.abs(along); // lips meet at the corners
+      const x = along * features.mouthWidth;
+      const y = features.mouthHeight + rowOffset * gapT + along * along * features.mouthCurve;
+      push(x, y, REGION.mouth, 1 - Math.abs(along) * 0.6);
+    }
+  }
+
+  // --- Nose landmarks: tip first, then alae, then bridge, in priority order ---
+  // The SDF gives the nose its silhouette, but front-on at small sizes only explicit dots make
+  // it visible at all.
+  const noseTipY = head.noseHeight;
+  const noseCandidates: [number, number][] = [
+    [0, noseTipY + 0.01],
+    [-head.noseWidth * 0.85, noseTipY - 0.025],
+    [head.noseWidth * 0.85, noseTipY - 0.025],
+    [0, (head.browRidgeHeight + noseTipY) / 2],
+    [0, noseTipY - head.noseWidth * 0.5],
+  ];
+  for (let i = 0; i < Math.min(features.noseDots, noseCandidates.length); i++) {
+    const [nx, ny] = noseCandidates[i];
+    push(nx, ny, REGION.nose, 1 - i * 0.12);
   }
 
   const count = xs.length;

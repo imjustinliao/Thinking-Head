@@ -29,6 +29,8 @@ export interface HeadParams {
   chinTaper: number;
   /** Forward push of the chin, keeping the profile from looking receded. */
   chinForward: number;
+  /** Radius of the rounded chin ball. Real chins read from this small mass, not the jaw taper. */
+  chinBoss: number;
 
   cheekRadius: number;
   cheekSpread: number;
@@ -61,17 +63,20 @@ export const DEFAULT_HEAD_PARAMS: HeadParams = {
   // A hard taper spikes the chin into a light-bulb point. Chins are rounded.
   chinTaper: 0.62,
   chinForward: 0.1,
+  chinBoss: 0.11,
 
-  cheekRadius: 0.22,
-  cheekSpread: 0.3,
-  cheekHeight: -0.14,
-  cheekForward: 0.2,
+  // Cheek mass sits high and forward — zygomatic, not jowl. This is most of what separates
+  // "face" from "egg" in profile and three-quarter views.
+  cheekRadius: 0.19,
+  cheekSpread: 0.34,
+  cheekHeight: -0.06,
+  cheekForward: 0.26,
 
-  noseLength: 0.15,
-  noseWidth: 0.085,
+  noseLength: 0.16,
+  noseWidth: 0.09,
   noseHeight: -0.1,
 
-  browRidge: 0.075,
+  browRidge: 0.085,
   browRidgeHeight: 0.1,
 
   // Kept small on purpose. Large values are tempting for smoothness but they dissolve the
@@ -134,7 +139,7 @@ export function sdHeadParts(
   const jawY = py - p.jawDrop;
   const t = Math.min(Math.max(jawY / p.jawHeight + 1, 0), 2) * 0.5;
   const taperedWidth = p.jawWidth * (p.chinTaper + (1 - p.chinTaper) * t);
-  parts[PART.jaw] = sdEllipsoid(
+  const jawEllipsoid = sdEllipsoid(
     px,
     jawY,
     pz - p.chinForward,
@@ -142,22 +147,40 @@ export function sdHeadParts(
     p.jawHeight,
     p.jawDepth,
   );
+  // Rounded chin ball at the front of the jaw — the taper gives the jawline, this gives the chin.
+  const chinY = p.jawDrop - p.jawHeight * 0.35;
+  const chinZ = p.chinForward + p.jawDepth * 0.8;
+  parts[PART.jaw] = Math.min(jawEllipsoid, sdSphere(px, py - chinY, pz - chinZ, p.chinBoss));
 
   parts[PART.cheek] = Math.min(
     sdSphere(px - p.cheekSpread, py - p.cheekHeight, pz - p.cheekForward, p.cheekRadius),
     sdSphere(px + p.cheekSpread, py - p.cheekHeight, pz - p.cheekForward, p.cheekRadius),
   );
 
-  // Seated far enough forward that its tip clears the surrounding face. Placed shallower and
-  // it simply lives inside the cranium and never shows in profile.
-  parts[PART.nose] = sdEllipsoid(
-    px,
-    py - p.noseHeight,
-    pz - NOSE_DEPTH_FRACTION * p.craniumDepth,
-    p.noseWidth,
-    p.noseWidth * 1.5,
-    p.noseLength,
+  // Nose as a bridge-to-tip chain of spheres plus two alar wings, rather than one buried
+  // ellipsoid. The chain is what makes the profile read as brow -> bridge -> tip like a real
+  // nose instead of a bump; the wings widen the base so it reads front-on too.
+  const noseTipY = p.noseHeight;
+  const noseTipZ = NOSE_DEPTH_FRACTION * p.craniumDepth + p.noseLength * 0.35;
+  const bridgeY = p.browRidgeHeight - 0.02;
+  const bridgeZ = NOSE_DEPTH_FRACTION * p.craniumDepth - p.noseLength * 0.45;
+  let noseD = Number.POSITIVE_INFINITY;
+  for (let i = 0; i <= 2; i++) {
+    const s = i / 2;
+    const cy = bridgeY + (noseTipY - bridgeY) * s;
+    const cz = bridgeZ + (noseTipZ - bridgeZ) * s;
+    const r = p.noseWidth * (0.55 + 0.45 * s);
+    noseD = Math.min(noseD, sdSphere(px, py - cy, pz - cz, r));
+  }
+  const alaR = p.noseWidth * 0.5;
+  const alaY = noseTipY - p.noseWidth * 0.25;
+  const alaZ = noseTipZ - alaR * 0.7;
+  noseD = Math.min(
+    noseD,
+    sdSphere(px - p.noseWidth * 0.8, py - alaY, pz - alaZ, alaR),
+    sdSphere(px + p.noseWidth * 0.8, py - alaY, pz - alaZ, alaR),
   );
+  parts[PART.nose] = noseD;
 
   parts[PART.brow] = sdEllipsoid(
     px,
@@ -233,6 +256,12 @@ export function headBounds(p: HeadParams): { x: number; y: number; z: number } {
   return {
     x: Math.max(p.craniumWidth, p.jawWidth, p.cheekSpread + p.cheekRadius) + m,
     y: Math.max(p.craniumLift + p.craniumHeight, Math.abs(p.jawDrop) + p.jawHeight) + m,
-    z: Math.max(p.craniumDepth, NOSE_DEPTH_FRACTION * p.craniumDepth + p.noseLength) + m,
+    // The nose tip sphere is the furthest-forward mass: chain tip centre plus its radius.
+    z:
+      Math.max(
+        p.craniumDepth,
+        NOSE_DEPTH_FRACTION * p.craniumDepth + p.noseLength * 0.35 + p.noseWidth,
+        p.chinForward + p.jawDepth * 0.8 + p.chinBoss,
+      ) + m,
   };
 }
