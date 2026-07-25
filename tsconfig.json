@@ -19,7 +19,6 @@
     // records and plain arrays, and TypeScript already treats our union-keyed Record
     // lookups as non-optional. Every other strict flag stays on.
     "noImplicitOverride": true,
-    "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
