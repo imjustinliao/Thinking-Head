@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | Static head rendering **complete**. Next: WebGL2 renderer + shared context, then `idle` |
-| **Last commit** | `c9649e0` — v1.6 - Render live head in demo with full geometry tuning panel |
+| **Step** | Static head rendering **complete**, incl. proportional-legibility pass after Justin's review. Next: WebGL2 renderer + shared context, then `idle` |
+| **Last commit** | `df4db25` — v2.1 - Ease camera pose toward face-on at small sizes with new tuning fields |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
@@ -81,6 +81,38 @@ learned building it.
 Shape defaults are a first pass and expected to move — that is what the tuning panel is
 for. `smoothK` is the biggest single charm lever; a large value dissolves the jaw and the
 head loses its chin.
+
+### Proportional-legibility pass (v1.8–v2.1, after Justin's first shape review)
+
+Justin's review: facial structure fell apart at small sizes, and the head needed real
+anatomical definition. Root causes found and the rules now in force:
+
+- **Definition comes from the SDF, not dot count.** Nose is a bridge→tip chain of spheres
+  with alar wings (a buried ellipsoid never shows in profile); chin is an explicit ball
+  (`chinBoss`) — the jaw taper alone spikes it; cheek mass defaults moved up and forward
+  (zygomatic, not jowl). Mouth is two lip strokes converging at the corners; explicit nose
+  landmark dots make the nose read front-on.
+- **Small sizes are a different rendering regime, not a scaled-down large one.** Three
+  mechanisms, all size-driven:
+  1. **Tiered feature promotion** (`geometry.ts`): tier A = 1 dot/eye + 2 mouth dots at the
+     very front of the ordering; tier B (more eye, brows, nose) enters at position ~40.
+     Promoting *more* features at 36 particles fuses them into a blob — the first quota
+     attempt proved this. Cluster cores are picked by landmark weight.
+  2. **Glyph mode** (`canvas2d.ts`, ≤32px): far-side dots culled entirely (they only stack
+     alpha), skin dots shrink to 0.8× and dim to 0.58×, features keep full strength.
+  3. **Pose eases toward face-on as size shrinks** (`HeadSlot.tsx`): the ¾ turn that looks
+     alive at 256px smears features sideways at 20px.
+- **Far-side features are always culled, at every size** (`isFeatureRegion`): a dimmed eye
+  showing through the skull reads as a smudge stuck to the silhouette.
+- **Emphasis multipliers compound — keep the product ≤ ~1.5×.** Region draw scale ×
+  size emphasis at 1.9× total merged the eyes into one mass; current tables are tuned to
+  stay under that.
+- Verified ladder: 20px = two eyes + mouth glyph; 32px adds shape; 48px adds brows and a
+  smile; 64px+ full structure. Regeneration median ~34ms (target 30; the SDF grew from ~6
+  to ~11 primitives for the definition — `candidates` in the panel trades quality for
+  speed if needed).
+- Browser-pane note: `location.reload()` via the JS tool wedges the pane; use `navigate`
+  with `force: true` instead.
 
 ### Demo design language — established, do not flatten
 
