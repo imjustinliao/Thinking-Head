@@ -277,7 +277,44 @@ to change for Phase 2**, provided we define it as a tagged point set from the st
 
 Note that the licence revision of any parametric head model used matters (see §5C).
 
-## 11. Open questions carried into the architecture proposal
+## 11. Voxel-lattice rendering and level of detail
+
+Added after the first renders showed that scattered surface points cannot produce the
+dense, grid-aligned particle-head look the project is aiming at.
+
+**Lattice, not stochastic sampling.** In dense particle-head artwork the particles occupy a
+regular grid and tile the surface contiguously. That alignment is doing the work: rows and
+columns of cells give the eye a structure to read the form against. Blue-noise sampling
+deliberately removes exactly that regularity, so no amount of tuning spacing or dot size
+reproduces the look. A lattice additionally makes uniform particle size a property of the
+data rather than a convention the renderer has to maintain.
+
+**Hierarchical narrow-band voxelisation.** A dense N³ scan is prohibitive at useful
+resolutions. Standard practice is to refine only where the surface can be, so cost scales
+with surface area rather than volume. Where the field is a true signed distance function it
+is 1-Lipschitz, which makes a half-diagonal containment test conservative — a block of side
+s can only contain surface if the field at its centre is within s·sqrt(3)/2 of zero — so
+pruning cannot discard geometry. Refinement must address blocks in *target-lattice* indices;
+chaining intermediate resolutions only works when every step is an exact integer factor.
+
+**Detail-adaptive level of detail.** Recent GPU reconstruction work varies voxel resolution
+by local detail ("resolution where it counts"), preserving fine structure while keeping
+uniform regions cheap. The same principle applied to rendered size gives the LOD scheme
+here: several resolutions, the renderer selecting whichever puts a cell near a fixed
+on-screen size, levels built lazily and cached. This is what holds particle size constant on
+screen while the head's pixel size varies over more than a decade.
+
+**Lighting over painted brightness.** Once geometry carries the form, per-region brightness
+should be read as material albedo — features darker than skin, as on a real face — with
+directional light and baked occlusion doing the modelling. Painting features bright is only
+necessary when there is no geometry behind them, and actively fights a sculpted surface.
+
+**Licensed parametric head models.** Re-examined and rejected for this project: obtaining
+them requires registration and licence acceptance, they carry attribution obligations into
+an MIT repo, and they ship as binary assets — all three conflict with the zero-asset,
+no-registration constraints. Procedural geometry remains the route.
+
+## 12. Open questions carried into the architecture proposal
 
 1. Package/scope name for npm publication.
 2. Default inline size and default particle budget per device tier — tuning, resolved

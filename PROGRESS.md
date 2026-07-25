@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | WebGL2 + shared context done (v2.7–v2.9); **constant-dot-size density model + 3 size tiers** done (v3.1–v3.3). Next: `idle` — the motion system |
-| **Last commit** | `a9ebd51` — v3.3 - Drive demo pose from size tier and widen pill head range |
+| **Step** | **Voxel-lattice rewrite done** (v3.5–v3.7) — the render model is now grid-based. Next: `idle` — the motion system |
+| **Last commit** | `bccccf7` — v3.7 - Switch region intensity to albedo and drive definition from light and occlusion |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
@@ -217,6 +217,59 @@ target, because the cloud must be large enough to eliminate down to 3200. Accept
 it is a tuning-time cost only, `useDeferredValue` keeps the sliders responsive, and the shipped
 package will consume a **baked** point set with zero generation at runtime. The `candidates`
 slider trades cloud quality for speed if it becomes annoying.
+
+### Voxel-lattice rewrite (v3.5–v3.7) — the current render model
+
+Justin's reference imagery (dense voxel/cube heads, I, Robot-style) made the problem clear:
+in all of it the particles sit on a **regular lattice**, tiling the surface contiguously.
+Scattered points cannot produce that however carefully spaced — the legibility comes from
+neighbouring cells lining up in rows, which is exactly what blue noise destroys. So sampling
+was replaced wholesale.
+
+- **`voxel.ts` — hierarchical narrow-band surface voxelisation.** Refines power-of-two
+  *blocks of the target lattice*, halving to single cells. Cost is O(surface area), not
+  O(volume). The field is a true SDF hence 1-Lipschitz, so the `|sdf| <= side·sqrt(3)/2`
+  test is conservative and cannot miss geometry. A final tighter pass (0.58·cell) trims the
+  shell from ~2 cells thick to one.
+  - **Refinement must work in target-lattice indices.** An earlier version chained
+    intermediate resolutions (8→16→32→48); the last step's factor rounds, children get
+    addressed on a 64-lattice while evaluated as 48, and **every cell is pruned — res 48
+    produced 0 particles.**
+  - Also fixed here: the subdivision built `nextCount` children but the prune ran over the
+    stale `cellCount`, silently processing 1/8 of them.
+- **`sample.ts` is deleted.** Blue-noise elimination, progressive ordering and feature-tier
+  promotion are all gone — the lattice makes them unnecessary. Density is chosen by picking
+  a resolution, not by truncating an ordering.
+- **Features are lattice *tags*, not extra particles** (`landmarks.ts`). Adding points for
+  eyes would break uniform spacing, which is the one rule the model rests on. Anchors
+  classify cells that already exist.
+- **LOD via `HeadModel`.** Eight resolutions (12…136, ~1.4× apart), built lazily and cached.
+  `levelForSize` picks the level whose cells land near `TARGET_CELL_CSS` (1.6 CSS px) on
+  screen — this is what holds particle size constant while head size varies. Close spacing
+  matters: the gap between levels is the most a particle's screen size can drift.
+- **Particles are squares that tile their cell** (`CELL_FILL = 0.82`, leaving a hairline
+  seam). Round particles read as scattered dots no matter how dense; square is what makes
+  the grid read as structure.
+- **`REGION_INTENSITY` is now albedo, and features are *darker* than skin.** The old table
+  painted eyes at full brightness against dimmed skin — a crutch from when eyes were a few
+  scattered dots with no geometry behind them. Against carved sockets plus occlusion it
+  showed up as glaring white patches exactly where sockets should read dark. The sculpt
+  flattening (`sculptT`/`SCULPT_UNIFORM_ALPHA`/`FEATURE_FLATTEN_RATIO`) existed only to
+  reconcile those two models and is deleted.
+- **Contrast:** `AMBIENT` 0.28→0.10, `OCCLUSION_FLOOR` 0.4→0.08, occlusion squared to
+  sharpen, default lighting 0.95. A generous ambient flattens the head into a uniform bright
+  mass; recesses must go genuinely dark for the form to read.
+
+**Measured.** Draw: **0.03 ms/frame at 39,004 particles** (256px) — instancing plus the
+depth buffer make particle count nearly free, so the size ladder costs almost nothing.
+Generation is lazy and cached: 2.4 ms at r12, 9.8 ms at r34 (the common inline levels),
+88 ms at r136 — paid once, and only if a display-size head is actually shown.
+Ladder: 20px→r12/300 cells, 32px→r24/1192, 48px→r34/2422, 96px→r68/9806, 256px→r136/39004.
+
+**Research inputs** (see `docs/research-notes.md`): variance/detail-adaptive voxel grids for
+LOD ("resolution where it counts"), and hierarchical rasterisation-style voxelisation.
+Licensed parametric head models (FLAME/BFM) were re-checked and rejected: registration,
+attribution and a binary asset all conflict with the MIT/zero-asset constraints.
 
 ### Demo design language — established, do not flatten
 
