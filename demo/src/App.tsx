@@ -11,6 +11,24 @@ import { useSpotlight } from "./useSpotlight.js";
 const MODALITY_OPTIONS = ["none", "text", "audio", "vision"] as const;
 type ModalityOption = (typeof MODALITY_OPTIONS)[number];
 
+/** Present-participle copy for the inline sample, so the label matches what the state is doing. */
+const INLINE_COPY: Record<ThinkingHeadState, string> = {
+  idle: "Waiting for you",
+  listening: "Listening",
+  reading: "Reading the context",
+  thinking: "Thinking through the request",
+  searching: "Searching",
+  executing: "Running a tool",
+  generating: "Generating a response",
+  reviewing: "Reviewing the answer",
+  error: "Something went wrong",
+  done: "Done",
+};
+
+function inlineCopyForState(state: ThinkingHeadState): string {
+  return INLINE_COPY[state];
+}
+
 /** Head colour per modality accent. Mirrors the CSS accent so the head matches the page. */
 const MODALITY_COLOR: Record<ModalityOption, string> = {
   none: "#ffffff",
@@ -25,6 +43,10 @@ export function App() {
   const [modality, setModality] = useState<ModalityOption>("none");
   const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
   const [backend, setBackend] = useState<RenderBackend | null>(null);
+  // The pill the user has clicked; drives the inline sample and the orbit head. Until every
+  // state has its own motion this only changes the labels — but it's the wiring the state
+  // milestones need in place, so building it here makes each future state a one-line change.
+  const [activeState, setActiveState] = useState<ThinkingHeadState>("thinking");
 
   // Stable so it does not retrigger every instance's renderer effect on each render.
   const onBackend = useCallback((next: RenderBackend) => setBackend(next), []);
@@ -181,7 +203,7 @@ export function App() {
           <div className="transcript glass">
             <div className="transcript-row">
               <HeadSlot
-                state="thinking"
+                state={activeState}
                 size={size}
                 model={model}
                 camera={camera}
@@ -191,7 +213,7 @@ export function App() {
                 onBackend={onBackend}
               />
               <span className="transcript-text">
-                Thinking through the request
+                {inlineCopyForState(activeState)}
                 <span className="ellipsis" aria-hidden="true">
                   <i />
                   <i />
@@ -210,33 +232,39 @@ export function App() {
               <p className="section-note">
                 Every universal-verb state, presented the way AI products actually surface status:
                 head beside a shimmering label. Each will be a continuous loop, never a one-shot.
-                Hover a pill for the state's intended expression.
+                <strong> Click a pill</strong> to drive the inline sample and the orbit head below —
+                right now every state shares the tuned <code>idle</code> motion until its own
+                milestone lands, so the state name updates but the animation is the same.
               </p>
             </div>
           </div>
 
-          <ul className="pills">
+          <ul className="pills" aria-label="Thinking head states">
             {THINKING_HEAD_STATES.map((state: ThinkingHeadState, index) => {
               const label = `${state.charAt(0).toUpperCase()}${state.slice(1)}…`;
+              const active = state === activeState;
               return (
-                <li
-                  className="pill glass"
-                  key={state}
-                  title={`${STATE_NOTES[state].when} — ${STATE_NOTES[state].expression}`}
-                  style={{ "--delay": `${index * 45}ms` } as React.CSSProperties}
-                >
-                  <HeadSlot
-                    state={state}
-                    size={pillHeadSize}
-                    model={model}
-                    camera={camera}
-                    style={style}
-                    targetCellCss={targetCellCss}
-                    speed={speed}
-                  />
-                  <span className="shimmer" data-text={label}>
-                    {label}
-                  </span>
+                <li key={state} style={{ "--delay": `${index * 45}ms` } as React.CSSProperties}>
+                  <button
+                    type="button"
+                    className={`pill glass${active ? " pill--active" : ""}`}
+                    onClick={() => setActiveState(state)}
+                    aria-pressed={active}
+                    title={`${STATE_NOTES[state].when} — ${STATE_NOTES[state].expression}`}
+                  >
+                    <HeadSlot
+                      state={state}
+                      size={pillHeadSize}
+                      model={model}
+                      camera={camera}
+                      style={style}
+                      targetCellCss={targetCellCss}
+                      speed={speed}
+                    />
+                    <span className="shimmer" data-text={label}>
+                      {label}
+                    </span>
+                  </button>
                 </li>
               );
             })}
@@ -256,9 +284,9 @@ export function App() {
           </div>
 
           <div className="stage glass">
-            <span className="stage-plate">awaiting renderer</span>
+            <span className="stage-plate">{`state · ${activeState}`}</span>
             <HeadSlot
-              state="idle"
+              state={activeState}
               size={320}
               model={model}
               camera={camera}
