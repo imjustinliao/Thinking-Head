@@ -16,7 +16,6 @@ export {
   DEFAULT_GENERATE_OPTIONS,
   type GenerateOptions,
   generateHead,
-  particleCountForSize,
 } from "./core/geometry.js";
 export {
   DEFAULT_FEATURE_PARAMS,
@@ -36,6 +35,16 @@ export {
   detectBackend,
   type RenderBackend,
 } from "./core/render/createRenderer.js";
+export {
+  COMPACT_MAX_SIZE,
+  DOT_RADIUS_CSS,
+  GLYPH_MAX_SIZE,
+  PARTICLE_DENSITY,
+  particleCountForSize,
+  resolveTier,
+  type SizeTier,
+  type TierName,
+} from "./core/render/shading.js";
 export {
   type Camera,
   DEFAULT_CAMERA,

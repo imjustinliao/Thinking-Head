@@ -35,8 +35,8 @@ export interface GenerateOptions {
 export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
   head: DEFAULT_HEAD_PARAMS,
   features: DEFAULT_FEATURE_PARAMS,
-  candidates: 15000,
-  maxParticles: 1800,
+  candidates: 26000,
+  maxParticles: 3200,
   rimBoost: 1.1,
   seed: 20260724,
 };
@@ -207,22 +207,4 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
   };
   validatePointSet(set);
   return set;
-}
-
-/**
- * Particle count for a rendered size. A design legible at 64px is not the same design at 20px,
- * so density is a function of pixel size rather than a constant — and because the ordering is
- * progressive, honouring it costs nothing but a smaller draw count.
- */
-export function particleCountForSize(
-  pixelSize: number,
-  maxParticles: number,
-  minParticles = 36,
-): number {
-  // Superlinear, so small sizes sit near the floor. Strict area scaling (exponent 2) would leave a
-  // 20px head with under a dozen particles; this keeps dots getting chunkier as the head shrinks,
-  // which is the whole reason a 64px design is not the same design at 20px.
-  const t = Math.min(1, Math.max(0, (pixelSize - 16) / (256 - 16)));
-  const eased = t ** 1.6;
-  return Math.round(minParticles + eased * (maxParticles - minParticles));
 }
