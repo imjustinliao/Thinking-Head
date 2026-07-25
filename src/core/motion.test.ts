@@ -5,6 +5,7 @@ import {
   normalDisplacement,
   STATE_MOTION,
   STILL_MOTION,
+  shimmerMultiplier,
   swayOffsets,
 } from "./motion.js";
 import { THINKING_HEAD_STATES } from "./states.js";
@@ -80,6 +81,55 @@ describe("continuous motion", () => {
       const m = STATE_MOTION[state];
       expect(m, `${state} has no motion`).toBeDefined();
       expect(m.breathAmplitude + m.waveAmplitude + m.jitterAmplitude).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("brightness shimmer", () => {
+  // Regression guard for a real bug: positional amplitudes are in lattice-cell units, and the
+  // LOD system holds a cell to a near-constant on-screen size (~1.6px). That makes even a
+  // generous positional amplitude a sub-pixel wobble at small and mid sizes — invisible in
+  // practice, which is exactly what a first render of `idle` showed. Brightness has no such
+  // floor, which is why every state's motion must carry a non-zero shimmer term.
+  test("every state has a non-zero shimmer amplitude", () => {
+    for (const state of THINKING_HEAD_STATES) {
+      expect(STATE_MOTION[state].shimmerAmplitude, `${state} has no shimmer`).toBeGreaterThan(0);
+    }
+  });
+
+  test("swings brightness both above and below neutral over time", () => {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (let t = 0; t < 20; t += 0.2) {
+      const v = shimmerMultiplier(0.2, 0.1, 0.4, t, IDLE_MOTION);
+      min = Math.min(min, v);
+      max = Math.max(max, v);
+    }
+    expect(min).toBeLessThan(1);
+    expect(max).toBeGreaterThan(1);
+  });
+
+  test("is centred on 1 so it never resets the region albedo baseline", () => {
+    let sum = 0;
+    let n = 0;
+    for (let t = 0; t < 40; t += 0.5) {
+      sum += shimmerMultiplier(0.1, -0.2, 0.3, t, IDLE_MOTION);
+      n++;
+    }
+    expect(sum / n).toBeCloseTo(1, 1);
+  });
+
+  test("still motion has no shimmer", () => {
+    for (const t of [0, 5, 12.3]) {
+      expect(shimmerMultiplier(0.2, 0.1, 0.4, t, STILL_MOTION)).toBe(1);
+    }
+  });
+
+  test("has no perceptible loop point, independent of the positional wave's period", () => {
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, IDLE_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 2.5, 5, 10, 15, 20, 30]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
     }
   });
 });

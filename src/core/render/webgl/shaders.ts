@@ -59,6 +59,9 @@ uniform float u_waveScale;
 uniform float u_waveSpeed;
 uniform float u_jitterAmplitude;
 uniform float u_jitterSpeed;
+uniform float u_shimmerAmplitude;
+uniform float u_shimmerScale;
+uniform float u_shimmerSpeed;
 
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
@@ -85,6 +88,17 @@ float normalDisplacement(vec3 p, float t) {
   return u_breathAmplitude * breath +
          u_waveAmplitude * (waveA + waveB * 0.6) +
          u_jitterAmplitude * jitter;
+}
+
+/**
+ * Brightness multiplier, centred on 1. Verbatim reimplementation of shimmerMultiplier() in
+ * motion.ts — the primary carrier of "alive" perception at inline sizes, where positional
+ * displacement is sub-pixel by construction (amplitudes are in cell units, and the LOD system
+ * holds a cell to a near-constant on-screen size).
+ */
+float shimmerMultiplier(vec3 p, float t) {
+  float band = sin((p.x * 0.7 + p.y - p.z * 0.4) * u_shimmerScale + t * u_shimmerSpeed);
+  return 1.0 + u_shimmerAmplitude * band;
 }
 
 void main() {
@@ -140,8 +154,10 @@ void main() {
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = (u_distance - p.z) / (u_distance + u_boundRadius);
 
+  float shimmer = shimmerMultiplier(rest, u_time);
+
   v_brightness =
-    baseAlpha * shade *
+    baseAlpha * shade * shimmer *
     mix(u_glyphSkinAlpha, 1.0, isFeature) *
     (1.0 - backness * u_backfaceDim) *
     (1.0 - min(1.0, depthT) * u_depthDim);

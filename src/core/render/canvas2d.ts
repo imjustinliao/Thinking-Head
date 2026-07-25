@@ -1,4 +1,4 @@
-import { normalDisplacement, swayOffsets } from "../motion.js";
+import { normalDisplacement, shimmerMultiplier, swayOffsets } from "../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
 import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "./shading.js";
@@ -143,11 +143,16 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         // Material albedo for the region; lighting and occlusion do the modelling.
         const baseAlpha = intensityOf(region);
 
+        // Brightness ripple: the primary carrier of "alive" perception at inline sizes, where
+        // positional displacement is sub-pixel by construction (see shimmerAmplitude's doc).
+        const shimmer = shimmerMultiplier(rx0, ry0, rz0, frame.time, frame.motion);
+
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
         const depthT = (b.distance - rz) / (b.distance + radius);
         const alpha =
           baseAlpha *
           shade *
+          shimmer *
           (feature ? 1 : glyphSkinAlpha) *
           (1 - backness * style.backfaceDim) *
           (1 - Math.min(1, depthT) * style.depthDim);

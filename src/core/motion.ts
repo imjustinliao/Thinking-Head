@@ -33,6 +33,22 @@ export interface MotionParams {
   jitterAmplitude: number;
   jitterSpeed: number;
 
+  /**
+   * Brightness ripple across the surface, as a fraction of a particle's shaded brightness (0.22
+   * means the lit/dim swing is up to ±22%).
+   *
+   * This carries "alive" perception at small and mid sizes, where positional displacement
+   * cannot: amplitude there is in lattice-cell units, and the LOD system holds a cell to
+   * roughly a constant on-screen size (~1.6px), so even a generous positional amplitude is a
+   * sub-pixel wobble — invisible regardless of tuning, short of moving particles out of their
+   * tiled cells and breaking the voxel grid. A brightness ripple has no such floor: it reads at
+   * any particle size because it changes colour, not position.
+   */
+  shimmerAmplitude: number;
+  /** Spatial frequency of the shimmer band. Low keeps it a single sweeping highlight. */
+  shimmerScale: number;
+  shimmerSpeed: number;
+
   /** Slow whole-head sway, in radians, applied to the camera rather than the particles. */
   swayYaw: number;
   swayPitch: number;
@@ -47,6 +63,9 @@ export const STILL_MOTION: MotionParams = {
   waveSpeed: 0,
   jitterAmplitude: 0,
   jitterSpeed: 0,
+  shimmerAmplitude: 0,
+  shimmerScale: 0,
+  shimmerSpeed: 0,
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
@@ -58,18 +77,23 @@ export const STILL_MOTION: MotionParams = {
  * looking frozen.
  */
 export const IDLE_MOTION: MotionParams = {
-  breathAmplitude: 0.34,
+  breathAmplitude: 0.55,
   breathSpeed: 0.55,
 
-  waveAmplitude: 0.28,
+  waveAmplitude: 0.45,
   waveScale: 2.1,
   waveSpeed: 0.37,
 
-  jitterAmplitude: 0.1,
+  jitterAmplitude: 0.16,
   jitterSpeed: 1.9,
 
-  swayYaw: 0.055,
-  swayPitch: 0.022,
+  // The primary carrier of "alive" at inline sizes — see the field comment on shimmerAmplitude.
+  shimmerAmplitude: 0.4,
+  shimmerScale: 2.6,
+  shimmerSpeed: 0.42,
+
+  swayYaw: 0.07,
+  swayPitch: 0.028,
   swaySpeed: 0.23,
 };
 
@@ -127,6 +151,28 @@ export function normalDisplacement(
     m.waveAmplitude * (waveA + waveB * 0.6) +
     m.jitterAmplitude * jitter
   );
+}
+
+/**
+ * Brightness multiplier for a particle at a moment in time, centred on 1.
+ *
+ * A single low-frequency travelling band, deliberately at different spatial/temporal rates
+ * from the positional wave so the two never lock into the same visual rhythm. This is what
+ * makes a state look alive independent of particle size — see the field comment on
+ * `shimmerAmplitude` for why position alone cannot do this job.
+ *
+ * The Canvas 2D backend calls this directly. The WebGL vertex shader reimplements it verbatim —
+ * the two must stay in step, so any change here needs the same change in `shaders.ts`.
+ */
+export function shimmerMultiplier(
+  px: number,
+  py: number,
+  pz: number,
+  time: number,
+  m: MotionParams,
+): number {
+  const band = Math.sin((px * 0.7 + py - pz * 0.4) * m.shimmerScale + time * m.shimmerSpeed);
+  return 1 + m.shimmerAmplitude * band;
 }
 
 /** Camera sway offsets for a moment in time. Applied to the camera, not to each particle. */
