@@ -49,6 +49,17 @@ uniform vec3 u_light;
 uniform float u_ambient;
 uniform float u_occlusionFloor;
 
+// Continuous motion. Amplitudes are in lattice cell units.
+uniform float u_time;
+uniform float u_cellSize;
+uniform float u_breathAmplitude;
+uniform float u_breathSpeed;
+uniform float u_waveAmplitude;
+uniform float u_waveScale;
+uniform float u_waveSpeed;
+uniform float u_jitterAmplitude;
+uniform float u_jitterSpeed;
+
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
 uniform float u_regionDrawScale[${REGION_COUNT}];
@@ -58,10 +69,31 @@ out vec2 v_corner;
 out float v_brightness;
 out float v_radiusPx;
 
+const float PHI = 1.6180339887;
+const float SQRT2 = 1.4142135624;
+
+/**
+ * Normal displacement in cell units. This is a verbatim reimplementation of
+ * normalDisplacement() in motion.ts — the two backends must agree exactly, so any change to
+ * one needs the same change to the other.
+ */
+float normalDisplacement(vec3 p, float t) {
+  float breath = sin(t * u_breathSpeed);
+  float waveA = sin((p.x + p.y * 0.6) * u_waveScale + t * u_waveSpeed);
+  float waveB = sin((p.z * PHI - p.y) * u_waveScale * 0.83 + t * u_waveSpeed * SQRT2);
+  float jitter = sin((p.x * 31.7 + p.y * 47.3 + p.z * 23.1) * 2.0 + t * u_jitterSpeed);
+  return u_breathAmplitude * breath +
+         u_waveAmplitude * (waveA + waveB * 0.6) +
+         u_jitterAmplitude * jitter;
+}
+
 void main() {
   v_corner = a_corner;
 
-  vec3 p = u_rot * (a_position - u_center);
+  vec3 rest = a_position - u_center;
+  // Displace along the normal so the surface swells and ripples without particles leaving it.
+  float disp = normalDisplacement(rest, u_time) * u_cellSize;
+  vec3 p = u_rot * (rest + a_normal * disp);
   float viewZ = u_distance - p.z;
 
   vec3 n = u_rot * a_normal;

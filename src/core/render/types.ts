@@ -1,3 +1,4 @@
+import type { MotionParams } from "../motion.js";
 import type { HeadPointSet } from "../pointset.js";
 
 /**
@@ -70,6 +71,10 @@ export const DEFAULT_STYLE: RenderStyle = {
 
 export interface RenderFrame {
   pointSet: HeadPointSet;
+  /** Seconds from the shared clock. Drives all continuous motion. */
+  time: number;
+  /** Motion parameters for the current state. */
+  motion: MotionParams;
   /** How many particles of the progressive ordering to draw. */
   count: number;
   camera: Camera;

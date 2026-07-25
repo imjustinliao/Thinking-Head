@@ -12,6 +12,7 @@
  * bake script will use the same entry.
  */
 
+export { clockState, clockTime, resetClock, subscribeToClock } from "./core/clock.js";
 export {
   DEFAULT_GENERATE_OPTIONS,
   type GenerateOptions,
@@ -23,6 +24,14 @@ export {
   DEFAULT_FEATURE_PARAMS,
   type FeatureParams,
 } from "./core/landmarks.js";
+export {
+  IDLE_MOTION,
+  type MotionParams,
+  normalDisplacement,
+  STATE_MOTION,
+  STILL_MOTION,
+  swayOffsets,
+} from "./core/motion.js";
 export type { HeadPointSet } from "./core/pointset.js";
 export { validatePointSet } from "./core/pointset.js";
 export {

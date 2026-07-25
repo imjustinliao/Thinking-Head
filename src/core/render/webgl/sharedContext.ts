@@ -1,3 +1,4 @@
+import { swayOffsets } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
 import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "../shading.js";
@@ -137,6 +138,15 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_occlusionFloor",
     "u_color",
     "u_square",
+    "u_time",
+    "u_cellSize",
+    "u_breathAmplitude",
+    "u_breathSpeed",
+    "u_waveAmplitude",
+    "u_waveScale",
+    "u_waveSpeed",
+    "u_jitterAmplitude",
+    "u_jitterSpeed",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
     "u_regionFeature[0]",
@@ -344,8 +354,9 @@ class SharedGL implements SharedGLRenderer {
     gl.scissor(0, yOffset, devicePixels, devicePixels);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const { pointSet, style, camera } = frame;
-    const b = cameraBasis(camera);
+    const { pointSet, style, camera, motion } = frame;
+    const sway = swayOffsets(frame.time, motion);
+    const b = cameraBasis(camera, sway.yaw, sway.pitch);
     const boundRadius = pointSet.radius || 1;
     const shading = deriveShading(cssSize, devicePixels, pointSet.cellSize, style, boundRadius);
 
@@ -397,6 +408,15 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_occlusionFloor, OCCLUSION_FLOOR);
     gl.uniform3fv(u.u_color, this.color);
     gl.uniform1f(u.u_square, style.shape === "square" ? 1 : 0);
+    gl.uniform1f(u.u_time, frame.time);
+    gl.uniform1f(u.u_cellSize, pointSet.cellSize);
+    gl.uniform1f(u.u_breathAmplitude, motion.breathAmplitude);
+    gl.uniform1f(u.u_breathSpeed, motion.breathSpeed);
+    gl.uniform1f(u.u_waveAmplitude, motion.waveAmplitude);
+    gl.uniform1f(u.u_waveScale, motion.waveScale);
+    gl.uniform1f(u.u_waveSpeed, motion.waveSpeed);
+    gl.uniform1f(u.u_jitterAmplitude, motion.jitterAmplitude);
+    gl.uniform1f(u.u_jitterSpeed, motion.jitterSpeed);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);

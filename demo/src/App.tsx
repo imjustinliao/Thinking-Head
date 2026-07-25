@@ -187,6 +187,7 @@ export function App() {
                 camera={camera}
                 style={style}
                 targetCellCss={targetCellCss}
+                speed={speed}
                 onBackend={onBackend}
               />
               <span className="transcript-text">
@@ -231,6 +232,7 @@ export function App() {
                     camera={camera}
                     style={style}
                     targetCellCss={targetCellCss}
+                    speed={speed}
                   />
                   <span className="shimmer" data-text={label}>
                     {label}
@@ -262,6 +264,7 @@ export function App() {
               camera={camera}
               style={style}
               targetCellCss={targetCellCss}
+              speed={speed}
             />
           </div>
         </section>

@@ -27,12 +27,18 @@ const basis: CameraBasis = {
   focal: 1,
 };
 
-/** Fills and returns a shared basis. Reused every frame — never allocates. */
-export function cameraBasis(camera: Camera): CameraBasis {
-  basis.cosYaw = Math.cos(camera.yaw);
-  basis.sinYaw = Math.sin(camera.yaw);
-  basis.cosPitch = Math.cos(camera.pitch);
-  basis.sinPitch = Math.sin(camera.pitch);
+/**
+ * Fills and returns a shared basis. Reused every frame — never allocates.
+ *
+ * Sway is folded in here rather than displacing particles: rotating the head as a rigid body is
+ * two extra trig calls for the whole frame, where a per-particle equivalent would cost the same
+ * work thousands of times over and still not look like a head turning.
+ */
+export function cameraBasis(camera: Camera, swayYaw = 0, swayPitch = 0): CameraBasis {
+  basis.cosYaw = Math.cos(camera.yaw + swayYaw);
+  basis.sinYaw = Math.sin(camera.yaw + swayYaw);
+  basis.cosPitch = Math.cos(camera.pitch + swayPitch);
+  basis.sinPitch = Math.sin(camera.pitch + swayPitch);
   basis.distance = camera.distance;
   basis.focal = 1 / Math.tan(camera.fov / 2);
   return basis;

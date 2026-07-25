@@ -1,3 +1,4 @@
+import { normalDisplacement, swayOffsets } from "../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
 import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "./shading.js";
@@ -68,8 +69,11 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
       ensureCapacity(count);
 
-      const b = cameraBasis(frame.camera);
+      const sway = swayOffsets(frame.time, frame.motion);
+      const b = cameraBasis(frame.camera, sway.yaw, sway.pitch);
       const { positions, normals, center, occlusion } = pointSet;
+      // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
+      const cell = pointSet.cellSize;
       const radius = pointSet.radius || 1;
       const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
@@ -81,9 +85,20 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       for (let i = 0; i < count; i++) {
         // Centred on the measured geometry centre, so asymmetric tuning does not shift the head
         // off the canvas.
-        const px = positions[i * 3] - center.x;
-        const py = positions[i * 3 + 1] - center.y;
-        const pz = positions[i * 3 + 2] - center.z;
+        const rx0 = positions[i * 3] - center.x;
+        const ry0 = positions[i * 3 + 1] - center.y;
+        const rz0 = positions[i * 3 + 2] - center.z;
+
+        const nx = normals[i * 3];
+        const ny = normals[i * 3 + 1];
+        const nz = normals[i * 3 + 2];
+
+        // Continuous motion: displace along the normal so the surface swells and ripples
+        // without particles leaving it.
+        const disp = normalDisplacement(rx0, ry0, rz0, frame.time, frame.motion) * cell;
+        const px = rx0 + nx * disp;
+        const py = ry0 + ny * disp;
+        const pz = rz0 + nz * disp;
 
         // Yaw about y, then pitch about x.
         const rx = px * b.cosYaw + pz * b.sinYaw;
@@ -95,9 +110,6 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         if (viewZ <= 0.05) continue;
 
         // Facing: the rotated normal's z against the view direction.
-        const nx = normals[i * 3];
-        const ny = normals[i * 3 + 1];
-        const nz = normals[i * 3 + 2];
         const nzYaw = -nx * b.sinYaw + nz * b.cosYaw;
         const facing = ny * b.sinPitch + nzYaw * b.cosPitch;
 
