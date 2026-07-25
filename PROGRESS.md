@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | Scaffolding complete. Next up: plan mode for the first renderer milestone |
-| **Last commit** | `1b64ce5` — v0.9 - Restyle demo as high-contrast liquid glass observatory with animated lighting |
+| **Step** | Static head rendering **complete**. Next: WebGL2 renderer + shared context, then `idle` |
+| **Last commit** | `c9649e0` — v1.6 - Render live head in demo with full geometry tuning panel |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's go-ahead on the static-head plan |
+| **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
 ---
 
@@ -39,6 +39,48 @@ Updated at every session and step boundary.
   non-functional Phase 2 photo-upload placeholder. Size and speed controls are wired.
   `HeadSlot` is a placeholder that reserves exactly the space the real head will occupy,
   so swapping in the component is a one-line change per call site.
+
+### Static head rendering milestone (v1.1–v1.6)
+
+The geometry pipeline is built and a real head renders in the demo, live-tunable.
+`docs/research-notes.md` §5 and `CLAUDE.md` §5 hold the reasoning; this records what was
+learned building it.
+
+- **Pipeline:** `sdf.ts` (smooth-min union of quadrics) → `sample.ts` (shell rejection,
+  Newton projection, weighted progressive elimination) → `landmarks.ts` (explicit eye,
+  brow, mouth clusters) → `geometry.ts` → tagged point set → `render/canvas2d.ts`.
+- **Generator is dev-only.** It lives in `src/core/` but is reachable only from
+  `src/dev.ts`, which is absent from `package.json` exports. Verified: `dist/index.js` is
+  still 0.59 kB and contains no generator code. The package will ship a **baked** point
+  set; the runtime consumes a point set either way, which is what keeps Phase 2 compatible.
+- **Ordering is done in two passes, and this is not optional.** A single elimination down
+  to the target picks *which* particles survive but leaves them in arbitrary index order —
+  and since feature clusters are appended to the cloud last, every eye and brow landed at
+  the *end* of the output, breaking small-size legibility outright. Selection and ordering
+  are separate problems. The `geometry.test.ts` legibility tests exist to catch exactly
+  this regression.
+- **The ordering pass runs in octaves.** Halve the set, grow the radius, repeat. One fixed
+  radius cannot work: sized for the dense end the sparse end finds no neighbours and the
+  first few dozen particles end up arbitrarily ordered; sized for the sparse end it
+  degenerates to all-pairs and measured **81ms**. Octaves brought it to **~30ms**.
+- **Normals come back from the projection**, not from a separate `sdHeadNormal` call — the
+  gradient computed on the final Newton iteration *is* the normal, and asking again cost six
+  redundant field evaluations per particle.
+- **Particle radius derives from spacing** (`device / sqrt(count)`), not canvas size. A
+  size-only radius made dense heads overlap into one solid white silhouette with no face.
+- **Framing uses measured centre and radius** from the actual points, stored on the point
+  set. Deriving it from the bounding-box corner rendered the head far too small, and not
+  re-centring let asymmetric tuning shove it off-canvas.
+- **`REGION_INTENSITY` gives the face internal structure.** With every region at one
+  intensity the eyes vanish into the cheeks and only the outline reads. Structural surface
+  is dimmed, features stay bright.
+- **Density curve is superlinear** (`t ** 1.6`). An exponent below 1 put 115 particles on a
+  20px head; strict area scaling (2) would put under a dozen. Current curve: 46 particles
+  at 20px through 1400 at 256px, with dot radius drifting 0.88px → 2.05px.
+
+Shape defaults are a first pass and expected to move — that is what the tuning panel is
+for. `smoothK` is the biggest single charm lever; a large value dissolves the jaw and the
+head loses its chin.
 
 ### Demo design language — established, do not flatten
 
@@ -85,17 +127,22 @@ replace it with defaults.
 
 ## Next
 
-1. **Plan mode → Justin's go-ahead → first renderer milestone: one static head
-   rendering.** Scope: the SDF head generator, blue-noise feature-weighted sampling into
-   the tagged point set, the WebGL2 instanced-quad renderer, and the shared-context
-   manager. No animation yet.
-2. Then `idle` state (first continuous motion + the noise/sinusoid motion system).
-3. Then the remaining nine states one at a time, with a check-in after each.
-4. The React wrapper and the `./react` subpath export — currently `package.json` exports
-   only `.`; add the subpath when the wrapper lands.
-5. Phase 2 architecture doc (`ROADMAP.md`) once the Phase 1 data format is stable — flag
-   Justin when we reach that point.
-6. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+1. **Justin tunes the head's shape** in the demo panel and confirms the silhouette before
+   more is built on top of it.
+2. **WebGL2 renderer + shared single-context manager.** Implements the same
+   `HeadRenderer` interface as `render/canvas2d.ts`, so this is a factory swap. Instanced
+   billboard quads, one draw call, explicit context release, `webglcontextlost` handling.
+   The Canvas 2D path stays as the no-WebGL and reduced-motion fallback.
+3. Then `idle` (first continuous motion — 4D noise plus incommensurate sinusoids).
+4. Then the remaining nine states one at a time, with a check-in after each.
+5. The React wrapper and the `./react` subpath export — currently `package.json` exports
+   only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
+   `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
+6. Bake the tuned point set into a committed artifact once the shape is locked, and drop
+   the generator from the runtime path entirely.
+7. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+   unblocked whenever Justin wants it.
+8. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
