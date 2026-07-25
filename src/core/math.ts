@@ -85,15 +85,3 @@ export function sdEllipsoid(
   const k1 = Math.sqrt(jx * jx + jy * jy + jz * jz);
   return (k0 * (k0 - 1)) / k1;
 }
-
-/**
- * Golden-angle spiral over the unit disc. Deterministic and near-blue-noise without needing
- * elimination, which is why the facial feature clusters use it directly — a nine-particle eye
- * has no room for a stochastic process to get unlucky.
- */
-export function sunflowerDisc(index: number, count: number): { x: number; y: number } {
-  const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-  const r = Math.sqrt((index + 0.5) / count);
-  const theta = index * GOLDEN_ANGLE;
-  return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
-}

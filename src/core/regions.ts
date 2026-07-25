@@ -52,24 +52,27 @@ export const REGION_PRIORITY: Record<RegionName, number> = {
 };
 
 /**
- * Per-region render intensity.
+ * Per-region albedo — how reflective the material is, not how bright to paint it.
  *
- * Without this the head draws as a single-value silhouette: the skin surface and the feature
- * clusters are the same colour, so the eyes vanish into the cheeks and only the outline reads.
- * Dimming the structural surface and leaving features at full strength is what gives the face
- * internal structure — the same trick as a portrait lighting the eyes and letting the cheek fall
- * off. The rig will later modulate these per state.
+ * Features are *darker* than skin, which is how a real face works: eyes sit in shadowed sockets,
+ * brows are hair, lips are a recessed line. An earlier version had this inverted, painting
+ * features at full brightness against dimmed skin, which was the only way to make eyes visible
+ * back when they were a handful of scattered dots with no geometry behind them. With carved
+ * sockets and baked occlusion doing that job, painting eyes bright fights the sculpt — it shows
+ * up as glaring white patches where the sockets should be reading dark.
+ *
+ * The rig will modulate these per state.
  */
 export const REGION_INTENSITY: Record<RegionName, number> = {
-  eyeL: 1,
-  eyeR: 1,
-  browL: 0.95,
-  browR: 0.95,
-  mouth: 0.95,
-  nose: 0.78,
-  cheek: 0.48,
-  jaw: 0.5,
-  cranium: 0.44,
+  eyeL: 0.5,
+  eyeR: 0.5,
+  browL: 0.62,
+  browR: 0.62,
+  mouth: 0.66,
+  nose: 1,
+  cheek: 1,
+  jaw: 1,
+  cranium: 1,
 };
 
 /**

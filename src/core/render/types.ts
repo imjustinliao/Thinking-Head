@@ -23,9 +23,16 @@ export const DEFAULT_CAMERA: Camera = {
   fov: 0.62,
 };
 
+/**
+ * Square reads as a voxel surface — neighbouring cells meet edge to edge and the lattice becomes
+ * visible as structure. Round particles always read as scattered dots however densely packed.
+ */
+export type ParticleShape = "square" | "disc";
+
 export interface RenderStyle {
   /** Particle fill, as CSS colour for the 2D backend. */
   color: string;
+  shape: ParticleShape;
   /** Particle radius in pixels at the reference size, scaled with rendered size. */
   particleScale: number;
   /**
@@ -52,12 +59,13 @@ export interface RenderStyle {
 
 export const DEFAULT_STYLE: RenderStyle = {
   color: "#ffffff",
+  shape: "square",
   particleScale: 1,
   // High: particles on the far side of the head must not paint over the face.
   backfaceDim: 0.88,
   depthDim: 0.35,
   featureBoost: 0,
-  lighting: 0.75,
+  lighting: 0.95,
 };
 
 export interface RenderFrame {

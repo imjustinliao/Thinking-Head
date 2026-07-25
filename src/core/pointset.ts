@@ -7,8 +7,8 @@
  * once against that topology, server-side and offline, and reused for every user. This format
  * therefore does not need to change to support personalised heads.
  *
- * Particle order is significant: it is a progressive blue-noise ordering, so the first N
- * entries are a valid lower-density head for any N. Never reorder these arrays.
+ * Particles sit on a regular lattice — see voxel.ts for why that rather than blue noise. Order
+ * is not significant; density is chosen by picking a lattice resolution, not by truncating.
  */
 export interface HeadPointSet {
   /** Rest position per particle, xyz interleaved. Length `3 * count`. */
@@ -35,6 +35,13 @@ export interface HeadPointSet {
    */
   occlusion: Float32Array;
   count: number;
+  /**
+   * Object-space edge length of one lattice cell. The renderer sizes particles to tile this, so
+   * the grid reads as a contiguous voxel surface rather than scattered dots.
+   */
+  cellSize: number;
+  /** Lattice resolution this level was built at. */
+  resolution: number;
   /** Axis-aligned half-extents of the actual generated points. */
   bounds: { x: number; y: number; z: number };
   /**
@@ -60,6 +67,8 @@ export function emptyPointSet(): HeadPointSet {
     weight: new Float32Array(0),
     occlusion: new Float32Array(0),
     count: 0,
+    cellSize: 0,
+    resolution: 0,
     bounds: { x: 0, y: 0, z: 0 },
     center: { x: 0, y: 0, z: 0 },
     radius: 0,

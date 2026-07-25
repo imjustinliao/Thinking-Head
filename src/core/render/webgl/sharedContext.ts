@@ -1,13 +1,6 @@
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
-import {
-  AMBIENT,
-  deriveShading,
-  FEATURE_FLATTEN_RATIO,
-  KEY_LIGHT,
-  OCCLUSION_FLOOR,
-  SCULPT_UNIFORM_ALPHA,
-} from "../shading.js";
+import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "../shading.js";
 import type { RenderFrame } from "../types.js";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shaders.js";
 
@@ -136,16 +129,14 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_glyphMode",
     "u_glyphSkinRadius",
     "u_glyphSkinAlpha",
-    "u_sculptT",
     "u_lighting",
     "u_backfaceDim",
     "u_depthDim",
     "u_light",
     "u_ambient",
     "u_occlusionFloor",
-    "u_sculptUniformAlpha",
-    "u_featureFlattenRatio",
     "u_color",
+    "u_square",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
     "u_regionFeature[0]",
@@ -356,7 +347,7 @@ class SharedGL implements SharedGLRenderer {
     const { pointSet, style, camera } = frame;
     const b = cameraBasis(camera);
     const boundRadius = pointSet.radius || 1;
-    const shading = deriveShading(cssSize, devicePixels, count, style);
+    const shading = deriveShading(cssSize, devicePixels, pointSet.cellSize, style, boundRadius);
 
     const cy = b.cosYaw;
     const sy = b.sinYaw;
@@ -398,16 +389,14 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_glyphMode, shading.glyphMode ? 1 : 0);
     gl.uniform1f(u.u_glyphSkinRadius, shading.glyphSkinRadius);
     gl.uniform1f(u.u_glyphSkinAlpha, shading.glyphSkinAlpha);
-    gl.uniform1f(u.u_sculptT, shading.sculptT);
     gl.uniform1f(u.u_lighting, shading.lighting);
     gl.uniform1f(u.u_backfaceDim, style.backfaceDim);
     gl.uniform1f(u.u_depthDim, style.depthDim);
     gl.uniform3fv(u.u_light, this.light);
     gl.uniform1f(u.u_ambient, AMBIENT);
     gl.uniform1f(u.u_occlusionFloor, OCCLUSION_FLOOR);
-    gl.uniform1f(u.u_sculptUniformAlpha, SCULPT_UNIFORM_ALPHA);
-    gl.uniform1f(u.u_featureFlattenRatio, FEATURE_FLATTEN_RATIO);
     gl.uniform3fv(u.u_color, this.color);
+    gl.uniform1f(u.u_square, style.shape === "square" ? 1 : 0);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);

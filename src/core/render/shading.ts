@@ -7,42 +7,44 @@ import type { RenderStyle } from "./types.js";
  * from the GPU path.
  *
  * The governing principle (Justin's direction, 2026-07-24): **a particle is always the same
- * size**. A bigger head is not bigger dots — it is *more* dots. An earlier version derived dot
- * radius from particle spacing, which inverted this: fewer particles meant a larger spacing
- * meant fatter dots, so a 32px head rendered as a handful of 2px blobs instead of a face. Dot
- * radius is now a fixed value in CSS pixels and the particle *count* carries the size.
+ * size**. A bigger head is not bigger particles — it is *more* particles. Particles tile a
+ * lattice cell, and the LOD chooser keeps a cell near a fixed on-screen size, so growing the
+ * head selects a finer lattice rather than inflating what is already there.
+ *
+ * Two earlier models failed this. Deriving radius from particle *spacing* inverted it outright —
+ * fewer particles meant fatter ones, so a 32px head rendered as a handful of blobs. A fixed CSS
+ * radius over scattered points fixed the size but left the surface as unaligned stipple, which
+ * cannot produce the contiguous, grid-aligned voxel surface the design calls for.
  */
 
 /** Fixed key light in view space: upper-front-left, the default portrait key. */
 export const KEY_LIGHT = { x: -0.42, y: 0.55, z: 0.72 } as const;
 
-/** Ambient floor, so unlit particles stay present rather than disappearing. */
-export const AMBIENT = 0.28;
+/**
+ * Ambient floor, so unlit particles stay present rather than disappearing.
+ *
+ * Kept low deliberately. A voxel head reads as sculpted only when recesses go genuinely dark
+ * against lit planes; a generous ambient lifts everything toward the same value and the whole
+ * head flattens into a uniform bright mass with the form barely legible.
+ */
+export const AMBIENT = 0.1;
 
 /** Occlusion floor — fully enclosed particles keep this fraction of their light. */
-export const OCCLUSION_FLOOR = 0.4;
-
-/** Uniform brightness that sculpted mode fades region coding toward. */
-export const SCULPT_UNIFORM_ALPHA = 0.82;
-
-/** Features only fade this far toward uniform, so eyes never vanish into the sculpt. */
-export const FEATURE_FLATTEN_RATIO = 0.55;
+export const OCCLUSION_FLOOR = 0.08;
 
 /**
- * Particle radius in **CSS pixels**, identical at every rendered size. Multiplied by device
- * pixel ratio for the backing store, so a high-DPR screen gets a sharper dot of the same
- * apparent size rather than a bigger one.
+ * On-screen edge length, in CSS pixels, that one lattice cell should occupy. The LOD level is
+ * chosen to land near this, which is what holds particle size constant while the head's rendered
+ * size changes — a bigger head is a finer lattice, not bigger particles.
  */
-export const DOT_RADIUS_CSS = 1.05;
+export const TARGET_CELL_CSS = 1.6;
 
 /**
- * Particles per CSS pixel squared of rendered size.
- *
- * Derived from the geometry rather than guessed: the head covers a disc of roughly 0.42·size in
- * radius, a dot covers pi·r², and about 60% areal coverage reads as a dense-but-distinct
- * stipple. Doubled because roughly half the point set is on the far hemisphere.
+ * Fraction of its cell a particle fills. Slightly under 1 leaves a hairline between neighbours,
+ * which is what makes the grid legible *as* a grid; at 1.0 the surface fuses into a solid mass
+ * and the voxel character disappears.
  */
-export const PARTICLE_DENSITY = 0.18;
+export const CELL_FILL = 0.82;
 
 /**
  * Three design tiers rather than one continuously scaled design.
@@ -64,8 +66,8 @@ export interface SizeTier {
   cullFarSide: boolean;
   /** How much of the camera's yaw/pitch to apply; a small head reads best near face-on. */
   poseScale: number;
-  /** Floor on particle count, so the smallest heads still have enough dots to form a face. */
-  minParticles: number;
+  /** Minimum lattice resolution, so the smallest heads still resolve a face. */
+  minResolution: number;
 }
 
 const TIERS: SizeTier[] = [
@@ -76,21 +78,21 @@ const TIERS: SizeTier[] = [
     lightingScale: 0.22,
     cullFarSide: true,
     poseScale: 0,
-    minParticles: 70,
+    minResolution: 14,
   },
   {
     name: "compact",
     lightingScale: 0.62,
     cullFarSide: false,
     poseScale: 0.55,
-    minParticles: 150,
+    minResolution: 26,
   },
   {
     name: "display",
     lightingScale: 1,
     cullFarSide: false,
     poseScale: 1,
-    minParticles: 400,
+    minResolution: 44,
   },
 ];
 
@@ -104,17 +106,12 @@ export function resolveTier(cssSize: number): SizeTier {
 }
 
 /**
- * Particle count for a rendered size: proportional to area, because dot size is fixed and it is
- * the count that has to carry the size difference.
+ * Lattice resolution for a rendered size: enough cells that each lands near TARGET_CELL_CSS on
+ * screen, floored by the tier so a tiny head still resolves eyes and a mouth.
  */
-export function particleCountForSize(
-  cssSize: number,
-  maxParticles: number,
-  density = PARTICLE_DENSITY,
-): number {
+export function resolutionForSize(cssSize: number, targetCellCss = TARGET_CELL_CSS): number {
   const tier = resolveTier(cssSize);
-  const ideal = Math.round(density * cssSize * cssSize);
-  return Math.max(tier.minParticles, Math.min(maxParticles, ideal));
+  return Math.max(tier.minResolution, Math.round(cssSize / targetCellCss));
 }
 
 export interface DerivedShading {
@@ -126,8 +123,6 @@ export interface DerivedShading {
   glyphMode: boolean;
   glyphSkinRadius: number;
   glyphSkinAlpha: number;
-  /** 0 = region-coded brightness, 1 = uniform brightness modelled by light alone. */
-  sculptT: number;
   /** Lighting strength after the tier's scaling. */
   lighting: number;
 }
@@ -135,15 +130,19 @@ export interface DerivedShading {
 export function deriveShading(
   cssSize: number,
   devicePixels: number,
-  _count: number,
+  cellSize: number,
   style: RenderStyle,
+  worldRadius = 1,
 ): DerivedShading {
   const tier = resolveTier(cssSize);
-  const dpr = cssSize > 0 ? devicePixels / cssSize : 1;
 
-  // Fixed radius. Note what this is *not*: derived from count or spacing. Tying it to spacing
-  // makes sparse heads grow fat blobs, which is exactly the failure this replaced.
-  const baseRadius = Math.max(0.35, DOT_RADIUS_CSS * dpr * style.particleScale);
+  // Particles tile their lattice cell. Because the LOD chooser keeps a cell near a fixed
+  // on-screen size, this is constant in practice — but it is derived from the geometry rather
+  // than asserted, so a mismatched level degrades into slightly larger or smaller cubes instead
+  // of tearing the surface open.
+  const cellsAcross = worldRadius > 0 ? (2 * worldRadius) / Math.max(cellSize, 1e-6) : 1;
+  const cellPx = devicePixels / Math.max(cellsAcross, 1);
+  const baseRadius = Math.max(0.35, cellPx * 0.5 * CELL_FILL * style.particleScale);
 
   // Feature emphasis is now off by default: with a correct particle count the eyes read from
   // placement and density, and enlarging them breaks the identical-dot rule.
@@ -152,9 +151,6 @@ export function deriveShading(
 
   const glyphMode = tier.cullFarSide;
 
-  // Above ~96px the head reads from shading rather than painted-on feature brightness.
-  const sculptT = Math.min(1, Math.max(0, (cssSize - 96) / 160));
-
   return {
     tier,
     baseRadius,
@@ -162,7 +158,6 @@ export function deriveShading(
     glyphMode,
     glyphSkinRadius: glyphMode ? 0.92 : 1,
     glyphSkinAlpha: glyphMode ? 0.72 : 1,
-    sculptT,
     lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
   };
 }

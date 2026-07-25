@@ -42,15 +42,12 @@ uniform float u_featureEmphasis;
 uniform float u_glyphMode;
 uniform float u_glyphSkinRadius;
 uniform float u_glyphSkinAlpha;
-uniform float u_sculptT;
 uniform float u_lighting;
 uniform float u_backfaceDim;
 uniform float u_depthDim;
 uniform vec3 u_light;
 uniform float u_ambient;
 uniform float u_occlusionFloor;
-uniform float u_sculptUniformAlpha;
-uniform float u_featureFlattenRatio;
 
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
@@ -105,9 +102,8 @@ void main() {
     (u_occlusionFloor + (1.0 - u_occlusionFloor) * a_occlusion);
   float shade = 1.0 - u_lighting * (1.0 - lit);
 
-  float regionAlpha = u_regionIntensity[region];
-  float flatten = u_sculptT * mix(1.0, u_featureFlattenRatio, isFeature);
-  float baseAlpha = regionAlpha + (u_sculptUniformAlpha - regionAlpha) * flatten;
+  // Material albedo for the region; lighting and occlusion do the modelling.
+  float baseAlpha = u_regionIntensity[region];
 
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = (u_distance - p.z) / (u_distance + u_boundRadius);
@@ -139,15 +135,18 @@ in float v_brightness;
 in float v_radiusPx;
 
 uniform vec3 u_color;
+uniform float u_square;
 
 out vec4 fragColor;
 
 void main() {
-  // Analytic pixel coverage in real pixel units, matching how Canvas 2D antialiases a filled
-  // arc. Expressing the falloff as a *fraction* of the radius does not work: at typical
-  // densities a disc is only ~1.6px across, so a fractional band eats the entire dot.
+  // Analytic pixel coverage in real pixel units, matching how Canvas 2D antialiases a fill.
+  // Expressing the falloff as a *fraction* of the radius does not work: cells are only a couple
+  // of pixels across, so a fractional band eats the entire particle.
   float quadPx = v_radiusPx + 1.0;
-  float distPx = length(v_corner) * quadPx;
+  // Chebyshev distance gives a square, Euclidean a disc — the same coverage maths either way.
+  float norm = mix(length(v_corner), max(abs(v_corner.x), abs(v_corner.y)), u_square);
+  float distPx = norm * quadPx;
   float edge = clamp(v_radiusPx - distPx + 0.5, 0.0, 1.0);
 
   // Brightness rides on alpha so a shadowed particle recedes into the background exactly as it

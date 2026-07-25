@@ -1,13 +1,6 @@
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
-import {
-  AMBIENT,
-  deriveShading,
-  FEATURE_FLATTEN_RATIO,
-  KEY_LIGHT,
-  OCCLUSION_FLOOR,
-  SCULPT_UNIFORM_ALPHA,
-} from "./shading.js";
+import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "./shading.js";
 import type { HeadRenderer, RenderFrame } from "./types.js";
 
 /**
@@ -81,10 +74,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
 
-      const { baseRadius, featureEmphasis, glyphMode, glyphSkinRadius, glyphSkinAlpha, sculptT } =
-        deriveShading(cssSize, device, count, style);
-
-      const lighting = Math.max(0, Math.min(1, style.lighting));
+      const { baseRadius, featureEmphasis, glyphMode, glyphSkinRadius, glyphSkinAlpha, lighting } =
+        deriveShading(cssSize, device, pointSet.cellSize, style, radius);
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -137,11 +128,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           (AMBIENT + (1 - AMBIENT) * diffuse) * (OCCLUSION_FLOOR + (1 - OCCLUSION_FLOOR) * ao);
         const shade = 1 - lighting * (1 - lit);
 
-        // Region brightness coding fades toward uniform as sculpted mode takes over — features
-        // only partway, so the eyes never vanish entirely into the sculpt.
-        const regionAlpha = intensityOf(region);
-        const flatten = feature ? sculptT * FEATURE_FLATTEN_RATIO : sculptT;
-        const baseAlpha = regionAlpha + (SCULPT_UNIFORM_ALPHA - regionAlpha) * flatten;
+        // Material albedo for the region; lighting and occlusion do the modelling.
+        const baseAlpha = intensityOf(region);
 
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
         const depthT = (b.distance - rz) / (b.distance + radius);
@@ -162,6 +150,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       slice.sort(byDepthDescending);
 
       ctx.fillStyle = style.color;
+      const square = style.shape === "square";
       let lastAlpha = -1;
       for (let k = 0; k < visible; k++) {
         const i = slice[k];
@@ -171,9 +160,16 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           ctx.globalAlpha = a;
           lastAlpha = a;
         }
-        ctx.beginPath();
-        ctx.arc(sx[i], sy[i], sr[i], 0, Math.PI * 2);
-        ctx.fill();
+        if (square) {
+          // fillRect rather than a path: no per-particle path construction, and axis-aligned
+          // edges keep neighbouring cells meeting cleanly instead of leaving lattice seams.
+          const s2 = sr[i] * 2;
+          ctx.fillRect(sx[i] - sr[i], sy[i] - sr[i], s2, s2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(sx[i], sy[i], sr[i], 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       ctx.globalAlpha = 1;
     },

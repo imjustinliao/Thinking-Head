@@ -1,49 +1,20 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import { generateHead } from "./geometry.js";
-import { mulberry32 } from "./math.js";
+import { generateHeadLevel, HeadModel, LEVEL_RESOLUTIONS } from "./geometry.js";
 import type { HeadPointSet } from "./pointset.js";
 import { validatePointSet } from "./pointset.js";
 import { FEATURE_REGIONS, REGION, REGION_NAMES } from "./regions.js";
-import { particleCountForSize } from "./render/shading.js";
-import { DEFAULT_HEAD_PARAMS as P, sdHead } from "./sdf.js";
+import { headBounds, DEFAULT_HEAD_PARAMS as P, sdHead } from "./sdf.js";
 
-// Generation is the expensive part of this suite, so it runs once and every test reads it.
 let head: HeadPointSet;
 
 beforeAll(() => {
-  head = generateHead();
+  head = generateHeadLevel({ resolution: 48 });
 });
-
-/** Smallest distance between any two of the first `n` particles. */
-function minSeparation(set: HeadPointSet, n: number): number {
-  let min = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const dx = set.positions[i * 3] - set.positions[j * 3];
-      const dy = set.positions[i * 3 + 1] - set.positions[j * 3 + 1];
-      const dz = set.positions[i * 3 + 2] - set.positions[j * 3 + 2];
-      const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (d < min) min = d;
-    }
-  }
-  return min;
-}
 
 describe("point set format", () => {
   test("satisfies the array-length invariants", () => {
     expect(() => validatePointSet(head)).not.toThrow();
-    expect(head.count).toBeGreaterThan(400);
-  });
-
-  test("every particle lies on the head surface", () => {
-    let worst = 0;
-    for (let i = 0; i < head.count; i++) {
-      const d = Math.abs(
-        sdHead(head.positions[i * 3], head.positions[i * 3 + 1], head.positions[i * 3 + 2], P),
-      );
-      if (d > worst) worst = d;
-    }
-    expect(worst).toBeLessThan(6e-3);
+    expect(head.count).toBeGreaterThan(1000);
   });
 
   test("normals are unit length", () => {
@@ -60,113 +31,155 @@ describe("point set format", () => {
     }
   });
 
-  test("weights are within the unit range", () => {
+  test("weights and occlusion are within the unit range", () => {
     for (let i = 0; i < head.count; i++) {
       expect(head.weight[i]).toBeGreaterThan(0);
       expect(head.weight[i]).toBeLessThanOrEqual(1);
+      expect(head.occlusion[i]).toBeGreaterThanOrEqual(0);
+      expect(head.occlusion[i]).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe("lattice structure", () => {
+  // The defining property of the new model: particles sit on a regular grid. This is what makes
+  // every particle the same size a property of the data rather than a convention, and it is what
+  // produces the contiguous voxel surface instead of scattered stipple.
+  test("every particle sits on a regular lattice", () => {
+    const { cellSize } = head;
+    expect(cellSize).toBeGreaterThan(0);
+
+    // Cell centres are offset by half a cell from the domain edge, so position/cellSize should
+    // land on a half-integer everywhere, on all three axes.
+    for (let i = 0; i < head.count; i++) {
+      for (let axis = 0; axis < 3; axis++) {
+        const coord = head.positions[i * 3 + axis];
+        const cells = coord / cellSize;
+        const frac = Math.abs(cells - Math.round(cells));
+        expect(Math.abs(frac - 0.5)).toBeLessThan(1e-3);
+      }
+    }
+  });
+
+  test("no two particles occupy the same cell", () => {
+    const seen = new Set<string>();
+    const { cellSize } = head;
+    for (let i = 0; i < head.count; i++) {
+      // Keyed in half-cell units. Cell centres sit exactly on half-cell boundaries, so dividing
+      // by cellSize alone lands on .5 where rounding is ambiguous and distinct cells can collide.
+      const key = [0, 1, 2]
+        .map((a) => Math.round((2 * head.positions[i * 3 + a]) / cellSize))
+        .join(",");
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  test("every cell is close enough to the surface to contain it", () => {
+    // The narrow-band test keeps cells within a half-diagonal of the isosurface. Anything
+    // further out is a cell the refinement should have pruned.
+    const limit = head.cellSize * 0.58 + 1e-6;
+    for (let i = 0; i < head.count; i++) {
+      const d = Math.abs(
+        sdHead(head.positions[i * 3], head.positions[i * 3 + 1], head.positions[i * 3 + 2], P),
+      );
+      expect(d).toBeLessThanOrEqual(limit);
+    }
+  });
+
+  test("the lattice forms a hollow shell, not a solid volume", () => {
+    // A solid fill would scale with the cube of resolution and swamp the GPU. Surface-only
+    // voxelisation scales with the square, so the count must sit far below the volume bound.
+    const solid = head.resolution ** 3;
+    expect(head.count).toBeLessThan(solid * 0.05);
+  });
+});
+
+describe("levels of detail", () => {
+  test("finer levels have smaller cells and more particles", () => {
+    const coarse = generateHeadLevel({ resolution: 24 });
+    const fine = generateHeadLevel({ resolution: 48 });
+    expect(fine.cellSize).toBeLessThan(coarse.cellSize);
+    expect(fine.count).toBeGreaterThan(coarse.count);
+  });
+
+  test("particle count grows with surface area, not volume", () => {
+    // Doubling resolution should roughly quadruple the count (area), not multiply it by eight.
+    const coarse = generateHeadLevel({ resolution: 24 });
+    const fine = generateHeadLevel({ resolution: 48 });
+    const ratio = fine.count / coarse.count;
+    expect(ratio).toBeGreaterThan(3);
+    expect(ratio).toBeLessThan(5.5);
+  });
+
+  test("cell size matches the domain divided by resolution", () => {
+    const b = headBounds(P);
+    const expected = (2 * Math.max(b.x, b.y, b.z)) / 48;
+    expect(head.cellSize).toBeCloseTo(expected, 6);
+  });
+
+  test("the model caches levels rather than rebuilding them", () => {
+    const model = new HeadModel();
+    const first = model.level(24);
+    const second = model.level(24);
+    expect(second).toBe(first);
+    expect(model.builtLevels).toEqual([24]);
+  });
+
+  test("level selection tracks rendered size and only builds what is shown", () => {
+    const model = new HeadModel();
+    const small = model.levelForSize(40);
+    const large = model.levelForSize(320);
+    expect(large.resolution).toBeGreaterThan(small.resolution);
+    // Lazy: a page showing two sizes must not have built all eight levels.
+    expect(model.builtLevels.length).toBeLessThan(LEVEL_RESOLUTIONS.length);
   });
 });
 
 describe("determinism", () => {
-  test("the same seed reproduces byte-identical geometry", () => {
-    const a = generateHead({ seed: 1234 });
-    const b = generateHead({ seed: 1234 });
+  test("the same parameters reproduce byte-identical geometry", () => {
+    const a = generateHeadLevel({ resolution: 24 });
+    const b = generateHeadLevel({ resolution: 24 });
     expect(a.count).toBe(b.count);
     expect(Array.from(a.positions)).toEqual(Array.from(b.positions));
     expect(Array.from(a.regionId)).toEqual(Array.from(b.regionId));
-    expect(Array.from(a.weight)).toEqual(Array.from(b.weight));
-  });
-
-  test("different seeds produce different geometry", () => {
-    const a = generateHead({ seed: 1 });
-    const b = generateHead({ seed: 2 });
-    expect(Array.from(a.positions)).not.toEqual(Array.from(b.positions));
-  });
-
-  test("the PRNG itself is reproducible and in range", () => {
-    const a = mulberry32(99);
-    const b = mulberry32(99);
-    for (let i = 0; i < 500; i++) {
-      const v = a();
-      expect(v).toBe(b());
-      expect(v).toBeGreaterThanOrEqual(0);
-      expect(v).toBeLessThan(1);
-    }
   });
 });
 
-describe("progressive blue-noise ordering", () => {
-  test("prefixes are increasingly well separated as they shrink", () => {
-    // The defining property: a smaller prefix is a sparser Poisson-disk set, so its minimum
-    // separation must not be worse than that of a larger prefix.
-    const wide = minSeparation(head, 400);
-    const narrow = minSeparation(head, 120);
-    const tiny = minSeparation(head, 60);
-    expect(narrow).toBeGreaterThanOrEqual(wide);
-    expect(tiny).toBeGreaterThanOrEqual(narrow);
-  });
-
-  test("no two particles are coincident", () => {
-    expect(minSeparation(head, 300)).toBeGreaterThan(1e-4);
-  });
-});
-
-describe("small-size legibility", () => {
-  // This is the requirement that a 20px head still reads as a face. It is a property of the
-  // region-weighted elimination, so it is asserted rather than left to inspection.
-  test("every expressive feature appears within the first 56 particles", () => {
-    const prefix = new Set<number>();
-    for (let i = 0; i < 56; i++) prefix.add(head.regionId[i]);
+describe("facial features", () => {
+  test("every expressive region is present on the lattice", () => {
+    const present = new Set<number>();
+    for (let i = 0; i < head.count; i++) present.add(head.regionId[i]);
     for (const name of FEATURE_REGIONS) {
-      expect(prefix, `expected ${name} within the first 56 particles`).toContain(REGION[name]);
+      expect(present, `expected ${name} cells`).toContain(REGION[name]);
     }
   });
 
-  test("features are over-represented at small counts relative to the full head", () => {
-    const featureIds = new Set<number>(FEATURE_REGIONS.map((n) => REGION[n]));
-    const share = (n: number) => {
-      let hits = 0;
-      for (let i = 0; i < n; i++) if (featureIds.has(head.regionId[i])) hits++;
-      return hits / n;
-    };
-    expect(share(56)).toBeGreaterThan(share(head.count));
+  test("features survive down to the coarsest usable level", () => {
+    // A glyph-sized head still has to show two eyes and a mouth.
+    const coarse = generateHeadLevel({ resolution: 16 });
+    const present = new Set<number>();
+    for (let i = 0; i < coarse.count; i++) present.add(coarse.regionId[i]);
+    expect(present).toContain(REGION.eyeL);
+    expect(present).toContain(REGION.eyeR);
+    expect(present).toContain(REGION.mouth);
   });
 
-  test("both eyes have enough particles to read at the minimum draw count", () => {
-    // Proportionality across sizes: even the 46-particle head must show two distinct eyes, not
-    // one lucky dot. Three per eye is the floor at which a cluster still reads as a cluster.
+  test("eye cells sit on the front of the head and are left/right symmetric in count", () => {
     let left = 0;
     let right = 0;
-    for (let i = 0; i < 46; i++) {
-      if (head.regionId[i] === REGION.eyeL) left++;
-      if (head.regionId[i] === REGION.eyeR) right++;
+    for (let i = 0; i < head.count; i++) {
+      if (head.regionId[i] === REGION.eyeL) {
+        left++;
+        expect(head.positions[i * 3]).toBeGreaterThan(0);
+      }
+      if (head.regionId[i] === REGION.eyeR) {
+        right++;
+        expect(head.positions[i * 3]).toBeLessThan(0);
+      }
     }
-    expect(left).toBeGreaterThanOrEqual(3);
-    expect(right).toBeGreaterThanOrEqual(3);
-  });
-
-  test("the nose appears within the first 90 particles", () => {
-    const prefix = new Set<number>();
-    for (let i = 0; i < 90; i++) prefix.add(head.regionId[i]);
-    expect(prefix).toContain(REGION.nose);
-  });
-});
-
-describe("density from rendered size", () => {
-  test("scales monotonically with pixel size", () => {
-    const at20 = particleCountForSize(20, 3200);
-    const at48 = particleCountForSize(48, 3200);
-    const at256 = particleCountForSize(256, 3200);
-    expect(at20).toBeLessThan(at48);
-    expect(at48).toBeLessThan(at256);
-  });
-
-  test("stays inside the available particle budget", () => {
-    for (const px of [8, 16, 20, 64, 256, 1000]) {
-      const n = particleCountForSize(px, 1400);
-      expect(n).toBeGreaterThan(0);
-      expect(n).toBeLessThanOrEqual(1400);
-    }
+    expect(left).toBeGreaterThan(4);
+    // The lattice is symmetric about x, so the two eyes should populate near-equally.
+    expect(Math.abs(left - right) / Math.max(left, right)).toBeLessThan(0.25);
   });
 });
