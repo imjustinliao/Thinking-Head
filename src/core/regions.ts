@@ -45,8 +45,8 @@ export const REGION_PRIORITY: Record<RegionName, number> = {
   browL: 4,
   browR: 4,
   mouth: 3.5,
+  nose: 2.2,
   jaw: 1.4,
-  nose: 1.2,
   cheek: 0.8,
   cranium: 0.7,
 };
@@ -65,11 +65,32 @@ export const REGION_INTENSITY: Record<RegionName, number> = {
   eyeR: 1,
   browL: 0.95,
   browR: 0.95,
-  mouth: 0.9,
-  nose: 0.62,
+  mouth: 0.95,
+  nose: 0.78,
   cheek: 0.48,
   jaw: 0.5,
   cranium: 0.44,
+};
+
+/**
+ * Per-region draw-radius multiplier. Features render as slightly larger dots than the skin
+ * surface, and the renderer scales this further as the head shrinks — the same move a favicon
+ * makes: at small sizes the features must be proportionally bigger or the face dissolves into
+ * even noise. Structure dots shrink a touch to make room.
+ */
+export const REGION_DRAW_SCALE: Record<RegionName, number> = {
+  // Restrained multipliers: they compound with the renderer's small-size emphasis, and the
+  // product is what matters — past ~1.5x total, adjacent feature dots merge into one blob and
+  // the face reads worse than with no emphasis at all.
+  eyeL: 1.18,
+  eyeR: 1.18,
+  browL: 1.08,
+  browR: 1.08,
+  mouth: 1.1,
+  nose: 1,
+  cheek: 0.9,
+  jaw: 0.95,
+  cranium: 0.9,
 };
 
 /** Regions that carry expression. Used by tests to assert small-size legibility. */
@@ -91,4 +112,27 @@ for (const name of REGION_NAMES) {
 
 export function intensityOf(region: number): number {
   return INTENSITY_BY_ID[region] ?? 1;
+}
+
+const DRAW_SCALE_BY_ID = new Float32Array(REGION_COUNT);
+for (const name of REGION_NAMES) {
+  DRAW_SCALE_BY_ID[REGION[name]] = REGION_DRAW_SCALE[name];
+}
+
+export function drawScaleOf(region: number): number {
+  return DRAW_SCALE_BY_ID[region] ?? 1;
+}
+
+const FEATURE_MASK = new Uint8Array(REGION_COUNT);
+for (const name of FEATURE_REGIONS) {
+  FEATURE_MASK[REGION[name]] = 1;
+}
+
+/**
+ * True for the expressive regions (eyes, brows, mouth). The renderer culls these outright when
+ * they face away from the camera: a far-side eye showing through the skull reads as a smudge
+ * stuck to the silhouette, and dimming alone does not kill it.
+ */
+export function isFeatureRegion(region: number): boolean {
+  return FEATURE_MASK[region] === 1;
 }

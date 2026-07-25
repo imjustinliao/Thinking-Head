@@ -131,6 +131,25 @@ describe("small-size legibility", () => {
     };
     expect(share(56)).toBeGreaterThan(share(head.count));
   });
+
+  test("both eyes have enough particles to read at the minimum draw count", () => {
+    // Proportionality across sizes: even the 46-particle head must show two distinct eyes, not
+    // one lucky dot. Three per eye is the floor at which a cluster still reads as a cluster.
+    let left = 0;
+    let right = 0;
+    for (let i = 0; i < 46; i++) {
+      if (head.regionId[i] === REGION.eyeL) left++;
+      if (head.regionId[i] === REGION.eyeR) right++;
+    }
+    expect(left).toBeGreaterThanOrEqual(3);
+    expect(right).toBeGreaterThanOrEqual(3);
+  });
+
+  test("the nose appears within the first 90 particles", () => {
+    const prefix = new Set<number>();
+    for (let i = 0; i < 90; i++) prefix.add(head.regionId[i]);
+    expect(prefix).toContain(REGION.nose);
+  });
 });
 
 describe("density from rendered size", () => {
@@ -145,7 +164,7 @@ describe("density from rendered size", () => {
   test("stays inside the available particle budget", () => {
     for (const px of [8, 16, 20, 64, 256, 1000]) {
       const n = particleCountForSize(px, 1400);
-      expect(n).toBeGreaterThanOrEqual(44);
+      expect(n).toBeGreaterThanOrEqual(36);
       expect(n).toBeLessThanOrEqual(1400);
     }
   });

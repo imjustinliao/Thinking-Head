@@ -2,6 +2,7 @@ import { DEFAULT_FEATURE_PARAMS, type FeatureParams, generateLandmarks } from ".
 import { mulberry32 } from "./math.js";
 import type { HeadPointSet } from "./pointset.js";
 import { measureExtents, validatePointSet } from "./pointset.js";
+import { REGION, type RegionId } from "./regions.js";
 import {
   approximateSurfaceArea,
   eliminateProgressive,
@@ -65,6 +66,76 @@ function mergeClouds(
   return { cloud: { positions, normals, regionId, count }, weight };
 }
 
+/**
+ * Feature placement in the ordering is tiered, mirroring how faces are actually drawn at tiny
+ * sizes (an emoji face is two dots and a mouth stroke):
+ *
+ * - **Tier A** opens the ordering: one core dot per eye and two mouth dots. This is the whole
+ *   face a ~36-particle 20px head can afford — promoting more features at that count fuses them
+ *   into a single blob, which is worse than no features at all.
+ * - **Tier B** lands at position ~40: second eye dots, brows, more mouth, the nose tip. By the
+ *   counts where these draw (≥ ~32px) there is room between features again.
+ *
+ * Weights alone cannot deliver either guarantee — eye dots sit so close together that their
+ * mutual crowding weight outvotes any region priority — so this is enforced structurally.
+ * Prefixes remain nested, so the progressive-separation property survives.
+ */
+const TIER_A: [RegionId, number][] = [
+  [REGION.eyeL, 1],
+  [REGION.eyeR, 1],
+  [REGION.mouth, 2],
+];
+
+const TIER_B: [RegionId, number][] = [
+  [REGION.eyeL, 2],
+  [REGION.eyeR, 2],
+  [REGION.browL, 2],
+  [REGION.browR, 2],
+  [REGION.mouth, 2],
+  [REGION.nose, 1],
+];
+
+/** Ordering position where tier B begins. Chosen so the 36-particle glyph face stays sparse. */
+const TIER_B_AT = 40;
+
+function promoteFeatureTiers(
+  order: Int32Array,
+  regionId: Uint8Array,
+  weight: Float32Array,
+): Int32Array {
+  const taken = new Set<number>();
+
+  // Within a region, the highest-weight particles are the cluster cores (weight is the falloff
+  // toward the feature centre) — exactly the dots a one-dot eye should be.
+  const takeTop = (region: RegionId, k: number): number[] => {
+    const candidates: number[] = [];
+    for (const idx of order) {
+      if (regionId[idx] === region && !taken.has(idx)) candidates.push(idx);
+    }
+    candidates.sort((a, b) => weight[b] - weight[a]);
+    const picked = candidates.slice(0, k);
+    for (const idx of picked) taken.add(idx);
+    return picked;
+  };
+
+  const tierA = TIER_A.flatMap(([region, k]) => takeTop(region, k));
+  const tierB = TIER_B.flatMap(([region, k]) => takeTop(region, k));
+
+  const rest: number[] = [];
+  for (const idx of order) {
+    if (!taken.has(idx)) rest.push(idx);
+  }
+
+  const merged = new Int32Array(order.length);
+  let cursor = 0;
+  for (const idx of tierA) merged[cursor++] = idx;
+  const structureBeforeB = Math.max(0, Math.min(TIER_B_AT - tierA.length, rest.length));
+  for (let i = 0; i < structureBeforeB; i++) merged[cursor++] = rest[i];
+  for (const idx of tierB) merged[cursor++] = idx;
+  for (let i = structureBeforeB; i < rest.length; i++) merged[cursor++] = rest[i];
+  return merged;
+}
+
 export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointSet {
   const opts: GenerateOptions = { ...DEFAULT_GENERATE_OPTIONS, ...options };
   const rng = mulberry32(opts.seed);
@@ -74,12 +145,16 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
   const { cloud, weight } = mergeClouds(surface, features);
 
   const surfaceArea = approximateSurfaceArea(opts.head);
-  const order = eliminateProgressive(cloud, {
-    target: Math.min(opts.maxParticles, cloud.count),
-    radius: radiusForTarget(surfaceArea, opts.maxParticles),
-    surfaceArea,
-    rimBoost: opts.rimBoost,
-  });
+  const order = promoteFeatureTiers(
+    eliminateProgressive(cloud, {
+      target: Math.min(opts.maxParticles, cloud.count),
+      radius: radiusForTarget(surfaceArea, opts.maxParticles),
+      surfaceArea,
+      rimBoost: opts.rimBoost,
+    }),
+    cloud.regionId,
+    weight,
+  );
 
   const count = Math.min(opts.maxParticles, cloud.count);
   const positions = new Float32Array(count * 3);
@@ -119,7 +194,7 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
 export function particleCountForSize(
   pixelSize: number,
   maxParticles: number,
-  minParticles = 44,
+  minParticles = 36,
 ): number {
   // Superlinear, so small sizes sit near the floor. Strict area scaling (exponent 2) would leave a
   // 20px head with under a dozen particles; this keeps dots getting chunkier as the head shrinks,
