@@ -308,6 +308,22 @@ canvas was below the fold. Isolating the renderer (drawing the same frame at t=0
 showed 3510 changed pixels on WebGL and 2583 on Canvas 2D, proving the motion path was fine and
 pointing at the test, not the code. **Sample a canvas that is actually on screen.**
 
+**Real bug found after that, by Justin visually inspecting the pills (v4.2):** even with the
+clock and pause verified, `idle` still looked static side by side. Root cause was a genuine
+design flaw, not a tuning miss — positional amplitudes are in **lattice cell units**, and the
+LOD system deliberately holds one cell to a near-constant on-screen size (~1.6px, that's the
+whole point of the LOD scheme). So even a generous positional amplitude is a sub-pixel wobble
+at inline sizes, invisible regardless of how the numbers are tuned — pushing amplitude higher
+to compensate would move particles out of their tiled cells and break the voxel-grid look.
+**Fix:** added `shimmerMultiplier` — a travelling brightness band (`shimmerAmplitude/Scale/Speed`
+in `MotionParams`) applied as an alpha multiplier in both backends, independent spatial/temporal
+rate from the positional wave. Brightness has no sub-pixel floor: it reads at any particle size
+because it changes colour, not position. This is now the **primary** carrier of "alive" at
+inline sizes; position remains the carrier at display sizes where it's actually visible.
+Verified: max per-particle alpha swing 241/255 on a 48px pill; 29,228 changed pixels on the
+320px orbit view. Regression tests lock in non-zero shimmer for every state so this can't
+silently regress back to sub-pixel-only motion.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
