@@ -1,0 +1,54 @@
+{
+  "name": "thinking-head",
+  "version": "0.0.0",
+  "description": "An animated 3D particle head that shows what your AI is doing.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Justin Liao",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imjustinliao/Thinking-Head.git"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "loading",
+    "indicator",
+    "particles",
+    "webgl",
+    "status"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "workspaces": [
+    "demo"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace demo",
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  }
+}
