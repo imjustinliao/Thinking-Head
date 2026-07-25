@@ -22,8 +22,17 @@ stylized character — not photorealistic, not uncanny-valley.
 
 ### Visual target
 
-- Small, dense, precise: dozens to low-hundreds of tiny tightly-packed particles forming
-  a clean, recognisable head silhouette.
+**Direction revision, approved by Justin 2026-07-24 (supersedes the original "neotenous
+mascot" default):** the head is a **defined, sculpted adult human head** — realistic skull
+masses, carved eye sockets, a real nose line — modelled by a key light plus baked
+per-particle ambient occlusion, in the spirit of dense particle-head 3D artwork. Charm
+comes from the particle medium and (later) motion, not infant proportions. Legibility is a
+size continuum: glyph face (two eyes + mouth) at ≤32px, feature-emphasised at mid sizes,
+fully sculpted shading at ≥96px. "Not uncanny" still holds — stylisation via the medium,
+not photorealism.
+
+- Small, dense, precise: dozens (inline) to ~2k (large view) tiny tightly-packed particles
+  forming a clean, recognisable head silhouette.
 - Compact by default — ~20–64px, used inline next to text, matching how loading
   indicators are sized in chat UIs.
 - Also capable of a larger, fully interactive 360° orbit view when a developer wants to
@@ -242,8 +251,9 @@ is writing a handful of uniforms.
   to the head — shape, a state's expression, particle density, size, speed — must be
   visible and live-tunable there the moment it is saved. Tell him the URL and port, and
   keep it running unless he asks otherwise.
-- **The demo page grows into a full showcase**: a gallery view of all completed states
-  side by side (grid layout, Storybook-like) for visual comparison, plus live controls
+- **The demo page grows into a full showcase**: all states side by side as **status
+  pills** — head beside a label with a sweeping light-band shimmer, the idiom AI products
+  use for live status (Justin's preferred presentation, 2026-07-24) — plus live controls
   for size and speed, plus a clearly labelled non-functional placeholder section for the
   Phase 2 photo-upload flow so the layout never needs redesigning.
 - **Update `PROGRESS.md` at every session/step boundary.**

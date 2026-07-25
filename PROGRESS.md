@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | Static head rendering **complete**, incl. proportional-legibility pass after Justin's review. Next: WebGL2 renderer + shared context, then `idle` |
-| **Last commit** | `df4db25` — v2.1 - Ease camera pose toward face-on at small sizes with new tuning fields |
+| **Step** | Static head **complete** through the sculpted-realism pass (v2.3–v2.5). Next: WebGL2 renderer + shared context, then `idle` |
+| **Last commit** | `e094a6e` — v2.5 - Present states as status pills with sweeping shimmer labels |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
@@ -113,6 +113,37 @@ anatomical definition. Root causes found and the rules now in force:
   speed if needed).
 - Browser-pane note: `location.reload()` via the JS tool wedges the pane; use `navigate`
   with `force: true` instead.
+
+### Sculpted-realism pass (v2.3–v2.5, Justin's second review)
+
+Justin reaffirmed the realism direction with dense particle-head artwork as the target
+look, so the "charming vs uncanny" default is now settled in favour of **defined adult
+realism carried by the particle medium** — recorded in `CLAUDE.md` §1. What changed:
+
+- **Eye sockets are carved into the SDF** (smooth subtraction, `smax`) after the base
+  masses and before the nose, so the brow overhangs them and the nose bridge stands
+  between them. Adult default proportions: less cranium lift, longer jaw.
+- **A fixed key light (upper-front-left) + Lambertian shading** in the renderer, driven by
+  each particle's view-space normal. One `lighting` knob (style + slider).
+- **Baked per-particle ambient occlusion** — new `occlusion` channel in `HeadPointSet`,
+  two field probes along the normal at generation time. This was the missing piece:
+  directional light cannot darken a concavity whose floor faces the light; occlusion is
+  what makes sockets and creases read dark. Tap radii must stay near feature scale
+  (0.055/0.13) — wider taps murk the whole mid-face. Renderer floor 0.4.
+- **Region brightness fades toward uniform above ~96px** (features only ~half-way), so the
+  large head reads from shading like a sculpture instead of painted-on bright dots, while
+  small sizes keep the glyph/feature coding. The full size continuum: glyph ≤32px →
+  feature-coded mid → sculpted ≥96px.
+- **Density defaults up:** maxParticles 1800, candidates 15000. Regen median ~28ms —
+  within the 30ms budget (occlusion adds only 2 field evals per particle).
+- **Demo gallery is now status pills**: head + label with a sweeping light-band shimmer
+  (base text dim; `::before` duplicate via `content: attr(data-text)`, gradient band,
+  `background-clip: text`, `background-position` keyframes ~2.2s). Under reduced motion
+  the overlay is hidden entirely — a frozen mid-sweep band reads as a glitch. Pill head
+  size clamps to 24–64px so pills keep their shape while the size slider demos the full
+  range elsewhere.
+- Motion note for the upcoming `idle`/state milestones: Justin wants the swarm quality of
+  organised, purposeful micro-motion ("nano robots"), not loose drift.
 
 ### Demo design language — established, do not flatten
 
