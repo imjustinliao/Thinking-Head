@@ -171,7 +171,7 @@ Approved by Justin 2026-07-24.
 | Geometry | **Procedural, generated in code** — SDF (smooth-min union of quadrics: cranium, brow ridge, nose, jaw, cheeks) sampled to a blue-noise point set at build time | Zero licence surface, no binary assets, fully original, deterministic/seedable, live-tunable — and expressions are parameters of the same generator, so the rig comes free |
 | Language | TypeScript, strict | |
 | Package | Single package `thinking-head`, exports `.` (core) and `./react` (wrapper, React optional peer) | Framework-agnostic core with thin wrappers; keeps core testable in isolation |
-| Build | tsdown (Rolldown), ESM-only, generated declarations | The long-standing default TS bundler is no longer actively maintained |
+| Build | **Vite library mode**, ESM-only, declarations via `tsc -p tsconfig.build.json` | tsdown was the original choice but cannot be installed by current stable npm (10.9.8) — it trips an arborist peer-resolution bug (`Cannot read properties of null (reading 'edgesOut')`), which would hit every contributor on `npm install`. Vite is already required for the demo, so this removes a dependency rather than adding one |
 | Lint/format | Biome | |
 | Test | Vitest for the pure core (sampling, blending, tier detection) + Playwright WebGL smoke test | Node has no WebGL, so render tests need a browser |
 | Demo | Vite + React on `localhost:5173` | Runs continuously throughout the project |
