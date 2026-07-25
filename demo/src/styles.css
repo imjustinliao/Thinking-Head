@@ -861,22 +861,24 @@ body {
 }
 
 /* ==========================================================================
-   State gallery
+   State gallery — status pills with shimmering labels
    ========================================================================== */
 
-.gallery {
+.pills {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  /* Columns and stage height track the size slider, so a 256px head is never clipped. */
-  grid-template-columns: repeat(auto-fill, minmax(max(215px, calc(var(--slot, 48px) + 72px)), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: clamp(0.8rem, 1.6vw, 1.15rem);
 }
 
-.vitrine {
-  padding: 1.15rem 1.25rem 1.4rem;
-  border-radius: var(--r-md);
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.55rem 1.6rem 0.55rem 0.65rem;
+  border-radius: 999px;
   animation: rise 720ms cubic-bezier(0.22, 1, 0.3, 1) backwards;
   animation-delay: var(--delay, 0ms);
   transition:
@@ -895,50 +897,51 @@ body {
   }
 }
 
-.vitrine:hover {
-  transform: translateY(-4px);
+.pill:hover {
+  transform: translateY(-3px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
-    0 34px 70px -30px rgba(0, 0, 0, 0.95),
-    0 0 40px -16px color-mix(in srgb, var(--accent) 45%, transparent);
+    0 30px 60px -28px rgba(0, 0, 0, 0.95),
+    0 0 36px -14px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-.vitrine-index {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.14em;
-  color: var(--ink-4);
-}
-
-.vitrine-stage {
-  display: grid;
-  place-items: center;
-  min-height: max(148px, calc(var(--slot, 48px) + 28px));
-  margin: 0.4rem 0 1.1rem;
-}
-
-.vitrine-name {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-}
-
-.vitrine-when {
-  margin: 0.35rem 0 0;
-  font-size: 0.82rem;
-  color: var(--ink-2);
-}
-
-.vitrine-expression {
-  margin: 0.45rem 0 0;
-  padding-top: 0.45rem;
-  font-size: 0.78rem;
+/* Label with a light band sweeping through it, the idiom AI products use for live status.
+   Base text stays dim; a text-clipped gradient duplicate on top carries the moving highlight. */
+.shimmer {
+  position: relative;
+  display: inline-block;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
   color: var(--ink-3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.shimmer::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 38%,
+    color-mix(in srgb, var(--ink) 92%, var(--accent)) 50%,
+    transparent 62%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 2.2s linear infinite;
+}
+
+@keyframes shimmer-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
 }
 
 /* ==========================================================================
@@ -1121,7 +1124,12 @@ body {
     opacity: 0.7;
   }
 
-  .vitrine {
+  .pill {
     opacity: 1;
+  }
+
+  /* A frozen mid-sweep band reads as a rendering glitch; the dim base label carries the text. */
+  .shimmer::before {
+    display: none;
   }
 }

@@ -26,6 +26,7 @@ export interface StyleConfig {
   backfaceDim: number;
   depthDim: number;
   featureBoost: number;
+  lighting: number;
 }
 
 export interface TuningConfig {
@@ -51,6 +52,7 @@ export const DEFAULT_TUNING: TuningConfig = {
     backfaceDim: DEFAULT_STYLE.backfaceDim,
     depthDim: DEFAULT_STYLE.depthDim,
     featureBoost: DEFAULT_STYLE.featureBoost,
+    lighting: DEFAULT_STYLE.lighting,
   },
 };
 
@@ -93,6 +95,10 @@ export const HEAD_FIELDS: Field<HeadParams>[] = [
   { key: "noseHeight", label: "nose height", min: -0.35, max: 0.15, step: 0.005 },
   { key: "browRidge", label: "brow ridge", min: 0.01, max: 0.2, step: 0.005 },
   { key: "browRidgeHeight", label: "brow ridge height", min: -0.1, max: 0.35, step: 0.005 },
+  { key: "socketRadius", label: "socket radius", min: 0.05, max: 0.3, step: 0.005 },
+  { key: "socketSpread", label: "socket spread", min: 0.1, max: 0.45, step: 0.005 },
+  { key: "socketHeight", label: "socket height", min: -0.25, max: 0.2, step: 0.005 },
+  { key: "socketBite", label: "socket bite", min: 0, max: 1, step: 0.02 },
   { key: "smoothK", label: "smooth blend", min: 0.01, max: 0.5, step: 0.005 },
 ];
 
@@ -133,4 +139,5 @@ export const STYLE_FIELDS: Field<StyleConfig>[] = [
   { key: "backfaceDim", label: "backface dim", min: 0, max: 1, step: 0.02 },
   { key: "depthDim", label: "depth dim", min: 0, max: 1, step: 0.02 },
   { key: "featureBoost", label: "feature emphasis", min: 0, max: 1.5, step: 0.05 },
+  { key: "lighting", label: "key light", min: 0, max: 1, step: 0.02 },
 ];

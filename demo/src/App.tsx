@@ -54,11 +54,16 @@ export function App() {
       backfaceDim: deferredTuning.style.backfaceDim,
       depthDim: deferredTuning.style.depthDim,
       featureBoost: deferredTuning.style.featureBoost,
+      lighting: deferredTuning.style.lighting,
     }),
     [modality, deferredTuning.style],
   );
 
   const maxParticles = deferredTuning.sampling.maxParticles;
+
+  // Pills keep their row shape at any slider value: the head tracks the size control but stays
+  // within icon range, while the inline sample and orbit stage demo the full range.
+  const pillHeadSize = Math.max(24, Math.min(size, 64));
 
   const READOUT = [
     { value: String(pointSet.count), label: "particles generated" },
@@ -193,35 +198,37 @@ export function App() {
             <div>
               <h2 id="gallery-heading">Ten states</h2>
               <p className="section-note">
-                Every universal-verb state side by side at the current size and speed. Each is a
-                continuous loop, not a one-shot — a 30-second wait has to stay alive.
+                Every universal-verb state, presented the way AI products actually surface status:
+                head beside a shimmering label. Each will be a continuous loop, never a one-shot.
+                Hover a pill for the state's intended expression.
               </p>
             </div>
           </div>
 
-          <ul className="gallery" style={{ "--slot": `${size}px` } as React.CSSProperties}>
-            {THINKING_HEAD_STATES.map((state: ThinkingHeadState, index) => (
-              <li
-                className="vitrine glass"
-                key={state}
-                style={{ "--delay": `${index * 55}ms` } as React.CSSProperties}
-              >
-                <span className="vitrine-index">{String(index + 1).padStart(2, "0")}</span>
-                <div className="vitrine-stage">
+          <ul className="pills">
+            {THINKING_HEAD_STATES.map((state: ThinkingHeadState, index) => {
+              const label = `${state.charAt(0).toUpperCase()}${state.slice(1)}…`;
+              return (
+                <li
+                  className="pill glass"
+                  key={state}
+                  title={`${STATE_NOTES[state].when} — ${STATE_NOTES[state].expression}`}
+                  style={{ "--delay": `${index * 45}ms` } as React.CSSProperties}
+                >
                   <HeadSlot
                     state={state}
-                    size={size}
+                    size={pillHeadSize}
                     pointSet={pointSet}
                     camera={camera}
                     style={style}
                     maxParticles={maxParticles}
                   />
-                </div>
-                <h3 className="vitrine-name">{state}</h3>
-                <p className="vitrine-when">{STATE_NOTES[state].when}</p>
-                <p className="vitrine-expression">{STATE_NOTES[state].expression}</p>
-              </li>
-            ))}
+                  <span className="shimmer" data-text={label}>
+                    {label}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
