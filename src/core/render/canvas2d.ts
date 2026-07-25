@@ -1,4 +1,4 @@
-import { intensityOf } from "../regions.js";
+import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
 import type { HeadRenderer, RenderFrame } from "./types.js";
 
@@ -77,8 +77,24 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       // over a projected disc sit roughly `diameter / sqrt(n)` apart, so tying radius to the count
       // keeps dots reading as dots at every density. A size-only radius makes dense heads overlap
       // into one solid silhouette with no face in it.
+      // 0.26 leaves visible gaps between neighbouring dots; at 0.3 a 20px head fuses into a
+      // solid mass because the head disc only occupies ~70% of the canvas, so true spacing is
+      // tighter than the canvas-based estimate.
       const spacing = device / Math.sqrt(Math.max(8, count));
-      const baseRadius = Math.max(0.42, spacing * 0.3 * style.particleScale);
+      const baseRadius = Math.max(0.35, spacing * 0.26 * style.particleScale);
+
+      // Feature emphasis grows as the head shrinks: at 256px features draw near base scale, at
+      // 20px they are markedly chunkier than the skin dots. Without this the eye clusters merge
+      // with the skull at inline sizes and the face dissolves into even noise.
+      const sizeT = Math.min(1, cssSize / 256);
+      const featureEmphasis = 1 + style.featureBoost * (1 - sizeT);
+
+      // Below ~32px the head stops being a volume and becomes a glyph: far-side dots are culled
+      // entirely rather than dimmed (they only stack alpha onto the front dots and fuse the face
+      // into a solid mass), skin dots shrink and recede, and the features carry the contrast.
+      const glyphMode = cssSize <= 32;
+      const glyphSkinRadius = glyphMode ? 0.8 : 1;
+      const glyphSkinAlpha = glyphMode ? 0.58 : 1;
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -97,12 +113,6 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const viewZ = b.distance - rz;
         if (viewZ <= 0.05) continue;
 
-        const persp = b.distance / viewZ;
-        sx[visible] = half + rx * scale * persp;
-        sy[visible] = half - ry * scale * persp;
-        sr[visible] = baseRadius * persp;
-        depth[visible] = rz;
-
         // Facing: the rotated normal's z against the view direction.
         const nx = normals[i * 3];
         const ny = normals[i * 3 + 1];
@@ -110,10 +120,27 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const nzYaw = -nx * b.sinYaw + nz * b.cosYaw;
         const facing = ny * b.sinPitch + nzYaw * b.cosPitch;
 
+        const region = pointSet.regionId[i];
+        const feature = isFeatureRegion(region);
+
+        // Far-side features are culled outright, not dimmed. A dimmed eye showing through the
+        // skull still reads as a smudge stuck to the silhouette; skin dots keep drawing dimmed
+        // because they carry the head's sense of volume.
+        if (feature && facing < 0.03) continue;
+        if (glyphMode && facing < -0.05) continue;
+
+        const persp = b.distance / viewZ;
+        sx[visible] = half + rx * scale * persp;
+        sy[visible] = half - ry * scale * persp;
+        sr[visible] =
+          baseRadius * persp * drawScaleOf(region) * (feature ? featureEmphasis : glyphSkinRadius);
+        depth[visible] = rz;
+
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
         const depthT = (b.distance - rz) / (b.distance + radius);
         const alpha =
-          intensityOf(pointSet.regionId[i]) *
+          intensityOf(region) *
+          (feature ? 1 : glyphSkinAlpha) *
           (1 - backness * style.backfaceDim) *
           (1 - Math.min(1, depthT) * style.depthDim);
         sa[visible] = Math.max(0, Math.min(1, alpha));

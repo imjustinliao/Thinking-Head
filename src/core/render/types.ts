@@ -36,6 +36,12 @@ export interface RenderStyle {
   backfaceDim: number;
   /** How much depth darkens a particle, 0 for none. */
   depthDim: number;
+  /**
+   * Extra draw-size emphasis for feature regions as the rendered size shrinks. 0 keeps features
+   * at their base scale everywhere; higher values make eyes/brows/mouth proportionally chunkier
+   * on tiny heads — the favicon principle. Applied on top of the per-region draw scale.
+   */
+  featureBoost: number;
 }
 
 export const DEFAULT_STYLE: RenderStyle = {
@@ -44,6 +50,7 @@ export const DEFAULT_STYLE: RenderStyle = {
   // High: particles on the far side of the head must not paint over the face.
   backfaceDim: 0.88,
   depthDim: 0.35,
+  featureBoost: 0.3,
 };
 
 export interface RenderFrame {
