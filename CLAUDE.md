@@ -82,6 +82,31 @@ not photorealism.
 A public marketing/demo website (hosted live-demo site) is a future phase, after Phases 1
 and 2. Do not scaffold or plan it.
 
+### Deferred to a dedicated pass after Phase 1 is functionally complete
+
+**Facial realism is not signed off.** Justin's repeated direction is a genuinely
+photoreal-accurate human facial structure, matching dense voxel-head reference artwork. The
+current head is procedurally sculpted quadrics — correct proportions, real sockets, nose
+line and jaw, lit and occluded — but it does **not** reach scanned-human accuracy, and
+Justin has judged it insufficient three times. Do not keep iterating on it inside Phase 1;
+it is a separate, planned pass.
+
+The honest constraint: an accurate human head is a *data* problem, not a tuning problem.
+Smooth-min quadrics cannot converge on real anatomy. Routes for that later pass, in rough
+order of promise:
+
+1. Encode the head as a compact **displacement/height map over a canonical parameterisation**
+   (a few KB, still no binary asset), derived from real anatomy rather than hand-tuned
+   primitives. Keeps the lattice pipeline and the region/rig model unchanged.
+2. Substantially expand the SDF with real anatomical landmarks (orbital rim, nasal bone,
+   zygomatic arch, philtrum, mentolabial sulcus) — cheap to try, bounded ceiling.
+3. A licensed parametric head model — currently rejected on registration, attribution and
+   binary-asset grounds; revisit only if 1 and 2 fall short and Justin accepts the terms.
+
+Both this and the demo website belong to that post-Phase-1 pass. **Phase 1 continues on the
+state and motion system**, which is independent of the head's exact anatomy — the rig
+addresses regions, not vertices, so a better head drops straight in.
+
 ---
 
 ## 3. Two-phase roadmap
