@@ -1,5 +1,5 @@
 import { priorityOf } from "./regions.js";
-import { classifyRegion, type HeadParams, headBounds, sdHead, sdHeadNormal } from "./sdf.js";
+import { classifyRegion, type HeadParams, headBounds, sdHead } from "./sdf.js";
 
 /**
  * Surface sampling for the head field, in two stages:
@@ -26,8 +26,13 @@ export interface SurfaceCloud {
 }
 
 /**
- * Pulls a point onto the isosurface by stepping along the field gradient. Converges in a few
- * iterations near the surface, which is the only place it is ever called.
+ * Pulls a point onto the isosurface by stepping along the field gradient, writing the converged
+ * position into `out[0..2]` and its unit normal into `out[3..5]`.
+ *
+ * The normal comes back from here rather than from a separate `sdHeadNormal` call because the
+ * gradient is already computed on the final iteration — and the gradient *is* the normal. Asking
+ * for it again costs six more field evaluations per particle for an answer we just discarded, which
+ * measured as a significant share of generation time.
  */
 function project(
   x: number,
@@ -35,30 +40,39 @@ function project(
   z: number,
   p: HeadParams,
   out: Float32Array,
-  iterations = 5,
+  iterations = 4,
 ): boolean {
   let px = x;
   let py = y;
   let pz = z;
   const eps = 1e-3;
+  let nx = 0;
+  let ny = 0;
+  let nz = 0;
 
   for (let i = 0; i < iterations; i++) {
     const d = sdHead(px, py, pz, p);
-    if (Math.abs(d) < 1e-5) break;
     const gx = sdHead(px + eps, py, pz, p) - sdHead(px - eps, py, pz, p);
     const gy = sdHead(px, py + eps, pz, p) - sdHead(px, py - eps, pz, p);
     const gz = sdHead(px, py, pz + eps, p) - sdHead(px, py, pz - eps, p);
     const len = Math.sqrt(gx * gx + gy * gy + gz * gz);
     if (len < 1e-12) return false;
-    px -= (d * gx) / len;
-    py -= (d * gy) / len;
-    pz -= (d * gz) / len;
+    nx = gx / len;
+    ny = gy / len;
+    nz = gz / len;
+    if (Math.abs(d) < 1e-5) break;
+    px -= d * nx;
+    py -= d * ny;
+    pz -= d * nz;
   }
 
   if (Math.abs(sdHead(px, py, pz, p)) > 5e-3) return false;
   out[0] = px;
   out[1] = py;
   out[2] = pz;
+  out[3] = nx;
+  out[4] = ny;
+  out[5] = nz;
   return true;
 }
 
@@ -73,11 +87,9 @@ export function sampleSurface(p: HeadParams, candidates: number, rng: () => numb
   const b = headBounds(p);
   const shell = Math.max(b.x, b.y, b.z) * 0.12;
 
-  const px: number[] = [];
-  const py: number[] = [];
-  const pz: number[] = [];
+  const accepted: number[] = [];
   const regions: number[] = [];
-  const out = new Float32Array(3);
+  const out = new Float32Array(6);
 
   for (let i = 0; i < candidates; i++) {
     const x = (rng() * 2 - 1) * b.x;
@@ -85,21 +97,21 @@ export function sampleSurface(p: HeadParams, candidates: number, rng: () => numb
     const z = (rng() * 2 - 1) * b.z;
     if (Math.abs(sdHead(x, y, z, p)) > shell) continue;
     if (!project(x, y, z, p, out)) continue;
-    px.push(out[0]);
-    py.push(out[1]);
-    pz.push(out[2]);
+    accepted.push(out[0], out[1], out[2], out[3], out[4], out[5]);
     regions.push(classifyRegion(out[0], out[1], out[2], p));
   }
 
-  const count = px.length;
+  const count = regions.length;
   const positions = new Float32Array(count * 3);
   const normals = new Float32Array(count * 3);
   const regionId = new Uint8Array(count);
   for (let i = 0; i < count; i++) {
-    positions[i * 3] = px[i];
-    positions[i * 3 + 1] = py[i];
-    positions[i * 3 + 2] = pz[i];
-    sdHeadNormal(px[i], py[i], pz[i], p, normals, i * 3);
+    positions[i * 3] = accepted[i * 6];
+    positions[i * 3 + 1] = accepted[i * 6 + 1];
+    positions[i * 3 + 2] = accepted[i * 6 + 2];
+    normals[i * 3] = accepted[i * 6 + 3];
+    normals[i * 3 + 1] = accepted[i * 6 + 4];
+    normals[i * 3 + 2] = accepted[i * 6 + 5];
     regionId[i] = regions[i];
   }
   return { positions, normals, regionId, count };
@@ -247,6 +259,8 @@ export interface EliminationOptions {
   target: number;
   /** Neighbour influence radius for the selection pass. Derived from the target count. */
   radius: number;
+  /** Surface area estimate, used to size the radius at each ordering octave. */
+  surfaceArea: number;
   /**
    * Extra priority for silhouette particles — those whose normal is near-perpendicular to the
    * view axis. The rim is what carries the head's recognisable outline at small sizes.
@@ -372,7 +386,7 @@ function eliminate(
  */
 export function eliminateProgressive(cloud: SurfaceCloud, options: EliminationOptions): Int32Array {
   const { normals, regionId, count } = cloud;
-  const { radius, rimBoost } = options;
+  const { radius, rimBoost, surfaceArea } = options;
   const target = Math.min(options.target, count);
 
   const priority = new Float64Array(count);
@@ -386,17 +400,32 @@ export function eliminateProgressive(cloud: SurfaceCloud, options: EliminationOp
 
   const selected = eliminate(cloud, all, radius, priority, target).survivors;
 
-  // A deliberately generous radius: the ordering pass thins from `target` down to one, and a
-  // radius sized for the dense end would leave the sparse end with no neighbours in range,
-  // zero weights, and therefore no meaningful ordering at exactly the small counts that matter.
-  const orderingRadius = radius * 6;
-  const run = eliminate(cloud, selected, orderingRadius, priority, 1);
+  // Ordering pass, run in octaves: halve the set, then halve again, growing the radius each time
+  // to match the thinning set.
+  //
+  // A single pass at one radius cannot do this. Sized for the dense end, the sparse end finds no
+  // neighbours, every weight is zero and the ordering that matters most — the first few dozen
+  // particles — is arbitrary. Sized for the sparse end, every point neighbours every other and the
+  // pass degenerates to all-pairs, which measured at 81ms and blew the live-tuning budget outright.
+  // Halving keeps the neighbour count per point roughly constant, so the whole ordering costs about
+  // as much as one dense pass.
+  const stages: Int32Array[] = [];
+  let current = selected;
+  while (current.length > 1) {
+    const next = Math.max(1, current.length >> 1);
+    const run = eliminate(cloud, current, radiusForTarget(surfaceArea, next), priority, next);
+    stages.push(run.removalOrder);
+    current = run.survivors;
+  }
 
+  // Whatever survived every octave is the sparsest and most important, so it leads. Then each
+  // octave's casualties in reverse, latest octave first — later removal means it held on longer.
   const order = new Int32Array(selected.length);
   let cursor = 0;
-  for (const i of run.survivors) order[cursor++] = i;
-  for (let i = run.removalOrder.length - 1; i >= 0; i--) {
-    order[cursor++] = run.removalOrder[i];
+  for (const i of current) order[cursor++] = i;
+  for (let s = stages.length - 1; s >= 0; s--) {
+    const removed = stages[s];
+    for (let i = removed.length - 1; i >= 0; i--) order[cursor++] = removed[i];
   }
   return order;
 }

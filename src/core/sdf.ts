@@ -55,10 +55,11 @@ export const DEFAULT_HEAD_PARAMS: HeadParams = {
   craniumLift: 0.2,
 
   jawWidth: 0.46,
-  jawHeight: 0.36,
+  jawHeight: 0.34,
   jawDepth: 0.5,
-  jawDrop: -0.44,
-  chinTaper: 0.4,
+  jawDrop: -0.38,
+  // A hard taper spikes the chin into a light-bulb point. Chins are rounded.
+  chinTaper: 0.62,
   chinForward: 0.1,
 
   cheekRadius: 0.22,

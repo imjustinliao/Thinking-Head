@@ -1,7 +1,7 @@
 import { DEFAULT_FEATURE_PARAMS, type FeatureParams, generateLandmarks } from "./landmarks.js";
 import { mulberry32 } from "./math.js";
 import type { HeadPointSet } from "./pointset.js";
-import { validatePointSet } from "./pointset.js";
+import { measureExtents, validatePointSet } from "./pointset.js";
 import {
   approximateSurfaceArea,
   eliminateProgressive,
@@ -9,7 +9,7 @@ import {
   type SurfaceCloud,
   sampleSurface,
 } from "./sample.js";
-import { DEFAULT_HEAD_PARAMS, type HeadParams, headBounds } from "./sdf.js";
+import { DEFAULT_HEAD_PARAMS, type HeadParams } from "./sdf.js";
 
 /**
  * Full geometry generation: SDF -> surface cloud -> explicit features -> progressive blue-noise
@@ -34,7 +34,7 @@ export interface GenerateOptions {
 export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
   head: DEFAULT_HEAD_PARAMS,
   features: DEFAULT_FEATURE_PARAMS,
-  candidates: 26000,
+  candidates: 12000,
   maxParticles: 1400,
   rimBoost: 1.1,
   seed: 20260724,
@@ -73,9 +73,11 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
   const features = generateLandmarks(opts.head, opts.features, rng);
   const { cloud, weight } = mergeClouds(surface, features);
 
+  const surfaceArea = approximateSurfaceArea(opts.head);
   const order = eliminateProgressive(cloud, {
     target: Math.min(opts.maxParticles, cloud.count),
-    radius: radiusForTarget(approximateSurfaceArea(opts.head), opts.maxParticles),
+    radius: radiusForTarget(surfaceArea, opts.maxParticles),
+    surfaceArea,
     rimBoost: opts.rimBoost,
   });
 
@@ -103,7 +105,7 @@ export function generateHead(options: Partial<GenerateOptions> = {}): HeadPointS
     regionId,
     weight: outWeight,
     count,
-    bounds: headBounds(opts.head),
+    ...measureExtents(positions, count),
   };
   validatePointSet(set);
   return set;
@@ -119,8 +121,10 @@ export function particleCountForSize(
   maxParticles: number,
   minParticles = 44,
 ): number {
-  // Roughly proportional to drawn area, flattened so large sizes do not explode the count.
+  // Superlinear, so small sizes sit near the floor. Strict area scaling (exponent 2) would leave a
+  // 20px head with under a dozen particles; this keeps dots getting chunkier as the head shrinks,
+  // which is the whole reason a 64px design is not the same design at 20px.
   const t = Math.min(1, Math.max(0, (pixelSize - 16) / (256 - 16)));
-  const eased = t ** 0.72;
+  const eased = t ** 1.6;
   return Math.round(minParticles + eased * (maxParticles - minParticles));
 }

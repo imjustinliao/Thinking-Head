@@ -27,8 +27,21 @@ export interface HeadPointSet {
    */
   weight: Float32Array;
   count: number;
-  /** Half-extents of the generated geometry, for camera framing. */
+  /** Axis-aligned half-extents of the actual generated points. */
   bounds: { x: number; y: number; z: number };
+  /**
+   * Centre of the generated points. The renderer translates by this so the head stays framed
+   * regardless of how asymmetric the tuning parameters are — raising the cranium should not also
+   * shove the head up the canvas.
+   */
+  center: { x: number; y: number; z: number };
+  /**
+   * Largest distance from `center` to any point: the true framing radius.
+   *
+   * Measured from the geometry rather than derived from the bounding box, because a box corner is
+   * much further out than the head ever reaches and framing to it renders the head far too small.
+   */
+  radius: number;
 }
 
 export function emptyPointSet(): HeadPointSet {
@@ -39,6 +52,50 @@ export function emptyPointSet(): HeadPointSet {
     weight: new Float32Array(0),
     count: 0,
     bounds: { x: 0, y: 0, z: 0 },
+    center: { x: 0, y: 0, z: 0 },
+    radius: 0,
+  };
+}
+
+/** Measures the extents, centre and framing radius of a finished position buffer. */
+export function measureExtents(
+  positions: Float32Array,
+  count: number,
+): Pick<HeadPointSet, "bounds" | "center" | "radius"> {
+  if (count === 0) return { bounds: { x: 0, y: 0, z: 0 }, center: { x: 0, y: 0, z: 0 }, radius: 0 };
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < count; i++) {
+    const x = positions[i * 3];
+    const y = positions[i * 3 + 1];
+    const z = positions[i * 3 + 2];
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    if (z > maxZ) maxZ = z;
+  }
+
+  const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
+  let radius = 0;
+  for (let i = 0; i < count; i++) {
+    const dx = positions[i * 3] - center.x;
+    const dy = positions[i * 3 + 1] - center.y;
+    const dz = positions[i * 3 + 2] - center.z;
+    const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (d > radius) radius = d;
+  }
+
+  return {
+    bounds: { x: (maxX - minX) / 2, y: (maxY - minY) / 2, z: (maxZ - minZ) / 2 },
+    center,
+    radius,
   };
 }
 

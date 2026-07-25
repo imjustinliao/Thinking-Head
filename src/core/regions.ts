@@ -51,6 +51,27 @@ export const REGION_PRIORITY: Record<RegionName, number> = {
   cranium: 0.7,
 };
 
+/**
+ * Per-region render intensity.
+ *
+ * Without this the head draws as a single-value silhouette: the skin surface and the feature
+ * clusters are the same colour, so the eyes vanish into the cheeks and only the outline reads.
+ * Dimming the structural surface and leaving features at full strength is what gives the face
+ * internal structure — the same trick as a portrait lighting the eyes and letting the cheek fall
+ * off. The rig will later modulate these per state.
+ */
+export const REGION_INTENSITY: Record<RegionName, number> = {
+  eyeL: 1,
+  eyeR: 1,
+  browL: 0.95,
+  browR: 0.95,
+  mouth: 0.9,
+  nose: 0.62,
+  cheek: 0.48,
+  jaw: 0.5,
+  cranium: 0.44,
+};
+
 /** Regions that carry expression. Used by tests to assert small-size legibility. */
 export const FEATURE_REGIONS: RegionName[] = ["browL", "browR", "eyeL", "eyeR", "mouth"];
 
@@ -61,4 +82,13 @@ for (const name of REGION_NAMES) {
 
 export function priorityOf(region: number): number {
   return PRIORITY_BY_ID[region] ?? 1;
+}
+
+const INTENSITY_BY_ID = new Float32Array(REGION_COUNT);
+for (const name of REGION_NAMES) {
+  INTENSITY_BY_ID[REGION[name]] = REGION_INTENSITY[name];
+}
+
+export function intensityOf(region: number): number {
+  return INTENSITY_BY_ID[region] ?? 1;
 }
