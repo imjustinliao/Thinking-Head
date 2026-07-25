@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | Static head **complete** through the sculpted-realism pass (v2.3–v2.5). Next: WebGL2 renderer + shared context, then `idle` |
-| **Last commit** | `e094a6e` — v2.5 - Present states as status pills with sweeping shimmer labels |
+| **Step** | **WebGL2 renderer + shared context complete** (v2.7–v2.9). Next: `idle` — the motion system |
+| **Last commit** | `4e9a8e0` — v2.9 - Select renderer backend per instance and report it in the demo readout |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
@@ -145,6 +145,45 @@ realism carried by the particle medium** — recorded in `CLAUDE.md` §1. What c
 - Motion note for the upcoming `idle`/state milestones: Justin wants the swarm quality of
   organised, purposeful micro-motion ("nano robots"), not loose drift.
 
+### WebGL2 renderer + shared context (v2.7–v2.9)
+
+- **One GL context per page, refcounted.** `render/webgl/sharedContext.ts` owns a single
+  offscreen GL canvas; each instance renders into it and the result is blitted onto the
+  instance's own 2D canvas with `drawImage`. Instances therefore hold only cheap 2D
+  contexts. Verified: 12 mounted heads, **0 holding a GL context**; and 30 instances (well
+  past the browser's ~8–16 limit) all render, twice, with a full teardown between.
+- **`render/shading.ts` is the single source of the size-dependent rules** (radius from
+  spacing, feature emphasis, glyph mode, sculpt ramp, light constants). Both backends read
+  it, so the fallback cannot silently look different from the GPU path.
+- **No CPU depth sort on the GPU path** — the depth buffer resolves occlusion. Linear depth
+  into NDC. This is the main structural win over the 2D path, which must sort every frame.
+- **Progressive ordering pays off again:** drawing the first N particles is just
+  `drawArraysInstanced(..., count)`. No index buffer, no per-size geometry.
+- **Measured:** WebGL 0.006ms/frame vs Canvas 2D 0.316ms/frame at 220px/1396 particles —
+  **~53× faster**. Backend parity 94.5–98.4% of painted pixels, mean alpha delta 3–5%.
+- **Two real bugs found by measuring parity, not by eyeballing:**
+  1. The billboard quad was sized *exactly* to the disc radius, so the fragment shader could
+     never see the outer ring of partially covered pixels Canvas 2D still paints — the head
+     came out ~20% short on ink at every size. The quad is now padded 1px and coverage is
+     computed in real pixel units. Parity went 70–80% → 94.5–98.4%.
+  2. Before that, an edge falloff expressed as a *fraction* of the radius. At typical
+     densities a disc is only ~1.6px across, so a fractional band eats the whole dot. Any
+     future edge/AA work must be in pixel units.
+- Remaining ~10–15% ink difference is legitimate: the depth buffer rejects hidden particles
+  and does not accumulate alpha where dots overlap, whereas the 2D painter's-algorithm path
+  blends them. The GPU path is the more correct of the two.
+- **Note for future work:** `premultipliedAlpha` on the GL context turned out to make *no*
+  measurable difference to `drawImage` output — the pairing is kept correct
+  (`premultipliedAlpha: true` + `ONE / ONE_MINUS_SRC_ALPHA` + premultiplied fragment output)
+  but it is not the cause of any brightness issue, so do not chase it as one.
+- Still to do on the renderer: offscreen pause (`IntersectionObserver`) and Page Visibility,
+  shared animation clock, device-capability tiering. These belong with the motion milestone,
+  since there is nothing to pause until the head animates.
+- **Verification harness worth reusing:** the demo's dev entry can be imported straight from
+  the browser console via `/@fs/<abs path>/src/dev.ts?bust=<n>` (the cache-buster is
+  required — without it a stale module is silently reused, which made one measurement look
+  unchanged). That is how backend parity and per-frame cost were measured.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -190,14 +229,13 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin tunes the head's shape** in the demo panel and confirms the silhouette before
-   more is built on top of it.
-2. **WebGL2 renderer + shared single-context manager.** Implements the same
-   `HeadRenderer` interface as `render/canvas2d.ts`, so this is a factory swap. Instanced
-   billboard quads, one draw call, explicit context release, `webglcontextlost` handling.
-   The Canvas 2D path stays as the no-WebGL and reduced-motion fallback.
-3. Then `idle` (first continuous motion — 4D noise plus incommensurate sinusoids).
-4. Then the remaining nine states one at a time, with a check-in after each.
+1. **`idle` — the motion system.** 4D simplex noise plus incommensurate sinusoids evaluated
+   in the vertex shader from uniforms. Justin's target quality is an organised, purposeful
+   swarm ("nano robots"), not loose drift. This milestone also brings the pieces that only
+   matter once things move: shared animation clock across instances, offscreen pause via
+   `IntersectionObserver`, Page Visibility pause, and `prefers-reduced-motion` (the Canvas 2D
+   path is the static/reduced-motion renderer).
+2. Then the remaining nine states one at a time, with a check-in after each.
 5. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
