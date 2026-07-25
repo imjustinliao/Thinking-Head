@@ -47,6 +47,15 @@ export function smin(a: number, b: number, k: number): number {
   return Math.min(a, b) - h * h * k * 0.25;
 }
 
+/**
+ * Polynomial smooth maximum, used for smooth subtraction (`smax(d, -cut, k)`). This is what
+ * carves eye sockets: a hard subtraction leaves a sharp crater rim that reads as damage, while
+ * the smooth version rolls the surface inward like bone under skin.
+ */
+export function smax(a: number, b: number, k: number): number {
+  return -smin(-a, -b, k);
+}
+
 /** Signed distance to a sphere. Exact. */
 export function sdSphere(px: number, py: number, pz: number, r: number): number {
   return Math.sqrt(px * px + py * py + pz * pz) - r;

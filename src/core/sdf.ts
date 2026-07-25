@@ -1,4 +1,4 @@
-import { sdEllipsoid, sdSphere, smin } from "./math.js";
+import { sdEllipsoid, sdSphere, smax, smin } from "./math.js";
 import { REGION, type RegionId } from "./regions.js";
 
 /**
@@ -7,13 +7,13 @@ import { REGION, type RegionId } from "./regions.js";
  * Coordinate frame is right-handed with +y up and **+z forward**, so the face points at the
  * default camera. The head is scaled to roughly unit radius about the origin.
  *
- * Proportions default to neotenous mascot: an oversized rounded cranium over a small tapered
- * jaw, with the eye line set low. That is a deliberate structural choice rather than a
- * stylistic one — infant proportions read as friendly and, more importantly, they cannot fall
- * into the uncanny valley the way a near-accurate adult head can.
+ * Proportions default to a defined adult head (Justin's direction, 2026-07-24, superseding the
+ * original neotenous mascot): realistic skull masses, carved eye sockets, and a real nose line,
+ * with the charm carried by the particle medium and motion rather than infant proportions. The
+ * mascot look remains reachable through the same parameters.
  */
 export interface HeadParams {
-  /** Cranium half-extents. Width is generous relative to jaw — this is the neoteny lever. */
+  /** Cranium half-extents. Width relative to jaw is the main youthful-vs-adult lever. */
   craniumWidth: number;
   craniumHeight: number;
   craniumDepth: number;
@@ -45,21 +45,34 @@ export interface HeadParams {
   browRidge: number;
   browRidgeHeight: number;
 
+  /**
+   * Eye sockets, carved by smooth subtraction. Sockets are what make lighting model the face:
+   * their inverted normals fall away from the key light, so the orbits self-shade dark exactly
+   * as on a real head. 0 bite disables.
+   */
+  socketRadius: number;
+  socketSpread: number;
+  socketHeight: number;
+  socketBite: number;
+
   /** Smooth-min blend radius. The difference between one face and a bag of spheres. */
   smoothK: number;
 }
 
 export const DEFAULT_HEAD_PARAMS: HeadParams = {
-  // Taller than wide. A cranium as wide as it is tall reads as a ball, not a skull.
-  craniumWidth: 0.6,
-  craniumHeight: 0.7,
-  craniumDepth: 0.64,
-  craniumLift: 0.2,
+  // Adult proportions, approved 2026-07-24: definition-first sculpted head rather than the
+  // original neotenous mascot. Taller than wide — a cranium as wide as it is tall reads as a
+  // ball, not a skull. Less forehead lift than an infant head.
+  craniumWidth: 0.58,
+  craniumHeight: 0.72,
+  craniumDepth: 0.66,
+  craniumLift: 0.14,
 
   jawWidth: 0.46,
   jawHeight: 0.34,
   jawDepth: 0.5,
-  jawDrop: -0.38,
+  // A longer lower face than the mascot pass — adult heads carry more jaw.
+  jawDrop: -0.44,
   // A hard taper spikes the chin into a light-bulb point. Chins are rounded.
   chinTaper: 0.62,
   chinForward: 0.1,
@@ -72,12 +85,17 @@ export const DEFAULT_HEAD_PARAMS: HeadParams = {
   cheekHeight: -0.06,
   cheekForward: 0.26,
 
-  noseLength: 0.16,
+  noseLength: 0.18,
   noseWidth: 0.09,
   noseHeight: -0.1,
 
-  browRidge: 0.085,
+  browRidge: 0.095,
   browRidgeHeight: 0.1,
+
+  socketRadius: 0.17,
+  socketSpread: 0.24,
+  socketHeight: -0.02,
+  socketBite: 0.7,
 
   // Kept small on purpose. Large values are tempting for smoothness but they dissolve the
   // jaw into the cranium and the head loses its chin entirely.
@@ -194,6 +212,19 @@ export function sdHeadParts(
   let d = smin(parts[PART.cranium], parts[PART.jaw], p.smoothK);
   d = smin(d, parts[PART.cheek], p.smoothK);
   d = smin(d, parts[PART.brow], p.smoothK);
+
+  // Sockets are carved after the base masses (so the brow ridge overhangs them) and before the
+  // nose (so the bridge stands intact between them). Their concave normals turn away from the
+  // key light, which is what shades the orbits dark on the lit head.
+  if (p.socketBite > 0) {
+    const socketZ = p.craniumDepth * (0.5 + p.socketBite * 0.5);
+    const socket = Math.min(
+      sdSphere(px - p.socketSpread, py - p.socketHeight, pz - socketZ, p.socketRadius),
+      sdSphere(px + p.socketSpread, py - p.socketHeight, pz - socketZ, p.socketRadius),
+    );
+    d = smax(d, -socket, p.smoothK * 0.7);
+  }
+
   // The nose blends tighter than everything else, or it dissolves into the face entirely.
   d = smin(d, parts[PART.nose], p.smoothK * 0.45);
   return d;
