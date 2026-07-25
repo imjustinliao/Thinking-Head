@@ -7,19 +7,27 @@ interface HeadSlotProps {
 }
 
 /**
- * Placeholder standing in for the real component until the renderer lands. It reserves
- * exactly the space the head will occupy, so the gallery layout is already final and
- * swapping in the real component is a one-line change per call site.
+ * Placeholder standing in for the real component until the renderer lands. Styled as an
+ * empty specimen chamber — concentric hairlines, a crosshair and a dot matrix — so an
+ * unfilled slot reads as deliberate instrumentation rather than a broken image.
+ *
+ * It reserves exactly the space the head will occupy, so swapping in the real component is
+ * a one-line change per call site.
  */
 export function HeadSlot({ state, size, speed }: HeadSlotProps) {
   return (
     <span
-      className="head-slot"
+      className="chamber"
       style={{ width: size, height: size }}
       data-state={state}
       data-speed={speed}
       role="img"
-      aria-label={`Placeholder for the ${state} head`}
-    />
+      aria-label={`Empty chamber for the ${state} head`}
+    >
+      <span className="chamber-matrix" />
+      <span className="chamber-ring" />
+      <span className="chamber-crosshair" />
+      <span className="chamber-halo" />
+    </span>
   );
 }
