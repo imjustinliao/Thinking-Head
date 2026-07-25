@@ -15,7 +15,9 @@
 export {
   DEFAULT_GENERATE_OPTIONS,
   type GenerateOptions,
-  generateHead,
+  generateHeadLevel,
+  HeadModel,
+  LEVEL_RESOLUTIONS,
 } from "./core/geometry.js";
 export {
   DEFAULT_FEATURE_PARAMS,
@@ -36,13 +38,13 @@ export {
   type RenderBackend,
 } from "./core/render/createRenderer.js";
 export {
+  CELL_FILL,
   COMPACT_MAX_SIZE,
-  DOT_RADIUS_CSS,
   GLYPH_MAX_SIZE,
-  PARTICLE_DENSITY,
-  particleCountForSize,
+  resolutionForSize,
   resolveTier,
   type SizeTier,
+  TARGET_CELL_CSS,
   type TierName,
 } from "./core/render/shading.js";
 export {
@@ -50,6 +52,7 @@ export {
   DEFAULT_CAMERA,
   DEFAULT_STYLE,
   type HeadRenderer,
+  type ParticleShape,
   type RenderFrame,
   type RenderStyle,
 } from "./core/render/types.js";
@@ -57,3 +60,4 @@ export {
   DEFAULT_HEAD_PARAMS,
   type HeadParams,
 } from "./core/sdf.js";
+export { type VoxelLattice, voxelizeSurface } from "./core/voxel.js";
