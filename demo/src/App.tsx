@@ -72,7 +72,7 @@ export function App() {
 
   // Pills keep their row shape at any slider value: the head tracks the size control but stays
   // within icon range, while the inline sample and orbit stage demo the full range.
-  const pillHeadSize = Math.max(24, Math.min(size, 64));
+  const pillHeadSize = Math.max(28, Math.min(size, 72));
 
   const READOUT = [
     { value: String(pointSet.count), label: "particles generated" },

@@ -8,6 +8,7 @@ import {
   particleCountForSize,
   type RenderBackend,
   type RenderStyle,
+  resolveTier,
 } from "thinking-head/dev";
 
 interface HeadSlotProps {
@@ -55,12 +56,12 @@ export function HeadSlot({
     };
   }, [onBackend]);
 
-  // Pose is a function of size, like density: the three-quarter turn that reads alive at 256px
-  // smears the features sideways at 20px, so small heads straighten toward face-on. The camera
-  // panel's yaw/pitch remain the full-size pose.
+  // Pose comes from the size tier: the three-quarter turn that reads alive at display sizes
+  // smears the features sideways on a glyph-sized head, so small heads sit face-on. The camera
+  // panel's yaw/pitch are the display-tier pose.
   const effectiveCamera = useMemo(() => {
-    const poseT = Math.min(1, Math.max(0, (size - 20) / 236)) ** 0.6;
-    return { ...camera, yaw: camera.yaw * poseT, pitch: camera.pitch * (0.4 + 0.6 * poseT) };
+    const { poseScale } = resolveTier(size);
+    return { ...camera, yaw: camera.yaw * poseScale, pitch: camera.pitch * poseScale };
   }, [camera, size]);
 
   useEffect(() => {
