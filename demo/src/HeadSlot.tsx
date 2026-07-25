@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
@@ -41,6 +41,14 @@ export function HeadSlot({ state, size, pointSet, camera, style, maxParticles }:
     };
   }, []);
 
+  // Pose is a function of size, like density: the three-quarter turn that reads alive at 256px
+  // smears the features sideways at 20px, so small heads straighten toward face-on. The camera
+  // panel's yaw/pitch remain the full-size pose.
+  const effectiveCamera = useMemo(() => {
+    const poseT = Math.min(1, Math.max(0, (size - 20) / 236)) ** 0.6;
+    return { ...camera, yaw: camera.yaw * poseT, pitch: camera.pitch * (0.4 + 0.6 * poseT) };
+  }, [camera, size]);
+
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
@@ -48,10 +56,10 @@ export function HeadSlot({ state, size, pointSet, camera, style, maxParticles }:
     renderer.draw({
       pointSet,
       count: particleCountForSize(size, maxParticles),
-      camera,
+      camera: effectiveCamera,
       style,
     });
-  }, [size, pointSet, camera, style, maxParticles]);
+  }, [size, pointSet, effectiveCamera, style, maxParticles]);
 
   return (
     <span

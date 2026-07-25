@@ -53,6 +53,7 @@ export function App() {
       particleScale: deferredTuning.style.particleScale,
       backfaceDim: deferredTuning.style.backfaceDim,
       depthDim: deferredTuning.style.depthDim,
+      featureBoost: deferredTuning.style.featureBoost,
     }),
     [modality, deferredTuning.style],
   );

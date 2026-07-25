@@ -25,6 +25,7 @@ export interface StyleConfig {
   particleScale: number;
   backfaceDim: number;
   depthDim: number;
+  featureBoost: number;
 }
 
 export interface TuningConfig {
@@ -49,6 +50,7 @@ export const DEFAULT_TUNING: TuningConfig = {
     particleScale: DEFAULT_STYLE.particleScale,
     backfaceDim: DEFAULT_STYLE.backfaceDim,
     depthDim: DEFAULT_STYLE.depthDim,
+    featureBoost: DEFAULT_STYLE.featureBoost,
   },
 };
 
@@ -81,6 +83,7 @@ export const HEAD_FIELDS: Field<HeadParams>[] = [
   { key: "jawDrop", label: "jaw drop", min: -0.8, max: 0, step: 0.005 },
   { key: "chinTaper", label: "chin taper", min: 0.1, max: 1, step: 0.01 },
   { key: "chinForward", label: "chin forward", min: -0.1, max: 0.3, step: 0.005 },
+  { key: "chinBoss", label: "chin ball", min: 0.02, max: 0.22, step: 0.005 },
   { key: "cheekRadius", label: "cheek radius", min: 0.05, max: 0.4, step: 0.005 },
   { key: "cheekSpread", label: "cheek spread", min: 0.1, max: 0.5, step: 0.005 },
   { key: "cheekHeight", label: "cheek height", min: -0.4, max: 0.2, step: 0.005 },
@@ -106,7 +109,9 @@ export const FEATURE_FIELDS: Field<FeatureParams>[] = [
   { key: "mouthHeight", label: "mouth height", min: -0.6, max: -0.05, step: 0.005 },
   { key: "mouthWidth", label: "mouth width", min: 0.04, max: 0.35, step: 0.005 },
   { key: "mouthCurve", label: "mouth curve", min: -0.1, max: 0.12, step: 0.005 },
-  { key: "mouthDensity", label: "mouth particles", min: 4, max: 50, step: 1 },
+  { key: "mouthLipGap", label: "lip gap", min: 0, max: 0.1, step: 0.002 },
+  { key: "mouthDensity", label: "mouth particles", min: 6, max: 50, step: 1 },
+  { key: "noseDots", label: "nose dots", min: 0, max: 5, step: 1 },
 ];
 
 export const SAMPLING_FIELDS: Field<SamplingConfig>[] = [
@@ -127,4 +132,5 @@ export const STYLE_FIELDS: Field<StyleConfig>[] = [
   { key: "particleScale", label: "particle size", min: 0.3, max: 3, step: 0.02 },
   { key: "backfaceDim", label: "backface dim", min: 0, max: 1, step: 0.02 },
   { key: "depthDim", label: "depth dim", min: 0, max: 1, step: 0.02 },
+  { key: "featureBoost", label: "feature emphasis", min: 0, max: 1.5, step: 0.05 },
 ];
