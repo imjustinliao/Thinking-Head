@@ -14,7 +14,7 @@ Updated at every session and step boundary.
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
 | **Step** | Scaffolding complete. Next up: plan mode for the first renderer milestone |
-| **Last commit** | `980efed` — v0.7 - Add live demo showcase with state gallery size and speed controls |
+| **Last commit** | `1b64ce5` — v0.9 - Restyle demo as high-contrast liquid glass observatory with animated lighting |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's go-ahead on the static-head plan |
 
@@ -39,6 +39,32 @@ Updated at every session and step boundary.
   non-functional Phase 2 photo-upload placeholder. Size and speed controls are wired.
   `HeadSlot` is a placeholder that reserves exactly the space the real head will occupy,
   so swapping in the component is a one-line change per call site.
+
+### Demo design language — established, do not flatten
+
+Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
+committed aesthetic direction: **"particle observatory"** — obsidian void, volumetric
+light, floating glass instrument panels. A future session should extend this, not
+replace it with defaults.
+
+- **Type:** Instrument Serif (display, italic for the accent word), IBM Plex Sans (body),
+  IBM Plex Mono (all labels, data and state names).
+- **Glass material:** the `.glass` class is the single source of the material — layered
+  translucent gradient, `backdrop-filter` blur + saturate, inset specular edges, a
+  pointer-tracked hotspot via `::before`, and top-rim lensing via `::after`.
+- **Lighting:** three slow drifting blooms, a hairline measurement grid, animated grain,
+  and a vignette, all in `Backdrop.tsx` and all CSS-driven (no per-frame JS).
+- **Pointer as light source:** `useSpotlight.ts` sets local `--mx`/`--my`/`--lit` on the
+  glass panel under the cursor. One delegated listener, rAF-coalesced, one write per
+  frame regardless of panel count, and it no-ops entirely under reduced motion.
+- **Modality accent re-lights the whole page** (`--accent` swapped off
+  `.shell[data-modality]`) — a live preview of the colour layer the real component will
+  apply to the head. Cyan / amber / rose for text / audio / vision.
+- **Reduced motion** collapses every decorative animation to its resting state rather
+  than removing it, matching the accessibility rule the component itself must follow.
+  Implemented but not yet verified in a browser with the preference actually enabled.
+- The gallery grid and stage heights track the size slider via `--slot`, so a 256px head
+  reflows the grid instead of being clipped.
 
 ### Decisions locked in this session
 
