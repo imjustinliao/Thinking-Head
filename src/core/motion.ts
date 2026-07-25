@@ -53,6 +53,16 @@ export interface MotionParams {
   swayYaw: number;
   swayPitch: number;
   swaySpeed: number;
+
+  /**
+   * Persistent pose offset, in radians. Non-zero values keep the head at a rest tilt — a small
+   * yaw is a head cocked to one side (attentive), a downward pitch is a gaze dropped (reading).
+   * Distinct from `swayYaw`/`swayPitch`, which oscillate around zero.
+   *
+   * Applied via {@link swayOffsets} so both backends inherit it for free.
+   */
+  poseYawBias: number;
+  posePitchBias: number;
 }
 
 export const STILL_MOTION: MotionParams = {
@@ -69,6 +79,8 @@ export const STILL_MOTION: MotionParams = {
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
+  poseYawBias: 0,
+  posePitchBias: 0,
 };
 
 /**
@@ -95,15 +107,59 @@ export const IDLE_MOTION: MotionParams = {
   swayYaw: 0.07,
   swayPitch: 0.028,
   swaySpeed: 0.23,
+
+  poseYawBias: 0,
+  posePitchBias: 0,
 };
 
 /**
- * Motion per state. Only `idle` is tuned; the rest inherit it until their own milestones land,
- * so every state animates rather than freezing.
+ * `listening` — receiving input. Alert and focused rather than relaxed.
+ *
+ * The character comes from four tuned differences against `idle`:
+ * - **Head tilted to one side** via a persistent `poseYawBias`. This is the single most
+ *   readable cue for "listening"; humans do it involuntarily when concentrating on a voice.
+ * - **Suppressed breath and jitter** — attentive stillness. A relaxed breath reads as waiting,
+ *   not attending. Dropping to roughly a quarter of `idle`'s values keeps the head from ever
+ *   holding truly still (the 30-second alive requirement) while cutting the wandering feel.
+ * - **Faster, tighter shimmer** at higher amplitude — quick attentive scanning across the
+ *   surface, like eyes tracking an audio source. This is the frequency-domain equivalent of
+ *   "leaning in".
+ * - **Small, quick sway** that never counter-tilts past centre. Combined with the yaw bias the
+ *   head bobs slightly around a tilted rest pose rather than drifting free.
+ */
+export const LISTENING_MOTION: MotionParams = {
+  breathAmplitude: 0.16,
+  breathSpeed: 0.9,
+
+  waveAmplitude: 0.14,
+  waveScale: 2.8,
+  waveSpeed: 0.55,
+
+  jitterAmplitude: 0.05,
+  jitterSpeed: 3.2,
+
+  shimmerAmplitude: 0.55,
+  shimmerScale: 3.4,
+  shimmerSpeed: 0.9,
+
+  swayYaw: 0.03,
+  swayPitch: 0.02,
+  swaySpeed: 0.45,
+
+  // Head cocked ~10° to one side, chin dropped a hair. The bias axis is deliberately opposite
+  // to `idle`'s three-quarter camera yaw so the tilt reads as an *added* posture rather than
+  // deepening the existing turn.
+  poseYawBias: -0.18,
+  posePitchBias: 0.06,
+};
+
+/**
+ * Motion per state. `idle` and `listening` are tuned; the rest inherit `idle` until their own
+ * milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
-  listening: IDLE_MOTION,
+  listening: LISTENING_MOTION,
   reading: IDLE_MOTION,
   thinking: IDLE_MOTION,
   searching: IDLE_MOTION,
@@ -175,12 +231,18 @@ export function shimmerMultiplier(
   return 1 + m.shimmerAmplitude * band;
 }
 
-/** Camera sway offsets for a moment in time. Applied to the camera, not to each particle. */
+/**
+ * Camera offsets for a moment in time: persistent pose bias plus the periodic sway.
+ *
+ * Applied to the camera, not to each particle — one basis-of-two-trig-calls per frame instead
+ * of the same work repeated across thousands of particles, and it actually looks like a head
+ * turning. Both backends read this on the CPU, so a per-state tilt propagates for free.
+ */
 export function swayOffsets(time: number, m: MotionParams): { yaw: number; pitch: number } {
   return {
-    yaw: m.swayYaw * Math.sin(time * m.swaySpeed),
+    yaw: m.poseYawBias + m.swayYaw * Math.sin(time * m.swaySpeed),
     // Incommensurate with yaw, so the head traces a slow open path instead of a closed loop.
-    pitch: m.swayPitch * Math.sin(time * m.swaySpeed * PHI + 1.1),
+    pitch: m.posePitchBias + m.swayPitch * Math.sin(time * m.swaySpeed * PHI + 1.1),
   };
 }
 

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { clockState, resetClock, subscribeToClock } from "./clock.js";
 import {
   IDLE_MOTION,
+  LISTENING_MOTION,
   normalDisplacement,
   STATE_MOTION,
   STILL_MOTION,
@@ -129,6 +130,65 @@ describe("brightness shimmer", () => {
     const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, IDLE_MOTION);
     const base = at(0);
     for (const period of [1, 2, 2.5, 5, 10, 15, 20, 30]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
+describe("listening state", () => {
+  test("holds a persistent head tilt — the primary visual cue for listening", () => {
+    // The tilt must survive across the whole oscillation, not merely at one instant. Testing
+    // over a spread of times catches a bias that gets cancelled by sway on a lucky sample.
+    let minYaw = Number.POSITIVE_INFINITY;
+    let maxYaw = Number.NEGATIVE_INFINITY;
+    for (let t = 0; t < 30; t += 0.35) {
+      const { yaw } = swayOffsets(t, LISTENING_MOTION);
+      minYaw = Math.min(minYaw, yaw);
+      maxYaw = Math.max(maxYaw, yaw);
+    }
+    // Both extremes on the same side of centre: yaw never crosses zero.
+    expect(maxYaw).toBeLessThan(0);
+    // And the tilt is meaningfully large — ≥5° of persistent lean.
+    expect(Math.abs((minYaw + maxYaw) / 2)).toBeGreaterThan(0.08);
+  });
+
+  test("reads as attentive rather than relaxed — reduced breath and jitter versus idle", () => {
+    // The verbal cue in the spec is "alert/focused". Structurally that means the wandering,
+    // ambient motion of idle is dialled back so the head reads as *paying attention* rather
+    // than drifting.
+    expect(LISTENING_MOTION.breathAmplitude).toBeLessThan(IDLE_MOTION.breathAmplitude);
+    expect(LISTENING_MOTION.jitterAmplitude).toBeLessThan(IDLE_MOTION.jitterAmplitude);
+    expect(LISTENING_MOTION.waveAmplitude).toBeLessThan(IDLE_MOTION.waveAmplitude);
+  });
+
+  test("carries a faster, brighter shimmer — attentive scanning across the surface", () => {
+    // Amplitude and speed both up: the shimmer sweeps quicker and reads louder, which is the
+    // frequency-domain equivalent of leaning in.
+    expect(LISTENING_MOTION.shimmerAmplitude).toBeGreaterThan(IDLE_MOTION.shimmerAmplitude);
+    expect(LISTENING_MOTION.shimmerSpeed).toBeGreaterThan(IDLE_MOTION.shimmerSpeed);
+  });
+
+  test("STATE_MOTION.listening points at LISTENING_MOTION, not the idle placeholder", () => {
+    // Regression guard: it's easy to forget the STATE_MOTION lookup when adding a new state.
+    expect(STATE_MOTION.listening).toBe(LISTENING_MOTION);
+    expect(STATE_MOTION.listening).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, phase-safe, no visible loop", () => {
+    // The state's own motion signature must not accidentally regress the invariants every state
+    // has to satisfy, so re-check the two most load-bearing ones directly on LISTENING_MOTION.
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, LISTENING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, LISTENING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, LISTENING_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
       expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
     }
   });

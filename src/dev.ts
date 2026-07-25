@@ -26,10 +26,12 @@ export {
 } from "./core/landmarks.js";
 export {
   IDLE_MOTION,
+  LISTENING_MOTION,
   type MotionParams,
   normalDisplacement,
   STATE_MOTION,
   STILL_MOTION,
+  shimmerMultiplier,
   swayOffsets,
 } from "./core/motion.js";
 export type { HeadPointSet } from "./core/pointset.js";
