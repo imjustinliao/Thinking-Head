@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Local-only research scratch.
+# Holds notes that name specific comparable products. Never commit — see the
+# scope note in docs/research-notes.md.
+research-local/
+
+# Editor and OS
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
