@@ -78,6 +78,12 @@ export const DEFAULT_HEAD_PARAMS: HeadParams = {
   smoothK: 0.15,
 };
 
+/**
+ * How far forward the nose sits, as a fraction of cranium depth. Shared by the field and by
+ * {@link headBounds} so the bounding box cannot silently stop containing the nose tip.
+ */
+const NOSE_DEPTH_FRACTION = 0.82;
+
 /** Index into the parts buffer filled by {@link sdHeadParts}. */
 export const PART = {
   cranium: 0,
@@ -146,7 +152,7 @@ export function sdHeadParts(
   parts[PART.nose] = sdEllipsoid(
     px,
     py - p.noseHeight,
-    pz - p.craniumDepth * 0.82,
+    pz - NOSE_DEPTH_FRACTION * p.craniumDepth,
     p.noseWidth,
     p.noseWidth * 1.5,
     p.noseLength,
@@ -226,6 +232,6 @@ export function headBounds(p: HeadParams): { x: number; y: number; z: number } {
   return {
     x: Math.max(p.craniumWidth, p.jawWidth, p.cheekSpread + p.cheekRadius) + m,
     y: Math.max(p.craniumLift + p.craniumHeight, Math.abs(p.jawDrop) + p.jawHeight) + m,
-    z: Math.max(p.craniumDepth, p.craniumDepth * 0.62 + p.noseLength) + m,
+    z: Math.max(p.craniumDepth, NOSE_DEPTH_FRACTION * p.craniumDepth + p.noseLength) + m,
   };
 }
