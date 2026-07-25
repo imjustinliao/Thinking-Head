@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **WebGL2 renderer + shared context complete** (v2.7–v2.9). Next: `idle` — the motion system |
-| **Last commit** | `4e9a8e0` — v2.9 - Select renderer backend per instance and report it in the demo readout |
+| **Step** | WebGL2 + shared context done (v2.7–v2.9); **constant-dot-size density model + 3 size tiers** done (v3.1–v3.3). Next: `idle` — the motion system |
+| **Last commit** | `a9ebd51` — v3.3 - Drive demo pose from size tier and widen pill head range |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's review of the head's shape — tune it in the demo panel |
 
@@ -183,6 +183,40 @@ realism carried by the particle medium** — recorded in `CLAUDE.md` §1. What c
   the browser console via `/@fs/<abs path>/src/dev.ts?bust=<n>` (the cache-buster is
   required — without it a stale module is silently reused, which made one measurement look
   unchanged). That is how backend parity and per-frame cost were measured.
+
+### Constant particle size + three size tiers (v3.1–v3.3) — the governing render rule
+
+Justin's diagnosis, and it was correct: **a particle is always the same size. A bigger head is
+more dots, not bigger dots.** The previous model derived dot radius from particle *spacing*
+(`device / sqrt(count)`), which inverted the rule — fewer particles meant wider spacing meant
+fatter dots, so a 32px head rendered as ~59 blobs of 2.17px radius instead of a face. That is
+the "small heads look low-resolution" complaint, and no amount of feature emphasis fixes it.
+
+Rules now in force, all in `render/shading.ts` and covered by tests:
+
+- **`DOT_RADIUS_CSS = 1.05`**, constant at every rendered size, multiplied by DPR so a
+  high-DPR screen gets a *sharper* dot of the same apparent size, not a bigger one. Radius
+  must never be a function of count or size again — there are regression tests for both.
+- **`PARTICLE_DENSITY = 0.18` particles per CSS px².** Count scales with *area*, so doubling
+  the size quadruples the count and density stays constant. Derived from geometry (head disc
+  ≈ 0.42·size radius, ~60% areal coverage, doubled for the far hemisphere), not guessed.
+  Measured ladder: 20px→72, 32px→184, 48px→415, 72px→933, 128px→2949.
+- **`REGION_DRAW_SCALE` is all 1.0 and `featureBoost` defaults to 0.** Enlarging feature dots
+  was a crutch for an under-populated head; with a correct count the features read from
+  placement and density. Both knobs are kept for the rig but are neutral by default.
+- **Three tiers** (`glyph` ≤40px, `compact` ≤120px, `display` >120px) control only how much
+  *modelling detail* the size can carry — never dot size or density:
+  - `glyph`: lighting ×0.22 (shading detail reads as damage at that scale), far hemisphere
+    culled, pose face-on, particle floor 70.
+  - `compact`: lighting ×0.62, pose ×0.55, floor 150.
+  - `display`: full lighting and pose, floor 400.
+- Defaults raised to `maxParticles: 3200`, `candidates: 26000` to feed the display tier.
+
+**Cost, honestly:** regeneration is now ~46ms median (was ~28ms), over the 30ms live-tuning
+target, because the cloud must be large enough to eliminate down to 3200. Acceptable for now:
+it is a tuning-time cost only, `useDeferredValue` keeps the sliders responsive, and the shipped
+package will consume a **baked** point set with zero generation at runtime. The `candidates`
+slider trades cloud quality for speed if it becomes annoying.
 
 ### Demo design language — established, do not flatten
 
