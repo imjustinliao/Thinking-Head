@@ -79,18 +79,19 @@ export const REGION_INTENSITY: Record<RegionName, number> = {
  * even noise. Structure dots shrink a touch to make room.
  */
 export const REGION_DRAW_SCALE: Record<RegionName, number> = {
-  // Restrained multipliers: they compound with the renderer's small-size emphasis, and the
-  // product is what matters — past ~1.5x total, adjacent feature dots merge into one blob and
-  // the face reads worse than with no emphasis at all.
-  eyeL: 1.18,
-  eyeR: 1.18,
-  browL: 1.08,
-  browR: 1.08,
-  mouth: 1.1,
+  // All 1: every particle is the same size, everywhere. Scaling feature dots up was a crutch for
+  // an under-populated head — with a correct particle count the features read from placement and
+  // density instead, and varying dot size just makes the grain look inconsistent. Kept as a table
+  // because the expression rig may want to drive it per state later.
+  eyeL: 1,
+  eyeR: 1,
+  browL: 1,
+  browR: 1,
+  mouth: 1,
   nose: 1,
-  cheek: 0.9,
-  jaw: 0.95,
-  cranium: 0.9,
+  cheek: 1,
+  jaw: 1,
+  cranium: 1,
 };
 
 /** Regions that carry expression. Used by tests to assert small-size legibility. */

@@ -399,7 +399,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_glyphSkinRadius, shading.glyphSkinRadius);
     gl.uniform1f(u.u_glyphSkinAlpha, shading.glyphSkinAlpha);
     gl.uniform1f(u.u_sculptT, shading.sculptT);
-    gl.uniform1f(u.u_lighting, Math.max(0, Math.min(1, style.lighting)));
+    gl.uniform1f(u.u_lighting, shading.lighting);
     gl.uniform1f(u.u_backfaceDim, style.backfaceDim);
     gl.uniform1f(u.u_depthDim, style.depthDim);
     gl.uniform3fv(u.u_light, this.light);

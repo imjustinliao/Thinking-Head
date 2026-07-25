@@ -56,7 +56,7 @@ export const DEFAULT_STYLE: RenderStyle = {
   // High: particles on the far side of the head must not paint over the face.
   backfaceDim: 0.88,
   depthDim: 0.35,
-  featureBoost: 0.3,
+  featureBoost: 0,
   lighting: 0.75,
 };
 
