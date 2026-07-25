@@ -3,9 +3,8 @@ import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
   createRenderer,
-  type HeadPointSet,
+  type HeadModel,
   type HeadRenderer,
-  particleCountForSize,
   type RenderBackend,
   type RenderStyle,
   resolveTier,
@@ -14,10 +13,10 @@ import {
 interface HeadSlotProps {
   state: ThinkingHeadState;
   size: number;
-  pointSet: HeadPointSet;
+  model: HeadModel;
   camera: Camera;
   style: RenderStyle;
-  maxParticles: number;
+  targetCellCss: number;
   /** Reports which backend this instance actually got, for the demo readout. */
   onBackend?: (backend: RenderBackend) => void;
 }
@@ -33,10 +32,10 @@ interface HeadSlotProps {
 export function HeadSlot({
   state,
   size,
-  pointSet,
+  model,
   camera,
   style,
-  maxParticles,
+  targetCellCss,
   onBackend,
 }: HeadSlotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -67,14 +66,18 @@ export function HeadSlot({
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
-    renderer.resize(size, window.devicePixelRatio || 1);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.resize(size, dpr);
+    // The LOD is chosen against *device* pixels: a Retina screen genuinely has room for a finer
+    // lattice, and picking against CSS pixels would throw that resolution away.
+    const pointSet = model.levelForSize(size * dpr, targetCellCss);
     renderer.draw({
       pointSet,
-      count: particleCountForSize(size, maxParticles),
+      count: pointSet.count,
       camera: effectiveCamera,
       style,
     });
-  }, [size, pointSet, effectiveCamera, style, maxParticles]);
+  }, [size, model, effectiveCamera, style, targetCellCss]);
 
   return (
     <span

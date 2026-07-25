@@ -1,11 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
-import {
-  generateHead,
-  particleCountForSize,
-  type RenderBackend,
-  type RenderStyle,
-} from "thinking-head/dev";
+import { HeadModel, type RenderBackend, type RenderStyle } from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
 import { HeadSlot } from "./HeadSlot.js";
 import { STATE_NOTES } from "./states.js";
@@ -41,17 +36,14 @@ export function App() {
   // blocking them. React keeps the last committed head on screen while the new one is computed.
   const deferredTuning = useDeferredValue(tuning);
 
-  const { pointSet, generateMs } = useMemo(() => {
+  // One model per parameter set; LOD levels inside it are built on demand and cached, so the
+  // page only ever generates the resolutions actually shown.
+  const { model, generateMs } = useMemo(() => {
     const started = performance.now();
-    const set = generateHead({
-      head: deferredTuning.head,
-      features: deferredTuning.features,
-      candidates: deferredTuning.sampling.candidates,
-      maxParticles: deferredTuning.sampling.maxParticles,
-      rimBoost: deferredTuning.sampling.rimBoost,
-      seed: deferredTuning.sampling.seed,
-    });
-    return { pointSet: set, generateMs: performance.now() - started };
+    const built = new HeadModel(deferredTuning.head, deferredTuning.features);
+    // Warm the level the controls are currently showing so the timing readout is meaningful.
+    built.levelForSize(48 * 2, deferredTuning.sampling.targetCellCss);
+    return { model: built, generateMs: performance.now() - started };
   }, [deferredTuning]);
 
   const camera = deferredTuning.camera;
@@ -64,19 +56,23 @@ export function App() {
       depthDim: deferredTuning.style.depthDim,
       featureBoost: deferredTuning.style.featureBoost,
       lighting: deferredTuning.style.lighting,
+      shape: "square",
     }),
     [modality, deferredTuning.style],
   );
 
-  const maxParticles = deferredTuning.sampling.maxParticles;
+  const targetCellCss = deferredTuning.sampling.targetCellCss;
 
   // Pills keep their row shape at any slider value: the head tracks the size control but stays
   // within icon range, while the inline sample and orbit stage demo the full range.
   const pillHeadSize = Math.max(28, Math.min(size, 72));
 
   const READOUT = [
-    { value: String(pointSet.count), label: "particles generated" },
-    { value: String(particleCountForSize(size, maxParticles)), label: `drawn at ${size}px` },
+    {
+      value: String(model.level(model.levelForSize(size * 2, targetCellCss).resolution).count),
+      label: `particles at ${size}px`,
+    },
+    { value: String(model.levelForSize(size * 2, targetCellCss).resolution), label: "lattice" },
     {
       value: backend === "webgl2" ? "WebGL2" : backend === "canvas2d" ? "2D" : "—",
       label: "backend",
@@ -168,7 +164,7 @@ export function App() {
           config={tuning}
           onChange={setTuning}
           generateMs={generateMs}
-          particleCount={pointSet.count}
+          particleCount={model.levelForSize(size * 2, targetCellCss).count}
         />
 
         <section className="section" aria-labelledby="inline-heading">
@@ -187,10 +183,10 @@ export function App() {
               <HeadSlot
                 state="thinking"
                 size={size}
-                pointSet={pointSet}
+                model={model}
                 camera={camera}
                 style={style}
-                maxParticles={maxParticles}
+                targetCellCss={targetCellCss}
                 onBackend={onBackend}
               />
               <span className="transcript-text">
@@ -231,10 +227,10 @@ export function App() {
                   <HeadSlot
                     state={state}
                     size={pillHeadSize}
-                    pointSet={pointSet}
+                    model={model}
                     camera={camera}
                     style={style}
-                    maxParticles={maxParticles}
+                    targetCellCss={targetCellCss}
                   />
                   <span className="shimmer" data-text={label}>
                     {label}
@@ -262,10 +258,10 @@ export function App() {
             <HeadSlot
               state="idle"
               size={320}
-              pointSet={pointSet}
+              model={model}
               camera={camera}
               style={style}
-              maxParticles={maxParticles}
+              targetCellCss={targetCellCss}
             />
           </div>
         </section>

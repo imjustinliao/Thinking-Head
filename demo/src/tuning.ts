@@ -2,11 +2,11 @@ import {
   type Camera,
   DEFAULT_CAMERA,
   DEFAULT_FEATURE_PARAMS,
-  DEFAULT_GENERATE_OPTIONS,
   DEFAULT_HEAD_PARAMS,
   DEFAULT_STYLE,
   type FeatureParams,
   type HeadParams,
+  TARGET_CELL_CSS,
 } from "thinking-head/dev";
 
 /**
@@ -15,10 +15,8 @@ import {
  * rather than hand-written per control.
  */
 export interface SamplingConfig {
-  candidates: number;
-  maxParticles: number;
-  rimBoost: number;
-  seed: number;
+  /** On-screen size one lattice cell should occupy, in CSS px. Lower is finer. */
+  targetCellCss: number;
 }
 
 export interface StyleConfig {
@@ -40,12 +38,7 @@ export interface TuningConfig {
 export const DEFAULT_TUNING: TuningConfig = {
   head: { ...DEFAULT_HEAD_PARAMS },
   features: { ...DEFAULT_FEATURE_PARAMS },
-  sampling: {
-    candidates: DEFAULT_GENERATE_OPTIONS.candidates,
-    maxParticles: DEFAULT_GENERATE_OPTIONS.maxParticles,
-    rimBoost: DEFAULT_GENERATE_OPTIONS.rimBoost,
-    seed: DEFAULT_GENERATE_OPTIONS.seed,
-  },
+  sampling: { targetCellCss: TARGET_CELL_CSS },
   camera: { ...DEFAULT_CAMERA },
   style: {
     particleScale: DEFAULT_STYLE.particleScale,
@@ -106,25 +99,19 @@ export const FEATURE_FIELDS: Field<FeatureParams>[] = [
   { key: "eyeSpread", label: "eye spread", min: 0.1, max: 0.45, step: 0.005 },
   { key: "eyeHeight", label: "eye height", min: -0.3, max: 0.3, step: 0.005 },
   { key: "eyeRadius", label: "eye radius", min: 0.03, max: 0.22, step: 0.005 },
-  { key: "eyeDensity", label: "eye particles", min: 6, max: 90, step: 1 },
   { key: "browHeight", label: "brow height", min: -0.05, max: 0.4, step: 0.005 },
   { key: "browWidth", label: "brow width", min: 0.04, max: 0.3, step: 0.005 },
   { key: "browArc", label: "brow arc", min: -0.08, max: 0.12, step: 0.005 },
-  { key: "browRows", label: "brow rows", min: 1, max: 4, step: 1 },
-  { key: "browDensity", label: "brow particles", min: 4, max: 40, step: 1 },
+  { key: "browThickness", label: "brow thickness", min: 0.01, max: 0.1, step: 0.005 },
   { key: "mouthHeight", label: "mouth height", min: -0.6, max: -0.05, step: 0.005 },
   { key: "mouthWidth", label: "mouth width", min: 0.04, max: 0.35, step: 0.005 },
   { key: "mouthCurve", label: "mouth curve", min: -0.1, max: 0.12, step: 0.005 },
-  { key: "mouthLipGap", label: "lip gap", min: 0, max: 0.1, step: 0.002 },
-  { key: "mouthDensity", label: "mouth particles", min: 6, max: 50, step: 1 },
-  { key: "noseDots", label: "nose dots", min: 0, max: 5, step: 1 },
+  { key: "mouthThickness", label: "mouth thickness", min: 0.01, max: 0.1, step: 0.005 },
+  { key: "faceDepth", label: "face depth", min: -0.2, max: 0.4, step: 0.01 },
 ];
 
 export const SAMPLING_FIELDS: Field<SamplingConfig>[] = [
-  { key: "candidates", label: "candidates", min: 4000, max: 60000, step: 1000 },
-  { key: "maxParticles", label: "max particles", min: 200, max: 2400, step: 20 },
-  { key: "rimBoost", label: "silhouette boost", min: 0, max: 3, step: 0.05 },
-  { key: "seed", label: "seed", min: 1, max: 99999, step: 1 },
+  { key: "targetCellCss", label: "cell size (px)", min: 1, max: 5, step: 0.1 },
 ];
 
 export const CAMERA_FIELDS: Field<Camera>[] = [
