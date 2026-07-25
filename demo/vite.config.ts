@@ -12,6 +12,7 @@ export default defineConfig({
     // Point at package source, not dist, so every edit to the head is live in the demo
     // the moment it is saved — no build step in the loop.
     alias: {
+      "thinking-head/dev": fileURLToPath(new URL("../src/dev.ts", import.meta.url)),
       "thinking-head": fileURLToPath(new URL("../src/index.ts", import.meta.url)),
     },
   },

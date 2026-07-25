@@ -1,27 +1,70 @@
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
+import { generateHead, particleCountForSize, type RenderStyle } from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
 import { HeadSlot } from "./HeadSlot.js";
 import { STATE_NOTES } from "./states.js";
+import { TuningPanel } from "./TuningPanel.js";
+import { DEFAULT_TUNING, type TuningConfig } from "./tuning.js";
 import { useSpotlight } from "./useSpotlight.js";
 
 const MODALITY_OPTIONS = ["none", "text", "audio", "vision"] as const;
 type ModalityOption = (typeof MODALITY_OPTIONS)[number];
 
-const READOUT = [
-  { value: "10", label: "states" },
-  { value: "0", label: "runtime deps" },
-  { value: "20–64", label: "px inline" },
-  { value: "1", label: "GL context" },
-] as const;
+/** Head colour per modality accent. Mirrors the CSS accent so the head matches the page. */
+const MODALITY_COLOR: Record<ModalityOption, string> = {
+  none: "#ffffff",
+  text: "#c9f8ff",
+  audio: "#ffe6c2",
+  vision: "#ffd0ee",
+};
 
 export function App() {
   const [size, setSize] = useState(48);
   const [speed, setSpeed] = useState(1);
   const [modality, setModality] = useState<ModalityOption>("none");
+  const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
 
   const shellRef = useSpotlight<HTMLDivElement>();
   const modalityIndex = MODALITY_OPTIONS.indexOf(modality);
+
+  // Geometry regeneration is the expensive step, so it trails the sliders by a frame rather than
+  // blocking them. React keeps the last committed head on screen while the new one is computed.
+  const deferredTuning = useDeferredValue(tuning);
+
+  const { pointSet, generateMs } = useMemo(() => {
+    const started = performance.now();
+    const set = generateHead({
+      head: deferredTuning.head,
+      features: deferredTuning.features,
+      candidates: deferredTuning.sampling.candidates,
+      maxParticles: deferredTuning.sampling.maxParticles,
+      rimBoost: deferredTuning.sampling.rimBoost,
+      seed: deferredTuning.sampling.seed,
+    });
+    return { pointSet: set, generateMs: performance.now() - started };
+  }, [deferredTuning]);
+
+  const camera = deferredTuning.camera;
+
+  const style = useMemo<RenderStyle>(
+    () => ({
+      color: MODALITY_COLOR[modality],
+      particleScale: deferredTuning.style.particleScale,
+      backfaceDim: deferredTuning.style.backfaceDim,
+      depthDim: deferredTuning.style.depthDim,
+    }),
+    [modality, deferredTuning.style],
+  );
+
+  const maxParticles = deferredTuning.sampling.maxParticles;
+
+  const READOUT = [
+    { value: String(pointSet.count), label: "particles generated" },
+    { value: String(particleCountForSize(size, maxParticles)), label: `drawn at ${size}px` },
+    { value: "0", label: "runtime deps" },
+    { value: "1", label: "GL context" },
+  ];
 
   return (
     <div className="shell" data-modality={modality} ref={shellRef}>
@@ -103,6 +146,13 @@ export function App() {
           </fieldset>
         </section>
 
+        <TuningPanel
+          config={tuning}
+          onChange={setTuning}
+          generateMs={generateMs}
+          particleCount={pointSet.count}
+        />
+
         <section className="section" aria-labelledby="inline-heading">
           <div className="section-head">
             <span className="section-index">01</span>
@@ -116,7 +166,14 @@ export function App() {
 
           <div className="transcript glass">
             <div className="transcript-row">
-              <HeadSlot state="thinking" size={size} speed={speed} />
+              <HeadSlot
+                state="thinking"
+                size={size}
+                pointSet={pointSet}
+                camera={camera}
+                style={style}
+                maxParticles={maxParticles}
+              />
               <span className="transcript-text">
                 Thinking through the request
                 <span className="ellipsis" aria-hidden="true">
@@ -150,7 +207,14 @@ export function App() {
               >
                 <span className="vitrine-index">{String(index + 1).padStart(2, "0")}</span>
                 <div className="vitrine-stage">
-                  <HeadSlot state={state} size={size} speed={speed} />
+                  <HeadSlot
+                    state={state}
+                    size={size}
+                    pointSet={pointSet}
+                    camera={camera}
+                    style={style}
+                    maxParticles={maxParticles}
+                  />
                 </div>
                 <h3 className="vitrine-name">{state}</h3>
                 <p className="vitrine-when">{STATE_NOTES[state].when}</p>
@@ -174,7 +238,14 @@ export function App() {
 
           <div className="stage glass">
             <span className="stage-plate">awaiting renderer</span>
-            <HeadSlot state="idle" size={320} speed={speed} />
+            <HeadSlot
+              state="idle"
+              size={320}
+              pointSet={pointSet}
+              camera={camera}
+              style={style}
+              maxParticles={maxParticles}
+            />
           </div>
         </section>
 

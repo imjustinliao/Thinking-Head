@@ -559,6 +559,137 @@ body {
 }
 
 /* ==========================================================================
+   Geometry tuning panel
+   ========================================================================== */
+
+.tune {
+  border-radius: var(--r-lg);
+  margin: -2rem 0 clamp(3rem, 8vh, 5rem);
+  overflow: hidden;
+}
+
+.tune-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+}
+
+.tune-toggle,
+.tune-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tune-toggle:hover,
+.tune-reset:hover {
+  color: var(--ink);
+}
+
+.tune-caret {
+  display: inline-block;
+  width: 0.7em;
+  color: var(--accent);
+}
+
+.tune-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+
+.tune-stats b {
+  color: var(--ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Flags the live-tuning budget being missed. */
+.tune-slow b {
+  color: var(--alarm);
+}
+
+.tune-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0 clamp(1.2rem, 3vw, 2.2rem);
+  padding: 0.5rem 1.25rem 1.4rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.tune-group {
+  margin: 0;
+  padding: 1rem 0 0;
+  border: 0;
+  min-width: 0;
+}
+
+.tune-group-title {
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tune-row {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.16rem 0;
+}
+
+.tune-name {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tune-value {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 3.6em;
+}
+
+.slider--thin {
+  height: 14px;
+}
+
+.slider--thin::-webkit-slider-thumb {
+  width: 9px;
+  height: 9px;
+  margin-top: -3.5px;
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.slider--thin::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+}
+
+/* ==========================================================================
    Sections
    ========================================================================== */
 
@@ -627,9 +758,7 @@ body {
   isolation: isolate;
 }
 
-.chamber-matrix,
 .chamber-ring,
-.chamber-crosshair,
 .chamber-halo {
   position: absolute;
   inset: 0;
@@ -637,25 +766,14 @@ body {
   pointer-events: none;
 }
 
-/* Dot matrix standing in for the particle field. */
-.chamber-matrix {
-  background-image: radial-gradient(currentColor 0.7px, transparent 0.9px);
-  background-size: 5px 5px;
-  color: var(--ink-4);
-  mask-image: radial-gradient(circle, #000 42%, transparent 68%);
+.chamber-canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
 }
 
 .chamber-ring {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 0 0 4px rgba(255, 255, 255, 0.03);
-}
-
-.chamber-crosshair {
-  background-image:
-    linear-gradient(to right, transparent calc(50% - 0.5px), var(--ink-4) calc(50% - 0.5px), var(--ink-4) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--ink-4) calc(50% - 0.5px), var(--ink-4) calc(50% + 0.5px), transparent calc(50% + 0.5px));
-  mask-image: radial-gradient(circle, transparent 24%, #000 26%, #000 46%, transparent 50%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .chamber-halo {
