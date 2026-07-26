@@ -14,7 +14,7 @@ Updated at every session and step boundary.
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
 | **Step** | **Neutral anatomy revision ready for visual review.** Website redesign remains queued for later |
-| **Last completed commit** | `b0ba999` — v7.4 - Record local showcase redesign brief |
+| **Last completed commit** | `0c0dfc2` — v7.5 - Resculpt adult facial anatomy |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Justin's browser review of the revised neutral head |
 
@@ -484,6 +484,8 @@ against the supplied dense particle-face references. The first correction checkp
   nasal line, and rebalanced zygomatic, temple and mandibular planes.
 - Corrected the global skull from a short broad egg to a more adult width/height ratio, with
   facial region anchors retuned to the new eyes, brows and mouth.
+- Moved the default review camera close to front-facing so both sides of the neutral anatomy can
+  be judged instead of hiding one eye behind the nose.
 - Compared the old and new large Idle head in the live browser after each uncommitted adjustment.
   The new surface is visibly more human and less skull-like, but it is **not signed off or claimed
   to match the reference yet**.

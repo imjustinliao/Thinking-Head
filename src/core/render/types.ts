@@ -19,8 +19,8 @@ export interface Camera {
 }
 
 export const DEFAULT_CAMERA: Camera = {
-  yaw: 0.26,
-  pitch: -0.09,
+  yaw: 0.08,
+  pitch: -0.03,
   distance: 3.4,
   fov: 0.62,
 };
