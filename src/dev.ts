@@ -29,6 +29,7 @@ export {
   LISTENING_MOTION,
   type MotionParams,
   normalDisplacement,
+  READING_MOTION,
   STATE_MOTION,
   STILL_MOTION,
   shimmerMultiplier,

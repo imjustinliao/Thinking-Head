@@ -4,6 +4,7 @@ import {
   IDLE_MOTION,
   LISTENING_MOTION,
   normalDisplacement,
+  READING_MOTION,
   STATE_MOTION,
   STILL_MOTION,
   shimmerMultiplier,
@@ -190,6 +191,99 @@ describe("listening state", () => {
     const base = at(0);
     for (const period of [1, 2, 5, 10, 20]) {
       expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
+describe("reading state", () => {
+  test("gaze drops — persistent positive pitch bias, never crosses back above centre", () => {
+    // The characteristic reading cue is the chin tucking toward the material. Sampling across a
+    // long window makes sure the *bias* is doing the work rather than a lucky phase of sway.
+    let minPitch = Number.POSITIVE_INFINITY;
+    let maxPitch = Number.NEGATIVE_INFINITY;
+    for (let t = 0; t < 30; t += 0.35) {
+      const { pitch } = swayOffsets(t, READING_MOTION);
+      minPitch = Math.min(minPitch, pitch);
+      maxPitch = Math.max(maxPitch, pitch);
+    }
+    expect(minPitch).toBeGreaterThan(0);
+    expect((minPitch + maxPitch) / 2).toBeGreaterThan(0.08);
+  });
+
+  test("head sits straight ahead, no lateral tilt — reading is not listening", () => {
+    // Distinct from listening (which has a strong yaw bias). The tilt-vs-drop distinction is
+    // what tells the two apart from a single glance at the pose.
+    let minYaw = Number.POSITIVE_INFINITY;
+    let maxYaw = Number.NEGATIVE_INFINITY;
+    for (let t = 0; t < 30; t += 0.35) {
+      const { yaw } = swayOffsets(t, READING_MOTION);
+      minYaw = Math.min(minYaw, yaw);
+      maxYaw = Math.max(maxYaw, yaw);
+    }
+    // Sway crosses zero rather than sitting off to one side.
+    expect(minYaw).toBeLessThan(0);
+    expect(maxYaw).toBeGreaterThan(0);
+  });
+
+  test("shimmer sweeps horizontally — the visual cue that matches an eye tracking a line", () => {
+    // The direction vector is what makes this state unmistakable. Isolated to x means moving
+    // left-to-right on the head, which is the eye path across a line of text.
+    expect(READING_MOTION.shimmerDirX).toBe(1);
+    expect(READING_MOTION.shimmerDirY).toBe(0);
+    expect(READING_MOTION.shimmerDirZ).toBe(0);
+
+    // Cells differing only in x must produce different shimmer values at the same moment —
+    // that is what proves the wave really travels along x rather than being uniform.
+    const t = 3.4;
+    const left = shimmerMultiplier(-0.3, 0.1, 0.4, t, READING_MOTION);
+    const right = shimmerMultiplier(0.3, 0.1, 0.4, t, READING_MOTION);
+    expect(Math.abs(left - right)).toBeGreaterThan(0.01);
+
+    // Cells differing only in y should be identical at a moment — the wave carries no vertical
+    // component. Non-zero difference here would mean a diagonal sweep leaking in.
+    const top = shimmerMultiplier(0.2, 0.3, 0.4, t, READING_MOTION);
+    const bottom = shimmerMultiplier(0.2, -0.3, 0.4, t, READING_MOTION);
+    expect(Math.abs(top - bottom)).toBeLessThan(1e-6);
+  });
+
+  test("lateral sway dominates over pitch sway — quick side-to-side line following", () => {
+    // Distinct from idle's ambient drift and from listening's small nod. Reading's periodic
+    // component is horizontal because that is what your head does chasing a line of text.
+    expect(READING_MOTION.swayYaw).toBeGreaterThan(READING_MOTION.swayPitch);
+  });
+
+  test("STATE_MOTION.reading points at READING_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.reading).toBe(READING_MOTION);
+    expect(STATE_MOTION.reading).not.toBe(IDLE_MOTION);
+    expect(STATE_MOTION.reading).not.toBe(LISTENING_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, READING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, READING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, READING_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
+describe("shimmer direction backwards compatibility", () => {
+  test("idle and listening preserve the legacy diagonal, so their look is unchanged", () => {
+    // Regression guard for raising shimmer direction to a parameter. Both states were tuned
+    // against the baked (0.7, 1, -0.4) diagonal; if this changes, they don't look right.
+    for (const m of [IDLE_MOTION, LISTENING_MOTION]) {
+      expect(m.shimmerDirX).toBeCloseTo(0.7, 5);
+      expect(m.shimmerDirY).toBeCloseTo(1, 5);
+      expect(m.shimmerDirZ).toBeCloseTo(-0.4, 5);
     }
   });
 });

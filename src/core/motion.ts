@@ -48,6 +48,16 @@ export interface MotionParams {
   /** Spatial frequency of the shimmer band. Low keeps it a single sweeping highlight. */
   shimmerScale: number;
   shimmerSpeed: number;
+  /**
+   * Direction vector for the shimmer band, in object space. The wave travels along this axis,
+   * so states can point it deliberately — horizontal for reading (left-to-right scan), vertical
+   * for a state that wants a top-down flow, radial for later expressive states. The three legacy
+   * defaults `(0.7, 1.0, -0.4)` reproduce the original diagonal that idle/listening were tuned
+   * against, so raising this to a parameter did not change how any existing state looks.
+   */
+  shimmerDirX: number;
+  shimmerDirY: number;
+  shimmerDirZ: number;
 
   /** Slow whole-head sway, in radians, applied to the camera rather than the particles. */
   swayYaw: number;
@@ -76,6 +86,11 @@ export const STILL_MOTION: MotionParams = {
   shimmerAmplitude: 0,
   shimmerScale: 0,
   shimmerSpeed: 0,
+  // Direction is unused when amplitude is zero, but keep it a valid unit-ish vector so the
+  // shader never divides through a zero-length input.
+  shimmerDirX: 0.7,
+  shimmerDirY: 1,
+  shimmerDirZ: -0.4,
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
@@ -103,6 +118,11 @@ export const IDLE_MOTION: MotionParams = {
   shimmerAmplitude: 0.4,
   shimmerScale: 2.6,
   shimmerSpeed: 0.42,
+  // Diagonal — the direction the shimmer had before it became a parameter, kept here so
+  // idle looks exactly as it did.
+  shimmerDirX: 0.7,
+  shimmerDirY: 1,
+  shimmerDirZ: -0.4,
 
   swayYaw: 0.07,
   swayPitch: 0.028,
@@ -141,6 +161,11 @@ export const LISTENING_MOTION: MotionParams = {
   shimmerAmplitude: 0.55,
   shimmerScale: 3.4,
   shimmerSpeed: 0.9,
+  // Same diagonal as idle. Listening's *pattern* differs from idle by speed and amplitude,
+  // not by the axis it travels along.
+  shimmerDirX: 0.7,
+  shimmerDirY: 1,
+  shimmerDirZ: -0.4,
 
   swayYaw: 0.03,
   swayPitch: 0.02,
@@ -154,13 +179,63 @@ export const LISTENING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` and `listening` are tuned; the rest inherit `idle` until their own
- * milestones land, so every state animates rather than freezing.
+ * `reading` — ingesting existing context or data. Head dipped, eyes scanning across a line.
+ *
+ * Reading has three cues distinct from `listening` (which is *hearing* attention):
+ * - **Gaze dropped** via a downward `posePitchBias` — the head physically tips toward the
+ *   material rather than tilting sideways. No yaw bias: reading is straight-ahead attention.
+ * - **Horizontal shimmer sweep** — the shimmer direction is aligned with the x-axis, so the
+ *   travelling band moves left-to-right across the face like an eye tracking a line. This is
+ *   the state that motivated raising shimmer direction to a per-motion parameter; a diagonal
+ *   sweep reads as ambient, a horizontal sweep reads as reading.
+ * - **A quick lateral sway** on top of the drop, at a rhythm faster than idle's ambient
+ *   drift — small horizontal micro-motions of the head, like following a line then flicking
+ *   back for the next one.
+ *
+ * Breath and jitter stay low, similar to `listening` — reading is focused stillness.
+ */
+export const READING_MOTION: MotionParams = {
+  breathAmplitude: 0.14,
+  breathSpeed: 0.7,
+
+  waveAmplitude: 0.12,
+  waveScale: 3.0,
+  waveSpeed: 0.45,
+
+  jitterAmplitude: 0.04,
+  jitterSpeed: 2.6,
+
+  shimmerAmplitude: 0.5,
+  // Higher spatial frequency than idle so the band reads as a narrower moving line across the
+  // face rather than a wide swell — reading is line-by-line, not broad-strokes.
+  shimmerScale: 4.2,
+  shimmerSpeed: 1.15,
+  // Pure x: the shimmer travels along the head's horizontal axis, mimicking the eye path.
+  // Zero y and z isolate the direction so the wave is unambiguously left-to-right.
+  shimmerDirX: 1,
+  shimmerDirY: 0,
+  shimmerDirZ: 0,
+
+  // Lateral sway — yaw amplitude is larger than pitch so the dominant movement is side-to-side
+  // rather than the nod that `listening` uses. Speed is faster than idle's ambient drift.
+  swayYaw: 0.055,
+  swayPitch: 0.012,
+  swaySpeed: 0.55,
+
+  // Chin tucked toward the text. No yaw bias — the reader is looking straight down at the
+  // page, not off to one side.
+  poseYawBias: 0,
+  posePitchBias: 0.16,
+};
+
+/**
+ * Motion per state. `idle`, `listening`, and `reading` are tuned; the rest inherit `idle` until
+ * their own milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
   listening: LISTENING_MOTION,
-  reading: IDLE_MOTION,
+  reading: READING_MOTION,
   thinking: IDLE_MOTION,
   searching: IDLE_MOTION,
   executing: IDLE_MOTION,
@@ -227,7 +302,8 @@ export function shimmerMultiplier(
   time: number,
   m: MotionParams,
 ): number {
-  const band = Math.sin((px * 0.7 + py - pz * 0.4) * m.shimmerScale + time * m.shimmerSpeed);
+  const along = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
+  const band = Math.sin(along * m.shimmerScale + time * m.shimmerSpeed);
   return 1 + m.shimmerAmplitude * band;
 }
 
