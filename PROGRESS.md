@@ -447,6 +447,31 @@ Further named-expression tuning stays paused.
 - First checkpoint is neutral geometry only, reviewed at front, three-quarter, profile and inline
   sizes. Do not resume expressions until that base is approved.
 
+### Canonical neutral-head replacement (v7.2)
+
+The first implementation checkpoint of the facial-realism redo is complete and live for review.
+It is a fundamental geometry replacement, not another quadric tuning pass.
+
+- Replaced the 25-control smooth-min quadric union with an original 96×72 quantised spherical
+  relief atlas. The authored neutral surface coordinates adult skull/jaw planes with orbital
+  rims and recesses, glabella, nasal bridge/tip/alar planes, cheekbones, philtrum, upper and lower
+  lips, mouth seam, mentolabial sulcus and chin.
+- The neutral atlas is bilaterally symmetric and converges to one value at crown and chin so the
+  spherical seam cannot pinch. Tests lock those properties plus the projecting nasal profile.
+- Global tuning now scales one coherent identity (`width`, `height`, `frontDepth`, `backDepth`,
+  `relief`) instead of moving independent face primitives. The tagged region/weight point-set
+  contract and expression rig are unchanged.
+- Replaced volumetric field search with direct atlas-to-lattice rasterisation. At the demo's
+  68-cell level it produces 7,819 particles in 11.5 ms, down from roughly 50 ms during the first
+  atlas implementation, while retaining the regular one-cell voxel shell.
+- Reviewed live at the default three-quarter view, exact side profile, orbit size and 48px inline
+  size. A clean reload uses one WebGL2 context and has no runtime error after the final source
+  state.
+- Full verification passes: 131 tests, typecheck, build and lint.
+
+This is **ready for Justin's visual review, not yet visually approved**. Named-expression work
+remains paused until the neutral head is accepted or receives a specific correction list.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -475,10 +500,10 @@ replace it with defaults.
 
 ### Decisions locked in this session
 
-1. Geometry: **procedural, generated in code** (SDF sampled to a blue-noise point set at
-   build time) — chosen over a licensed base mesh and a published parametric head model,
-   because the rig comes free as parameters of the same generator and there is zero
-   licence surface.
+1. Geometry: **original quantised spherical relief atlas**, rasterised directly to a regular
+   surface voxel lattice — chosen over both ceiling-limited quadric composition and licensed
+   third-party head assets. It preserves zero runtime dependencies, deterministic generation and
+   the tagged point-set rig contract.
 2. Renderer: **purpose-built WebGL2, zero runtime dependencies** — chosen over a
    general-purpose 3D engine on bundle size (~10–15 KB vs ~155 KB gzipped) and because
    the required shared-context architecture isn't provided by such an engine anyway.
@@ -492,9 +517,9 @@ replace it with defaults.
 
 ## Next
 
-1. **Implement the original canonical radial atlas** and replace the quadric field behind the
-   existing tagged point-set generator. Stop when the neutral head is visible at front,
-   three-quarter, profile and inline sizes for Justin's review.
+1. **Justin reviews the canonical neutral head at `http://localhost:5173`.** Apply only the
+   specific anatomical corrections from that review; do not resume named-expression tuning until
+   the neutral base is approved.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
