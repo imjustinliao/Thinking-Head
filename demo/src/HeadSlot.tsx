@@ -9,6 +9,7 @@ import {
   type RenderBackend,
   type RenderStyle,
   resolveTier,
+  STATE_EXPRESSION,
   STATE_MOTION,
   STILL_MOTION,
   subscribeToClock,
@@ -21,7 +22,8 @@ interface HeadSlotProps {
   model: HeadModel;
   camera: Camera;
   style: RenderStyle;
-  expression: ExpressionParams;
+  /** Manual sandbox value; null renders the named state's reviewed expression preset. */
+  expressionOverride: ExpressionParams | null;
   targetCellCss: number;
   /** Multiplies the shared clock, so the demo's speed control affects every instance alike. */
   speed: number;
@@ -49,7 +51,7 @@ export function HeadSlot({
   model,
   camera,
   style,
-  expression,
+  expressionOverride,
   targetCellCss,
   speed,
   onBackend,
@@ -57,6 +59,7 @@ export function HeadSlot({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<HeadRenderer | null>(null);
   const reducedMotion = usePrefersReducedMotion();
+  const expression = expressionOverride ?? STATE_EXPRESSION[state];
 
   useEffect(() => {
     const canvas = canvasRef.current;

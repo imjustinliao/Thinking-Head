@@ -7,7 +7,6 @@ import {
   type ExpressionParams,
   type FeatureParams,
   type HeadParams,
-  NEUTRAL_EXPRESSION,
   TARGET_CELL_CSS,
 } from "thinking-head/dev";
 
@@ -50,8 +49,6 @@ export const DEFAULT_TUNING: TuningConfig = {
     lighting: DEFAULT_STYLE.lighting,
   },
 };
-
-export const DEFAULT_EXPRESSION: ExpressionParams = { ...NEUTRAL_EXPRESSION };
 
 /**
  * The number-valued string keys of `T`. Interfaces have no index signature, so a

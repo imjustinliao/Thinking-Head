@@ -3,8 +3,6 @@ import type { ExpressionParams } from "thinking-head/dev";
 import {
   BROW_EXPRESSION_FIELDS,
   CAMERA_FIELDS,
-  DEFAULT_EXPRESSION,
-  DEFAULT_TUNING,
   EYE_EXPRESSION_FIELDS,
   FEATURE_FIELDS,
   type Field,
@@ -63,6 +61,7 @@ interface TuningPanelProps {
   particleCount: number;
   expression: ExpressionParams;
   onExpressionChange: (next: ExpressionParams) => void;
+  onReset: () => void;
 }
 
 export function TuningPanel({
@@ -72,6 +71,7 @@ export function TuningPanel({
   particleCount,
   expression,
   onExpressionChange,
+  onReset,
 }: TuningPanelProps) {
   const [open, setOpen] = useState(false);
 
@@ -99,14 +99,7 @@ export function TuningPanel({
           <span className={generateMs > 30 ? "tune-slow" : undefined}>
             <b>{generateMs.toFixed(1)}</b> ms
           </span>
-          <button
-            type="button"
-            className="tune-reset"
-            onClick={() => {
-              onChange(structuredClone(DEFAULT_TUNING));
-              onExpressionChange({ ...DEFAULT_EXPRESSION });
-            }}
-          >
+          <button type="button" className="tune-reset" onClick={onReset}>
             reset
           </button>
         </div>

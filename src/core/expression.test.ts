@@ -6,12 +6,16 @@ import {
   type ExpressionKey,
   type ExpressionParams,
   expressionRigOf,
+  IDLE_EXPRESSION,
+  LISTENING_EXPRESSION,
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
+  STATE_EXPRESSION,
 } from "./expression.js";
 import { generateHeadLevel } from "./geometry.js";
 import type { HeadPointSet } from "./pointset.js";
 import { REGION } from "./regions.js";
+import { THINKING_HEAD_STATES } from "./states.js";
 
 let head: HeadPointSet;
 
@@ -53,6 +57,55 @@ describe("expression control contract", () => {
 
   test("neutral is immutable", () => {
     expect(Object.isFrozen(NEUTRAL_EXPRESSION)).toBe(true);
+  });
+
+  test("every named state has a complete bounded expression", () => {
+    const signed = new Set<ExpressionKey>([
+      "brow_raiseL",
+      "brow_raiseR",
+      "brow_innerUp",
+      "eye_openL",
+      "eye_openR",
+      "eye_gazeX",
+      "eye_gazeY",
+      "mouth_cornerUpL",
+      "mouth_cornerUpR",
+      "jaw_shiftX",
+      "jaw_forward",
+    ]);
+
+    for (const state of THINKING_HEAD_STATES) {
+      const expression = STATE_EXPRESSION[state];
+      expect(expression, `${state} has no expression`).toBeDefined();
+      for (const key of EXPRESSION_KEYS) {
+        expect(Number.isFinite(expression[key]), `${state}.${key} is not finite`).toBe(true);
+        expect(expression[key], `${state}.${key} exceeds its upper bound`).toBeLessThanOrEqual(1);
+        expect(expression[key], `${state}.${key} exceeds its lower bound`).toBeGreaterThanOrEqual(
+          signed.has(key) ? -1 : 0,
+        );
+      }
+    }
+  });
+});
+
+describe("listening expression", () => {
+  test("opens the eyes and lifts both brows without changing the neutral gaze", () => {
+    expect(LISTENING_EXPRESSION.eye_openL).toBeGreaterThan(IDLE_EXPRESSION.eye_openL);
+    expect(LISTENING_EXPRESSION.eye_openR).toBeGreaterThan(IDLE_EXPRESSION.eye_openR);
+    expect(LISTENING_EXPRESSION.brow_raiseL).toBeGreaterThan(IDLE_EXPRESSION.brow_raiseL);
+    expect(LISTENING_EXPRESSION.brow_raiseR).toBeGreaterThan(IDLE_EXPRESSION.brow_raiseR);
+    expect(LISTENING_EXPRESSION.eye_gazeX).toBe(0);
+    expect(LISTENING_EXPRESSION.eye_gazeY).toBe(0);
+  });
+
+  test("is immutable and registered without changing untuned states", () => {
+    expect(Object.isFrozen(LISTENING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.listening).toBe(LISTENING_EXPRESSION);
+    expect(STATE_EXPRESSION.idle).toBe(IDLE_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (state === "listening") continue;
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
   });
 });
 

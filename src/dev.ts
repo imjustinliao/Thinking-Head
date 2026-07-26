@@ -21,8 +21,11 @@ export {
   type ExpressionParams,
   type ExpressionRigMetrics,
   expressionRigOf,
+  IDLE_EXPRESSION,
+  LISTENING_EXPRESSION,
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
+  STATE_EXPRESSION,
 } from "./core/expression.js";
 export {
   DEFAULT_GENERATE_OPTIONS,

@@ -5,12 +5,13 @@ import {
   HeadModel,
   type RenderBackend,
   type RenderStyle,
+  STATE_EXPRESSION,
 } from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
 import { HeadSlot } from "./HeadSlot.js";
 import { STATE_NOTES } from "./states.js";
 import { TuningPanel } from "./TuningPanel.js";
-import { DEFAULT_EXPRESSION, DEFAULT_TUNING, type TuningConfig } from "./tuning.js";
+import { DEFAULT_TUNING, type TuningConfig } from "./tuning.js";
 import { useSpotlight } from "./useSpotlight.js";
 
 const MODALITY_OPTIONS = ["none", "text", "audio", "vision"] as const;
@@ -47,19 +48,24 @@ export function App() {
   const [speed, setSpeed] = useState(1);
   const [modality, setModality] = useState<ModalityOption>("none");
   const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
-  // Manual sandbox shared by every displayed size. State presets stay neutral until each
-  // expression is tuned and reviewed in its own milestone.
-  const [expression, setExpression] = useState<ExpressionParams>(() => ({
-    ...DEFAULT_EXPRESSION,
-  }));
+  // A non-null value is a temporary manual sandbox shared by every displayed size. Clicking a
+  // state or resetting returns every head to its reviewed named preset.
+  const [expressionOverride, setExpressionOverride] = useState<ExpressionParams | null>(null);
   const [backend, setBackend] = useState<RenderBackend | null>(null);
-  // The pill the user has clicked; drives the inline sample and the orbit head. Until every
-  // state has its own motion this only changes the labels — but it's the wiring the state
-  // milestones need in place, so building it here makes each future state a one-line change.
+  // The selected pill drives both the inline sample and orbit head. Its reviewed motion and
+  // expression presets stay paired unless the manual expression sandbox is active.
   const [activeState, setActiveState] = useState<ThinkingHeadState>("thinking");
 
   // Stable so it does not retrigger every instance's renderer effect on each render.
   const onBackend = useCallback((next: RenderBackend) => setBackend(next), []);
+  const selectState = useCallback((state: ThinkingHeadState) => {
+    setActiveState(state);
+    setExpressionOverride(null);
+  }, []);
+  const resetTuning = useCallback(() => {
+    setTuning(structuredClone(DEFAULT_TUNING));
+    setExpressionOverride(null);
+  }, []);
 
   const shellRef = useSpotlight<HTMLDivElement>();
   const modalityIndex = MODALITY_OPTIONS.indexOf(modality);
@@ -197,8 +203,9 @@ export function App() {
           onChange={setTuning}
           generateMs={generateMs}
           particleCount={model.levelForSize(size * 2, targetCellCss).count}
-          expression={expression}
-          onExpressionChange={setExpression}
+          expression={expressionOverride ?? STATE_EXPRESSION[activeState]}
+          onExpressionChange={setExpressionOverride}
+          onReset={resetTuning}
         />
 
         <section className="section" aria-labelledby="inline-heading">
@@ -220,7 +227,7 @@ export function App() {
                 model={model}
                 camera={camera}
                 style={style}
-                expression={expression}
+                expressionOverride={expressionOverride}
                 targetCellCss={targetCellCss}
                 speed={speed}
                 onBackend={onBackend}
@@ -260,7 +267,7 @@ export function App() {
                   <button
                     type="button"
                     className={`pill glass${active ? " pill--active" : ""}`}
-                    onClick={() => setActiveState(state)}
+                    onClick={() => selectState(state)}
                     aria-pressed={active}
                     title={`${STATE_NOTES[state].when} — ${STATE_NOTES[state].expression}`}
                   >
@@ -270,7 +277,7 @@ export function App() {
                       model={model}
                       camera={camera}
                       style={style}
-                      expression={expression}
+                      expressionOverride={expressionOverride}
                       targetCellCss={targetCellCss}
                       speed={speed}
                     />
@@ -304,7 +311,7 @@ export function App() {
               model={model}
               camera={camera}
               style={style}
-              expression={expression}
+              expressionOverride={expressionOverride}
               targetCellCss={targetCellCss}
               speed={speed}
             />

@@ -1,5 +1,6 @@
 import type { HeadPointSet } from "./pointset.js";
 import { REGION, REGION_COUNT } from "./regions.js";
+import type { ThinkingHeadState } from "./states.js";
 
 /**
  * Compact facial control vector.
@@ -90,6 +91,43 @@ export const NEUTRAL_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   jaw_shiftX: 0,
   jaw_forward: 0,
 });
+
+/** `idle` is the neutral facial baseline every named expression is tuned against. */
+export const IDLE_EXPRESSION = NEUTRAL_EXPRESSION;
+
+/**
+ * `listening` — alert, receptive attention.
+ *
+ * The whole brows lift just enough to uncover the eyes, while a smaller medial lift avoids the
+ * wide-eyed surprise shape. Symmetric eye opening keeps the gaze directed at the speaker; a
+ * light mouth press closes the relaxed smile without introducing a negative emotion.
+ */
+export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: 0.4,
+  brow_raiseR: 0.4,
+  brow_innerUp: 0.1,
+  eye_openL: 0.5,
+  eye_openR: 0.5,
+  mouth_press: 0.15,
+});
+
+/**
+ * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
+ * than speculative placeholders, so each later tuning milestone has an honest before/after.
+ */
+export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionParams>> = {
+  idle: IDLE_EXPRESSION,
+  listening: LISTENING_EXPRESSION,
+  reading: NEUTRAL_EXPRESSION,
+  thinking: NEUTRAL_EXPRESSION,
+  searching: NEUTRAL_EXPRESSION,
+  executing: NEUTRAL_EXPRESSION,
+  generating: NEUTRAL_EXPRESSION,
+  reviewing: NEUTRAL_EXPRESSION,
+  error: NEUTRAL_EXPRESSION,
+  done: NEUTRAL_EXPRESSION,
+};
 
 /**
  * Region-local anchors derived from a point set rather than from the current procedural head.
