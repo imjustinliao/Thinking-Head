@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **`reading` expression tuned** (v6.8). Awaiting visual review |
+| **Step** | **Expression/anatomy review complete.** Preset tuning paused pending geometry direction |
 | **Last commit** | `4c2f22d` — v6.8 - Add focused reading expression preset |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
+| **Blocked on** | Justin's follow-up on bringing the deferred facial-realism pass forward |
 
 ---
 
@@ -411,6 +411,25 @@ own reviewed tuning milestone.
   WebGL2 remained on one shared context with no browser warnings; 128 tests, typecheck, lint and
   build pass.
 
+### Expression and anatomy review (2026-07-26)
+
+Justin rejected the current facial result against dense particle-head references: it does not
+read as an accurate human face, and the ten states appear to share the same eyes, nose, mouth and
+overall structure. The live review confirms both points.
+
+- Seven active states (`thinking` through `done`) still intentionally use the exact neutral
+  expression vector. Only `listening` and `reading` have tuned presets, and those controls move
+  narrow tagged bands by small amounts; they cannot create missing eyelids, lips or facial planes.
+- The neutral base is the primary failure. Its union of ellipsoids and spheres produces a bulbous
+  cranium, oversized spherical socket cavities, a weak segmented nose and a pinched lower face.
+  The mouth is a tagged surface band rather than sculpted lip/oral anatomy.
+- Further preset tuning is paused. The current renderer, shared clock, motion system, point-set
+  contract and region rig remain useful, but expression work should not resume until the neutral
+  canonical head is replaced and visually approved.
+- The supplied first screenshot path was unavailable, so the current result was inspected directly
+  in the live demo. All three available references were reviewed. WebGL2 remained on one shared
+  context with no runtime warnings.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -456,10 +475,10 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin reviews `reading`** at `http://localhost:5173`, especially beside `listening` and
-   neutral `idle` at pill size and in the orbit view. Its reviewed controls appear in the Tuning
-   panel; changing one enters the temporary manual sandbox, while selecting a pill or resetting
-   restores presets. After approval, tune `thinking` as the next expression milestone.
+1. **Justin confirms whether to bring the deferred facial-realism pass forward now.** If approved,
+   the first milestone is an accurate neutral canonical human surface in the existing tagged
+   point-set format. Stop after the neutral head is visible in the live demo for review; do not
+   tune state expressions on the rejected base.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
@@ -475,7 +494,12 @@ replace it with defaults.
 
 ## Open questions for Justin
 
-None currently blocking. Deferred until they matter:
+Blocking:
+
+- Bring the dedicated facial-realism pass forward now, pausing the remaining Phase 1 expression
+  presets, or finish the non-visual Phase 1 machinery first as `CLAUDE.md` currently specifies?
+
+Deferred until they matter:
 
 - Default inline size and default particle budget per device tier — to be resolved
   empirically in the demo rather than decided up front.
