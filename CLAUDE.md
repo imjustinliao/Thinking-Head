@@ -82,30 +82,34 @@ not photorealism.
 A public marketing/demo website (hosted live-demo site) is a future phase, after Phases 1
 and 2. Do not scaffold or plan it.
 
-### Deferred to a dedicated pass after Phase 1 is functionally complete
+### Facial-realism pass — brought forward 2026-07-26
 
 **Facial realism is not signed off.** Justin's repeated direction is a genuinely
 photoreal-accurate human facial structure, matching dense voxel-head reference artwork. The
 current head is procedurally sculpted quadrics — correct proportions, real sockets, nose
 line and jaw, lit and occluded — but it does **not** reach scanned-human accuracy, and
-Justin has judged it insufficient three times. Do not keep iterating on it inside Phase 1;
-it is a separate, planned pass.
+Justin has judged it insufficient four times. After reviewing the first expression presets,
+Justin explicitly brought this dedicated pass forward on 2026-07-26. Pause further preset
+tuning until a replacement neutral head is approved.
 
 The honest constraint: an accurate human head is a *data* problem, not a tuning problem.
-Smooth-min quadrics cannot converge on real anatomy. Routes for that later pass, in rough
-order of promise:
+Smooth-min quadrics cannot converge on real anatomy. The replacement is a compact
+**spherical radial-displacement atlas** over a canonical human-head parameterisation:
 
-1. Encode the head as a compact **displacement/height map over a canonical parameterisation**
-   (a few KB, still no binary asset), derived from real anatomy rather than hand-tuned
-   primitives. Keeps the lattice pipeline and the region/rig model unchanged.
-2. Substantially expand the SDF with real anatomical landmarks (orbital rim, nasal bone,
-   zygomatic arch, philtrum, mentolabial sulcus) — cheap to try, bounded ceiling.
-3. A licensed parametric head model — currently rejected on registration, attribution and
-   binary-asset grounds; revisit only if 1 and 2 fall short and Justin accepts the terms.
+- The atlas stores facial and cranial relief as quantised numeric data, not a union of
+  hand-tuned primitives. It is sampled by the existing lattice generator, so the renderer,
+  LOD model, motion system and tagged point-set contract remain intact.
+- The atlas and its parameterisation are original and embedded in TypeScript. No third-party
+  mesh, binary model, runtime dependency, attribution requirement or network call ships.
+- Scan-trained statistical models and recent spherical/UV head representations validate the
+  data-driven architecture, but their model assets are tens of megabytes and may carry
+  separate licence obligations. They are research references only and must not be copied into
+  the package without a new explicit decision from Justin.
+- Approve the neutral head at front, three-quarter and profile views before expanding the
+  region rig or retuning any named expression.
 
-Both this and the demo website belong to that post-Phase-1 pass. **Phase 1 continues on the
-state and motion system**, which is independent of the head's exact anatomy — the rig
-addresses regions, not vertices, so a better head drops straight in.
+The public marketing/demo website remains deferred. This facial pass is now the active Phase 1
+work because expressions cannot be judged honestly on the rejected base anatomy.
 
 ---
 
@@ -202,7 +206,7 @@ Approved by Justin 2026-07-24.
 | Particle primitive | **Instanced billboard quads**, single draw call | Point sprites cap at size 64 on Apple silicon (vs 512–2048 elsewhere) and clip on particle centre. Instancing costs 4× vertex invocations — negligible at our counts |
 | Animation | **Parametric deformation** evaluated analytically in the vertex shader | Baked morph targets can't do 10 states × arbitrary blend pairs, and would make custom states impossible without shipping a mesh baker |
 | Continuous motion | 4D simplex noise (position as spatial seed, time as 4th dim) + **incommensurate sinusoids** for deliberate rhythms | Neither has a start or end, so entry/exit at any moment is phase-safe and there is no perceptible loop point |
-| Geometry | **Procedural, generated in code** — SDF (smooth-min union of quadrics: cranium, brow ridge, nose, jaw, cheeks) sampled to a blue-noise point set at build time | Zero licence surface, no binary assets, fully original, deterministic/seedable, live-tunable — and expressions are parameters of the same generator, so the rig comes free |
+| Geometry | **Original spherical radial-displacement atlas** sampled to a surface voxel lattice at build time | Facial anatomy becomes compact data over a regular canonical domain rather than a ceiling-limited union of quadrics; remains deterministic, asset-free at runtime and compatible with the tagged point-set rig |
 | Language | TypeScript, strict | |
 | Package | Single package `thinking-head`, exports `.` (core) and `./react` (wrapper, React optional peer) | Framework-agnostic core with thin wrappers; keeps core testable in isolation |
 | Build | **Vite library mode**, ESM-only, declarations via `tsc -p tsconfig.build.json` | tsdown was the original choice but cannot be installed by current stable npm (10.9.8) — it trips an arborist peer-resolution bug (`Cannot read properties of null (reading 'edgesOut')`), which would hit every contributor on `npm install`. Vite is already required for the demo, so this removes a dependency rather than adding one |

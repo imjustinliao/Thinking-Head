@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Expression/anatomy review complete.** Preset tuning paused pending geometry direction |
+| **Step** | **Facial-realism redo approved.** Research complete; canonical atlas implementation next |
 | **Last commit** | `4c2f22d` — v6.8 - Add focused reading expression preset |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's follow-up on bringing the deferred facial-realism pass forward |
+| **Blocked on** | Nothing |
 
 ---
 
@@ -430,6 +430,23 @@ overall structure. The live review confirms both points.
   in the live demo. All three available references were reviewed. WebGL2 remained on one shared
   context with no runtime warnings.
 
+### Facial-realism direction (2026-07-26)
+
+Justin explicitly brought the dedicated realism pass forward and requested a fundamental redo.
+Further named-expression tuning stays paused.
+
+- Research confirms that accurate systems use a canonical scan-derived surface plus separate
+  identity/expression deformation; recent work maps complete head geometry into regular
+  spherical or UV domains.
+- A newly available permissively licensed statistical head model validates the attainable
+  quality, but its core model is about 53 MB and would add third-party licence obligations. It is
+  a research reference only, not package input.
+- Chosen implementation: an original quantised spherical radial-displacement atlas sampled by
+  the existing voxel lattice. This replaces the quadric union while preserving the renderer,
+  LODs, motion, shared context and tagged point-set contract.
+- First checkpoint is neutral geometry only, reviewed at front, three-quarter, profile and inline
+  sizes. Do not resume expressions until that base is approved.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -475,10 +492,9 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin confirms whether to bring the deferred facial-realism pass forward now.** If approved,
-   the first milestone is an accurate neutral canonical human surface in the existing tagged
-   point-set format. Stop after the neutral head is visible in the live demo for review; do not
-   tune state expressions on the rejected base.
+1. **Implement the original canonical radial atlas** and replace the quadric field behind the
+   existing tagged point-set generator. Stop when the neutral head is visible at front,
+   three-quarter, profile and inline sizes for Justin's review.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
@@ -494,12 +510,7 @@ replace it with defaults.
 
 ## Open questions for Justin
 
-Blocking:
-
-- Bring the dedicated facial-realism pass forward now, pausing the remaining Phase 1 expression
-  presets, or finish the non-visual Phase 1 machinery first as `CLAUDE.md` currently specifies?
-
-Deferred until they matter:
+None currently blocking. Deferred until they matter:
 
 - Default inline size and default particle budget per device tier — to be resolved
   empirically in the demo rather than decided up front.
