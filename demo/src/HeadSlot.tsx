@@ -26,7 +26,10 @@ interface HeadSlotProps {
   onBackend?: (backend: RenderBackend) => void;
 }
 
-const ERROR_COLOR = "#ff6f5c";
+const STATE_COLOR: Partial<Record<ThinkingHeadState, string>> = {
+  error: "#ff6f5c",
+  done: "#8affc1",
+};
 
 /**
  * One rendered head.
@@ -71,13 +74,12 @@ export function HeadSlot({
     return { ...camera, yaw: camera.yaw * poseScale, pitch: camera.pitch * poseScale };
   }, [camera, size]);
 
-  // Error gets a semantic alarm accent in addition to its fault motion. This demo-level mapping
-  // previews the state colour layer the public wrapper will own; the core renderer stays
-  // style-driven and the shake/rings ensure colour is never the only cue.
-  const effectiveStyle = useMemo<RenderStyle>(
-    () => (state === "error" ? { ...style, color: ERROR_COLOR } : style),
-    [state, style],
-  );
+  // Semantic accents supplement each state's non-colour motion. This demo-level mapping previews
+  // the state colour layer the public wrapper will own; the core renderer stays style-driven.
+  const effectiveStyle = useMemo<RenderStyle>(() => {
+    const color = STATE_COLOR[state];
+    return color ? { ...style, color } : style;
+  }, [state, style]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

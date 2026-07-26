@@ -148,6 +148,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_waveSpeed",
     "u_jitterAmplitude",
     "u_jitterSpeed",
+    "u_brightnessBias",
     "u_shimmerAmplitude",
     "u_shimmerScale",
     "u_shimmerSpeed",
@@ -426,6 +427,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_waveSpeed, motion.waveSpeed);
     gl.uniform1f(u.u_jitterAmplitude, motion.jitterAmplitude);
     gl.uniform1f(u.u_jitterSpeed, motion.jitterSpeed);
+    gl.uniform1f(u.u_brightnessBias, motion.brightnessBias);
     gl.uniform1f(u.u_shimmerAmplitude, motion.shimmerAmplitude);
     gl.uniform1f(u.u_shimmerScale, motion.shimmerScale);
     gl.uniform1f(u.u_shimmerSpeed, motion.shimmerSpeed);

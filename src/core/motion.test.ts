@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { clockState, resetClock, subscribeToClock } from "./clock.js";
 import {
+  DONE_MOTION,
   ERROR_MOTION,
   EXECUTING_MOTION,
   GENERATING_MOTION,
@@ -786,6 +787,90 @@ describe("error state", () => {
   });
 });
 
+describe("done state", () => {
+  test("settles into the smallest movement envelope in the active state set", () => {
+    const earlier = [
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+      EXECUTING_MOTION,
+      GENERATING_MOTION,
+      REVIEWING_MOTION,
+      ERROR_MOTION,
+    ];
+    for (const motion of earlier) {
+      expect(DONE_MOTION.breathAmplitude).toBeLessThan(motion.breathAmplitude);
+      expect(DONE_MOTION.swayYaw).toBeLessThan(motion.swayYaw);
+      expect(DONE_MOTION.swayPitch).toBeLessThan(motion.swayPitch);
+    }
+  });
+
+  test("stays brighter than the ordinary shaded level throughout its soft glow", () => {
+    expect(DONE_MOTION.brightnessBias).toBeGreaterThan(DONE_MOTION.shimmerAmplitude);
+
+    for (let t = 0; t < 60; t += 0.05) {
+      const value = shimmerMultiplier(0.2, -0.1, 0.3, t, DONE_MOTION);
+      expect(value).toBeGreaterThan(1);
+      expect(value).toBeLessThanOrEqual(
+        1 + DONE_MOTION.brightnessBias + DONE_MOTION.shimmerAmplitude,
+      );
+    }
+  });
+
+  test("keeps the brightness lift opt-in so every earlier state is unchanged", () => {
+    for (const motion of [
+      STILL_MOTION,
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+      EXECUTING_MOTION,
+      GENERATING_MOTION,
+      REVIEWING_MOTION,
+      ERROR_MOTION,
+    ]) {
+      expect(motion.brightnessBias).toBe(0);
+    }
+  });
+
+  test("uses idle's neutral pose because it is the endpoint for the return transition", () => {
+    expect(DONE_MOTION.poseYawBias).toBe(IDLE_MOTION.poseYawBias);
+    expect(DONE_MOTION.posePitchBias).toBe(IDLE_MOTION.posePitchBias);
+    expect(DONE_MOTION).not.toEqual(IDLE_MOTION);
+  });
+
+  test("STATE_MOTION.done points at DONE_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.done).toBe(DONE_MOTION);
+    expect(STATE_MOTION.done).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, phase-safe, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, DONE_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, DONE_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    for (const t of [0, 0.7, 3.3, 11.9, 47.2]) {
+      const a = shimmerMultiplier(0.1, 0.2, 0.3, t, DONE_MOTION);
+      const b = shimmerMultiplier(0.1, 0.2, 0.3, t + 1 / 60, DONE_MOTION);
+      expect(Math.abs(b - a)).toBeLessThan(0.2);
+    }
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, DONE_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
 describe("tuned states are mutually distinguishable", () => {
   // Guards the whole point of the state system: a user glancing at two indicators must be able
   // to tell them apart. Each new state milestone should extend this list.
@@ -799,6 +884,7 @@ describe("tuned states are mutually distinguishable", () => {
     generating: GENERATING_MOTION,
     reviewing: REVIEWING_MOTION,
     error: ERROR_MOTION,
+    done: DONE_MOTION,
   } as const;
 
   test("no two tuned states share an identical parameter vector", () => {
@@ -814,13 +900,16 @@ describe("tuned states are mutually distinguishable", () => {
     }
   });
 
-  test("each tuned state occupies a distinct resting pose", () => {
+  test("each active state occupies a distinct resting pose", () => {
     // Pose is the cue that survives a still screenshot, so it has to differ even when the
-    // animated parameters happen to be close.
-    const poses = Object.entries(TUNED).map(([name, m]) => ({
-      name,
-      key: `${Math.sign(m.poseYawBias)}:${Math.sign(m.posePitchBias)}`,
-    }));
+    // animated parameters happen to be close. Done is excluded deliberately: its neutral pose
+    // is the endpoint for the transition back to idle.
+    const poses = Object.entries(TUNED)
+      .filter(([name]) => name !== "done")
+      .map(([name, m]) => ({
+        name,
+        key: `${Math.sign(m.poseYawBias)}:${Math.sign(m.posePitchBias)}`,
+      }));
     const keys = new Set(poses.map((p) => p.key));
     expect(keys.size, `poses collide: ${JSON.stringify(poses)}`).toBe(poses.length);
   });

@@ -60,6 +60,7 @@ uniform float u_waveScale;
 uniform float u_waveSpeed;
 uniform float u_jitterAmplitude;
 uniform float u_jitterSpeed;
+uniform float u_brightnessBias;
 uniform float u_shimmerAmplitude;
 uniform float u_shimmerScale;
 uniform float u_shimmerSpeed;
@@ -114,7 +115,7 @@ float shimmerMultiplier(vec3 p, float t) {
   float band =
     (sin(phase) + u_shimmerHarmonic * sin(phase * 3.0)) /
     (1.0 + abs(u_shimmerHarmonic));
-  return 1.0 + u_shimmerAmplitude * band;
+  return 1.0 + u_brightnessBias + u_shimmerAmplitude * band;
 }
 
 void main() {

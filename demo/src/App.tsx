@@ -233,8 +233,7 @@ export function App() {
                 Every universal-verb state, presented the way AI products actually surface status:
                 head beside a shimmering label. Each will be a continuous loop, never a one-shot.
                 <strong> Click a pill</strong> to drive the inline sample and the orbit head below —
-                the first nine states now have distinct tuned motion, while the remaining state
-                inherits <code>idle</code> until its own milestone lands.
+                all ten states now have distinct tuned motion signatures.
               </p>
             </div>
           </div>

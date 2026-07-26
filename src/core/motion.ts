@@ -38,6 +38,8 @@ export interface MotionParams {
   jitterAmplitude: number;
   jitterSpeed: number;
 
+  /** Uniform lift applied to every particle before the travelling brightness ripple. */
+  brightnessBias: number;
   /**
    * Brightness ripple across the surface, as a fraction of a particle's shaded brightness (0.22
    * means the lit/dim swing is up to ±22%).
@@ -118,6 +120,7 @@ export const STILL_MOTION: MotionParams = {
   waveSpeed: 0,
   jitterAmplitude: 0,
   jitterSpeed: 0,
+  brightnessBias: 0,
   shimmerAmplitude: 0,
   shimmerScale: 0,
   shimmerSpeed: 0,
@@ -155,6 +158,7 @@ export const IDLE_MOTION: MotionParams = {
   jitterAmplitude: 0.16,
   jitterSpeed: 1.9,
 
+  brightnessBias: 0,
   // The primary carrier of "alive" at inline sizes — see the field comment on shimmerAmplitude.
   shimmerAmplitude: 0.4,
   shimmerScale: 2.6,
@@ -205,6 +209,7 @@ export const LISTENING_MOTION: MotionParams = {
   jitterAmplitude: 0.05,
   jitterSpeed: 3.2,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.55,
   shimmerScale: 3.4,
   shimmerSpeed: 0.9,
@@ -258,6 +263,7 @@ export const READING_MOTION: MotionParams = {
   jitterAmplitude: 0.04,
   jitterSpeed: 2.6,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.5,
   // Higher spatial frequency than idle so the band reads as a narrower moving line across the
   // face rather than a wide swell — reading is line-by-line, not broad-strokes.
@@ -316,6 +322,7 @@ export const THINKING_MOTION: MotionParams = {
   jitterAmplitude: 0.09,
   jitterSpeed: 1.2,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.42,
   // Broadest and slowest shimmer in the set: a lazy swell across the whole head. Contrast with
   // reading (scale 4.2, speed 1.15), which is a narrow fast line.
@@ -368,6 +375,7 @@ export const SEARCHING_MOTION: MotionParams = {
   jitterAmplitude: 0.08,
   jitterSpeed: 4.1,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.62,
   shimmerScale: 5.2,
   shimmerSpeed: 1.65,
@@ -419,6 +427,7 @@ export const EXECUTING_MOTION: MotionParams = {
   jitterAmplitude: 0.1,
   jitterSpeed: 5.2,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.56,
   shimmerScale: 6.2,
   shimmerSpeed: 1.9,
@@ -470,6 +479,7 @@ export const GENERATING_MOTION: MotionParams = {
   jitterAmplitude: 0.1,
   jitterSpeed: 3.8,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.68,
   shimmerScale: 5.8,
   // Negative because phase = radius * scale + time * speed; this sends a phase front outward.
@@ -516,6 +526,7 @@ export const REVIEWING_MOTION: MotionParams = {
   jitterAmplitude: 0.045,
   jitterSpeed: 2.9,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.58,
   shimmerScale: 5.4,
   shimmerSpeed: 1.15,
@@ -561,6 +572,7 @@ export const ERROR_MOTION: MotionParams = {
   jitterAmplitude: 0.14,
   jitterSpeed: 6.4,
 
+  brightnessBias: 0,
   shimmerAmplitude: 0.76,
   shimmerScale: 6.8,
   // Positive speed contracts radial phase fronts; generating uses negative speed to emit them.
@@ -585,8 +597,54 @@ export const ERROR_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` through `error` are tuned; `done` inherits `idle` until its own
- * milestone lands, so every state animates rather than freezing.
+ * `done` — complete. The head releases into a neutral, brighter resting endpoint.
+ *
+ * This vector defines the endpoint, not its lifetime. The later transition controller owns the
+ * brief hold and smooth return to `idle`; encoding a timer here would make entry phase-dependent
+ * and force a hard cut before the interpolation machinery exists.
+ *
+ * A positive brightness bias keeps every particle above its ordinary shaded level, while a broad
+ * low-amplitude shimmer prevents a long-held completion state from freezing. Motion amplitudes
+ * are the smallest in the active set, so the visual grammar is release rather than more work.
+ */
+export const DONE_MOTION: MotionParams = {
+  breathAmplitude: 0.04,
+  breathSpeed: 0.48,
+  outwardAmplitude: 0,
+
+  waveAmplitude: 0.07,
+  waveScale: 1.7,
+  waveSpeed: 0.31,
+
+  jitterAmplitude: 0.018,
+  jitterSpeed: 1.3,
+
+  // Greater than the ripple amplitude, so completion never dips below ordinary brightness.
+  brightnessBias: 0.22,
+  shimmerAmplitude: 0.14,
+  shimmerScale: 1.4,
+  shimmerSpeed: 0.29,
+  shimmerHarmonic: 0,
+  // A broad rising wash, not a processing scan.
+  shimmerDirX: 0.15,
+  shimmerDirY: 1,
+  shimmerDirZ: 0,
+  shimmerRadial: 0,
+  shimmerMirror: 0,
+
+  swayYaw: 0.008,
+  swayPitch: 0.006,
+  swaySpeed: 0.19,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
+
+  // Deliberately neutral: this endpoint is designed to blend directly back into idle.
+  poseYawBias: 0,
+  posePitchBias: 0,
+};
+
+/**
+ * Motion per state. All ten universal states now have tuned continuous signatures.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
@@ -598,7 +656,7 @@ export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   generating: GENERATING_MOTION,
   reviewing: REVIEWING_MOTION,
   error: ERROR_MOTION,
-  done: IDLE_MOTION,
+  done: DONE_MOTION,
 };
 
 /**
@@ -671,7 +729,7 @@ export function shimmerMultiplier(
   // configured brightness range beyond ±shimmerAmplitude.
   const band =
     (Math.sin(phase) + m.shimmerHarmonic * Math.sin(phase * 3)) / (1 + Math.abs(m.shimmerHarmonic));
-  return 1 + m.shimmerAmplitude * band;
+  return 1 + m.brightnessBias + m.shimmerAmplitude * band;
 }
 
 /**
