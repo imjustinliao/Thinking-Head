@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Expression renderer integration complete** (v6.4). Awaiting live-control/parity review |
-| **Last commit** | `2ecf1ba` — v6.4 - Wire expression rig through both renderers |
+| **Step** | **`listening` expression tuned** (v6.6). Awaiting visual review |
+| **Last commit** | `35ba7b0` — v6.6 - Add alert listening expression preset |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -393,6 +393,15 @@ own reviewed tuning milestone.
   neutral. Live verification compiled the WebGL shader with one shared context, exercised an
   exaggerated mouth/jaw pose in both backends, restored neutral, and found no browser warnings or
   errors. 123 tests, typecheck, lint and build pass; the public bundle remains 0.59 kB.
+- **`listening` expression (v6.6):** added the state-expression registry with `idle` as the
+  neutral baseline and every untuned state explicitly sharing it. Listening lifts both brows
+  (`0.4`), adds a smaller inner lift (`0.1`), opens both eyes (`0.5`) and lightly presses the
+  mouth (`0.15`), producing receptive attention without gaze diversion, surprise or a negative
+  furrow. The demo now renders reviewed presets by default; its sliders become a temporary
+  all-size manual override, and selecting a state or resetting returns to presets. The same
+  listening motion was compared live with neutral and tuned faces at pill and orbit sizes.
+  WebGL2 remained on one shared context with no browser warnings; 126 tests, typecheck, lint and
+  build pass.
 
 ### Demo design language — established, do not flatten
 
@@ -439,10 +448,10 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin reviews the expression controls and backend parity** at `http://localhost:5173`.
-   Every named state is still neutral; the sliders are a shared manual sandbox. After approval,
-   add the state-expression registry and tune expressions one at a time, beginning with
-   `listening`; `idle` remains the neutral baseline.
+1. **Justin reviews `listening`** at `http://localhost:5173`, especially beside neutral `idle`
+   at pill size and in the orbit view. Its reviewed controls appear in the Tuning panel; changing
+   one enters the temporary manual sandbox, while selecting a pill or resetting restores presets.
+   After approval, tune `reading` as the next expression milestone.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
