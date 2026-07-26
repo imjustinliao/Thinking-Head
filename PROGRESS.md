@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Expression rig foundation complete** (v6.2). Next: renderer wiring and live controls |
-| **Last commit** | `10c213e` — v6.2 - Add analytic facial expression rig foundation |
+| **Step** | **Expression renderer integration complete** (v6.4). Awaiting live-control/parity review |
+| **Last commit** | `2ecf1ba` — v6.4 - Wire expression rig through both renderers |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -367,10 +367,9 @@ sample and orbit head, so each state can be selected and reviewed in the live de
   brief hold and smooth return to Idle. Verified in the live WebGL demo with no browser errors;
   114 tests, typecheck, lint and build pass.
 
-These milestones tune **motion and whole-head posture**. Per-region facial deformation is not
-built yet; the tagged regions and scalar `weight` channel are ready, but the expression control
-vector and shader deformation still need their own dedicated milestone before Phase 1 is
-functionally complete.
+These milestones tune **motion and whole-head posture**. Per-region facial deformation now runs
+in both renderers, but every named state deliberately remains at the neutral expression until its
+own reviewed tuning milestone.
 
 - **Glyph landmark floor (v6.0):** LOD selection now accepts the active size tier's minimum
   lattice resolution, so a 16px DPR-1 head cannot fall back to the 12-cell lattice that has eyes
@@ -385,6 +384,15 @@ functionally complete.
   per-point allocation; jaw articulation rotates its normals, and every control is tested for
   target-region isolation. No renderer consumes it yet, so this milestone has no intended visual
   change. 123 tests, typecheck, lint and build pass; the public bundle remains 0.59 kB.
+- **Expression renderer integration (v6.4):** `RenderFrame` now carries the expression vector.
+  Canvas 2D evaluates the allocation-free CPU kernel before continuous motion; WebGL uploads the
+  existing rig weight, packed controls and cached region metrics, then mirrors the same equations
+  in the vertex shader. Motion and shimmer keep immutable rest-space phase seeds, so changing a
+  face cannot make its continuous loop jump. The demo exposes all 18 controls in one manual
+  sandbox shared across sizes, with neutral defaults and reset; named state presets remain
+  neutral. Live verification compiled the WebGL shader with one shared context, exercised an
+  exaggerated mouth/jaw pose in both backends, restored neutral, and found no browser warnings or
+  errors. 123 tests, typecheck, lint and build pass; the public bundle remains 0.59 kB.
 
 ### Demo design language — established, do not flatten
 
@@ -431,11 +439,10 @@ replace it with defaults.
 
 ## Next
 
-1. **Wire expression deformation into both renderers and add live controls.** Add the expression
-   vector to `RenderFrame`; pass the existing `weight` channel plus derived region metrics to
-   WebGL; mirror the CPU kernel in the vertex shader and call it from Canvas 2D; then expose the
-   active expression vector as demo sliders. Keep every state neutral during this infrastructure
-   step. Once backend parity is reviewed, tune the ten expressions one state at a time.
+1. **Justin reviews the expression controls and backend parity** at `http://localhost:5173`.
+   Every named state is still neutral; the sliders are a shared manual sandbox. After approval,
+   add the state-expression registry and tune expressions one at a time, beginning with
+   `listening`; `idle` remains the neutral baseline.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
