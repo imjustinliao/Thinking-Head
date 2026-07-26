@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Facial-realism redo approved.** Research complete; canonical atlas implementation next |
-| **Last commit** | `4c2f22d` — v6.8 - Add focused reading expression preset |
+| **Step** | **Local showcase redesign requested.** Research and compatibility audit complete; implementation route needs review |
+| **Last completed code commit** | `abff0a2` — v7.3 - Record canonical neutral head review checkpoint |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Nothing |
+| **Blocked on** | liquidGL creates a second WebGL context; Justin must choose the integration rule |
 
 ---
 
@@ -472,12 +472,46 @@ It is a fundamental geometry replacement, not another quadric tuning pass.
 This is **ready for Justin's visual review, not yet visually approved**. Named-expression work
 remains paused until the neutral head is accepted or receives a specific correction list.
 
-### Demo design language — established, do not flatten
+### Local showcase redesign brief (requested 2026-07-26)
+
+Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
+This is a new reviewed component, not the deferred hosted marketing site.
+
+- **Rendering report:** the blank canvases in Justin's screenshot were reproduced as the shell
+  left behind by a failed hot-reload, not as the current committed renderer. A new browser tab at
+  `http://localhost:5173` renders all ten heads through WebGL2 with no runtime errors. Hard-refresh
+  any tab that remained open during the canonical-atlas source repair.
+- **Composition:** replace the hero/readout/deck/tube grid/duplicate orbit/pipeline sequence with
+  a simple navigation bar, one dominant live head workbench, an asymmetric gallery of ten large
+  state studies, compact engineering evidence, and a quieter Phase 2 placeholder.
+- **Visual system:** Source Code Pro; black/white polarity themes; only restrained semantic or
+  modality accents; flowing ribbon geometry, carved voids, repeated curves and large negative
+  space; measured construction details without faux-historical decoration.
+- **Interaction:** pointer light and a spring-constrained reactive grid should feel physical.
+  State selection and theme changes must respond immediately, remain interruptible, and collapse
+  to a clear static composition under reduced motion or reduced transparency.
+- **Material:** reserve refraction/translucency for the navigation and compact control surfaces.
+  Bare content and strong whitespace replace the current glass-card treatment.
+- **Design standard:** apply Rams's ten principles and Apple's purpose, agency, familiarity,
+  flexibility, simplicity, craft and delight. Meet WCAG contrast using luminance, never hue alone.
+
+The requested `liquid-gl` package cannot currently share Thinking Head's context. Its renderer
+creates a full-page canvas and calls `getContext()` internally; Thinking Head already supplies the
+page's one shared WebGL2 context. No package or visual code has been changed yet. The next step is
+an explicit choice between:
+
+1. a **demo-only two-context exception**, which uses the package literally but weakens a documented
+   performance guarantee on the showcase page; or
+2. preserving the **one-context guarantee** and implementing a small compatible refractive
+   material in Thinking Head's renderer, which follows the requested effect but does not instantiate
+   the package.
+
+### Previous demo design language — superseded 2026-07-26
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
 committed aesthetic direction: **"particle observatory"** — obsidian void, volumetric
-light, floating glass instrument panels. A future session should extend this, not
-replace it with defaults.
+light, floating glass instrument panels. This section is retained as implementation history only;
+the local showcase redesign brief above supersedes it.
 
 - **Type:** Instrument Serif (display, italic for the accent word), IBM Plex Sans (body),
   IBM Plex Mono (all labels, data and state names).
@@ -517,30 +551,35 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin reviews the canonical neutral head at `http://localhost:5173`.** Apply only the
-   specific anatomical corrections from that review; do not resume named-expression tuning until
-   the neutral base is approved.
-2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+1. **Justin chooses the liquidGL integration rule** described above. Then implement the redesign
+   in separately reviewed milestones: foundation/navigation/theme; dominant head workbench;
+   asymmetric state gallery; physical grid/material effects; responsive and accessibility pass.
+2. **Return to the canonical neutral-head review.** Apply only specific anatomical corrections;
+   do not resume named-expression tuning until the neutral base is approved.
+3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-3. The React wrapper and the `./react` subpath export — currently `package.json` exports
+4. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-4. Bake the tuned point set into a committed artifact once the shape is locked, and drop
+5. Bake the tuned point set into a committed artifact once the shape is locked, and drop
    the generator from the runtime path entirely.
-5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-6. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+7. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
 ## Open questions for Justin
 
-None currently blocking. Deferred until they matter:
+Blocking:
+
+- Whether literal use of `liquid-gl` justifies a demo-only second WebGL context, or the one-context
+  guarantee takes priority and the material is implemented inside the existing renderer.
+
+Deferred until they matter:
 
 - Default inline size and default particle budget per device tier — to be resolved
   empirically in the demo rather than decided up front.
-- Whether the large interactive orbit view ships within Phase 1 or immediately after the
-  ten states are done.
 - Whether a Web Components wrapper is Phase 1 scope or deferred.
 
 ---

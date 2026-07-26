@@ -82,6 +82,35 @@ not photorealism.
 A public marketing/demo website (hosted live-demo site) is a future phase, after Phases 1
 and 2. Do not scaffold or plan it.
 
+### Local showcase redesign — brought forward 2026-07-26
+
+The local Vite showcase is not the deferred public marketing site. Justin explicitly
+reopened its design on 2026-07-26 and rejected the existing "particle observatory" page,
+small status-pill grid, and separate inline/orbit sections as generic and repetitive.
+The replacement direction is binding:
+
+- A minimal black/white system with a polarity switch, restrained semantic accents, and
+  Source Code Pro as the visual voice.
+- One simple navigation bar and one dominant interactive head workbench. Inline sizing
+  remains demonstrable, but not as a second composition that duplicates the large view.
+- Ten large state studies arranged as an asymmetric, purposeful gallery rather than
+  uniform tubes or cards. Flowing architectural ribbons, carved openings, repeated curves
+  and deep negative space are the spatial reference.
+- Light, cursor response, deformation and material transitions should behave physically.
+  A measured construction grid may react like a tensioned web, but must stay useful,
+  restrained, performant and legible under reduced motion.
+- The design follows Dieter Rams's ten principles and Apple's interaction foundations:
+  purpose before decoration, understandable hierarchy, direct agency, honest materials,
+  interruptible motion, accessibility and careful detail.
+- Translucent material is reserved for controls or navigation where it communicates
+  hierarchy; it is not a default surface applied to every section.
+
+Justin requested the `liquid-gl` library for refractive material. Its current implementation
+always creates its own WebGL canvas and context, while Thinking Head already owns the page's
+single shared WebGL context. No integration may land until Justin chooses between a documented
+demo-only exception to the one-context rule or a context-compatible material implemented within
+the existing renderer. Do not silently instantiate a second context.
+
 ### Facial-realism pass — brought forward 2026-07-26
 
 **Facial realism is not signed off.** Justin's repeated direction is a genuinely
@@ -280,11 +309,11 @@ is writing a handful of uniforms.
   to the head — shape, a state's expression, particle density, size, speed — must be
   visible and live-tunable there the moment it is saved. Tell him the URL and port, and
   keep it running unless he asks otherwise.
-- **The demo page grows into a full showcase**: all states side by side as **status
-  pills** — head beside a label with a sweeping light-band shimmer, the idiom AI products
-  use for live status (Justin's preferred presentation, 2026-07-24) — plus live controls
-  for size and speed, plus a clearly labelled non-functional placeholder section for the
-  Phase 2 photo-upload flow so the layout never needs redesigning.
+- **The demo page grows into a full showcase** using the local redesign direction above:
+  one dominant live workbench, ten large asymmetric state studies, live size and speed
+  controls, and a clearly labelled non-functional placeholder for the Phase 2 photo-upload
+  flow. The showcase must still prove compact inline use, but no longer through a separate
+  section that duplicates the primary head.
 - **Update `PROGRESS.md` at every session/step boundary.**
 
 ### Commit format
