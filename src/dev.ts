@@ -14,6 +14,17 @@
 
 export { clockState, clockTime, resetClock, subscribeToClock } from "./core/clock.js";
 export {
+  createExpressionRigMetrics,
+  deformExpressionPoint,
+  EXPRESSION_KEYS,
+  type ExpressionKey,
+  type ExpressionParams,
+  type ExpressionRigMetrics,
+  expressionRigOf,
+  measureExpressionRig,
+  NEUTRAL_EXPRESSION,
+} from "./core/expression.js";
+export {
   DEFAULT_GENERATE_OPTIONS,
   type GenerateOptions,
   generateHeadLevel,
