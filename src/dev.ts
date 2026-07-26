@@ -26,6 +26,7 @@ export {
 } from "./core/landmarks.js";
 export {
   EXECUTING_MOTION,
+  GENERATING_MOTION,
   IDLE_MOTION,
   LISTENING_MOTION,
   type MotionParams,

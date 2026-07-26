@@ -23,6 +23,11 @@ export interface MotionParams {
   /** Whole-surface in/out breath along the normal. */
   breathAmplitude: number;
   breathSpeed: number;
+  /**
+   * Non-negative normal push sharing the breath phase. Unlike centred breath, this moves from
+   * rest to outward and back, so energy can radiate without making the head alternately implode.
+   */
+  outwardAmplitude: number;
 
   /** Travelling wave over the surface. Low `waveScale` keeps neighbours coherent. */
   waveAmplitude: number;
@@ -63,6 +68,11 @@ export interface MotionParams {
   shimmerDirX: number;
   shimmerDirY: number;
   shimmerDirZ: number;
+  /**
+   * Mix from the directional shimmer coordinate to radius in the facial xy plane. One produces
+   * concentric bands; zero preserves the directional sweep used by every earlier state.
+   */
+  shimmerRadial: number;
 
   /** Slow whole-head sway, in radians, applied to the camera rather than the particles. */
   swayYaw: number;
@@ -97,6 +107,7 @@ export interface MotionParams {
 export const STILL_MOTION: MotionParams = {
   breathAmplitude: 0,
   breathSpeed: 0,
+  outwardAmplitude: 0,
   waveAmplitude: 0,
   waveScale: 0,
   waveSpeed: 0,
@@ -111,6 +122,7 @@ export const STILL_MOTION: MotionParams = {
   shimmerDirX: 0.7,
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
+  shimmerRadial: 0,
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
@@ -128,6 +140,7 @@ export const STILL_MOTION: MotionParams = {
 export const IDLE_MOTION: MotionParams = {
   breathAmplitude: 0.55,
   breathSpeed: 0.55,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.45,
   waveScale: 2.1,
@@ -146,6 +159,7 @@ export const IDLE_MOTION: MotionParams = {
   shimmerDirX: 0.7,
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
+  shimmerRadial: 0,
 
   swayYaw: 0.07,
   swayPitch: 0.028,
@@ -175,6 +189,7 @@ export const IDLE_MOTION: MotionParams = {
 export const LISTENING_MOTION: MotionParams = {
   breathAmplitude: 0.16,
   breathSpeed: 0.9,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.14,
   waveScale: 2.8,
@@ -192,6 +207,7 @@ export const LISTENING_MOTION: MotionParams = {
   shimmerDirX: 0.7,
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
+  shimmerRadial: 0,
 
   swayYaw: 0.03,
   swayPitch: 0.02,
@@ -225,6 +241,7 @@ export const LISTENING_MOTION: MotionParams = {
 export const READING_MOTION: MotionParams = {
   breathAmplitude: 0.14,
   breathSpeed: 0.7,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.12,
   waveScale: 3.0,
@@ -244,6 +261,7 @@ export const READING_MOTION: MotionParams = {
   shimmerDirX: 1,
   shimmerDirY: 0,
   shimmerDirZ: 0,
+  shimmerRadial: 0,
 
   // Lateral sway — yaw amplitude is larger than pitch so the dominant movement is side-to-side
   // rather than the nod that `listening` uses. Speed is faster than idle's ambient drift.
@@ -280,6 +298,7 @@ export const THINKING_MOTION: MotionParams = {
   // Deeper and slower than idle — absorbed rather than merely waiting.
   breathAmplitude: 0.7,
   breathSpeed: 0.34,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.5,
   waveScale: 1.6,
@@ -299,6 +318,7 @@ export const THINKING_MOTION: MotionParams = {
   shimmerDirX: 0.25,
   shimmerDirY: 1,
   shimmerDirZ: 0.15,
+  shimmerRadial: 0,
 
   // Wide, slow wander. Larger amplitude than any other tuned state and the lowest speed, so the
   // head drifts rather than bobs.
@@ -329,6 +349,7 @@ export const THINKING_MOTION: MotionParams = {
 export const SEARCHING_MOTION: MotionParams = {
   breathAmplitude: 0.12,
   breathSpeed: 0.78,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.16,
   waveScale: 3.6,
@@ -346,6 +367,7 @@ export const SEARCHING_MOTION: MotionParams = {
   shimmerDirX: 1,
   shimmerDirY: 0.08,
   shimmerDirZ: 0.24,
+  shimmerRadial: 0,
 
   // Slow wide scan plus quick saccadic corrections. 2.35 / 0.38 is intentionally not an
   // integer ratio, so the corrections never recur at the same place in the broad sweep.
@@ -377,6 +399,7 @@ export const EXECUTING_MOTION: MotionParams = {
   // Near-still chassis: the action is deliberate, not breathing or wandering.
   breathAmplitude: 0.06,
   breathSpeed: 1.05,
+  outwardAmplitude: 0,
 
   waveAmplitude: 0.2,
   waveScale: 4.8,
@@ -395,6 +418,7 @@ export const EXECUTING_MOTION: MotionParams = {
   shimmerDirX: 0,
   shimmerDirY: 1,
   shimmerDirZ: 0,
+  shimmerRadial: 0,
 
   // The smallest periodic camera motion in the tuned set. Enough to stay alive at display size,
   // not enough to undermine the locked, tool-running posture.
@@ -411,7 +435,53 @@ export const EXECUTING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` through `executing` are tuned; the rest inherit `idle` until their own
+ * `generating` — producing output. Energy travels from the centre of the face into the world.
+ *
+ * A normal pulse moves every cell from rest to outward and back, never through the imploding half
+ * of a centred breath. Low-frequency surface waves ride on it so the output feels emitted by a
+ * living volume rather than scaled uniformly.
+ *
+ * At inline sizes, where that positional motion is sub-pixel, concentric brightness rings carry
+ * the same idea. A negative shimmer speed makes equal-phase rings move toward larger radii over
+ * time: visibly outward, not merely "busy". Both carriers are analytic, bounded, and phase-safe.
+ */
+export const GENERATING_MOTION: MotionParams = {
+  breathAmplitude: 0.12,
+  breathSpeed: 0.82,
+  // Rest → outward → rest. Combined with the centred breath, peak uniform travel is 0.60 cells.
+  outwardAmplitude: 0.48,
+
+  waveAmplitude: 0.38,
+  waveScale: 2.5,
+  waveSpeed: 0.9,
+
+  jitterAmplitude: 0.1,
+  jitterSpeed: 3.8,
+
+  shimmerAmplitude: 0.68,
+  shimmerScale: 5.8,
+  // Negative because phase = radius * scale + time * speed; this sends a phase front outward.
+  shimmerSpeed: -1.55,
+  shimmerHarmonic: 0,
+  // Direction remains valid for interpolation even though the fully radial state does not use it.
+  shimmerDirX: 0.7,
+  shimmerDirY: 1,
+  shimmerDirZ: -0.4,
+  shimmerRadial: 1,
+
+  swayYaw: 0.055,
+  swayPitch: 0.03,
+  swaySpeed: 0.48,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
+
+  // Lifted but centred: energy projects outward rather than tracking a source to either side.
+  poseYawBias: 0,
+  posePitchBias: -0.06,
+};
+
+/**
+ * Motion per state. `idle` through `generating` are tuned; the rest inherit `idle` until their own
  * milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
@@ -421,7 +491,7 @@ export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   thinking: THINKING_MOTION,
   searching: SEARCHING_MOTION,
   executing: EXECUTING_MOTION,
-  generating: IDLE_MOTION,
+  generating: GENERATING_MOTION,
   reviewing: IDLE_MOTION,
   error: IDLE_MOTION,
   done: IDLE_MOTION,
@@ -450,6 +520,7 @@ export function normalDisplacement(
 ): number {
   // Breath: uniform across the surface, so the whole head swells rather than rippling.
   const breath = Math.sin(time * m.breathSpeed);
+  const outward = 0.5 + breath * 0.5;
 
   // Travelling swell. Two waves along different axes at incommensurate rates; their sum never
   // repeats, and both are low spatial frequency so neighbours stay coherent.
@@ -461,6 +532,7 @@ export function normalDisplacement(
 
   return (
     m.breathAmplitude * breath +
+    m.outwardAmplitude * outward +
     m.waveAmplitude * (waveA + waveB * 0.6) +
     m.jitterAmplitude * jitter
   );
@@ -484,7 +556,10 @@ export function shimmerMultiplier(
   time: number,
   m: MotionParams,
 ): number {
-  const along = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
+  const directional = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
+  const radial = Math.hypot(px, py);
+  const radialMix = Math.max(0, Math.min(1, m.shimmerRadial));
+  const along = directional + (radial - directional) * radialMix;
   const phase = along * m.shimmerScale + time * m.shimmerSpeed;
   // Normalised by the sum of amplitudes so adding the harmonic never expands the caller's
   // configured brightness range beyond ±shimmerAmplitude.

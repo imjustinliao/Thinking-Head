@@ -54,6 +54,7 @@ uniform float u_time;
 uniform float u_cellSize;
 uniform float u_breathAmplitude;
 uniform float u_breathSpeed;
+uniform float u_outwardAmplitude;
 uniform float u_waveAmplitude;
 uniform float u_waveScale;
 uniform float u_waveSpeed;
@@ -66,6 +67,7 @@ uniform float u_shimmerHarmonic;
 // Direction the shimmer band travels along, in object space. Raised to a uniform so states
 // can point the sweep deliberately — reading uses (1, 0, 0) for a horizontal scan.
 uniform vec3 u_shimmerDir;
+uniform float u_shimmerRadial;
 
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
@@ -86,10 +88,12 @@ const float SQRT2 = 1.4142135624;
  */
 float normalDisplacement(vec3 p, float t) {
   float breath = sin(t * u_breathSpeed);
+  float outward = 0.5 + breath * 0.5;
   float waveA = sin((p.x + p.y * 0.6) * u_waveScale + t * u_waveSpeed);
   float waveB = sin((p.z * PHI - p.y) * u_waveScale * 0.83 + t * u_waveSpeed * SQRT2);
   float jitter = sin((p.x * 31.7 + p.y * 47.3 + p.z * 23.1) * 2.0 + t * u_jitterSpeed);
   return u_breathAmplitude * breath +
+         u_outwardAmplitude * outward +
          u_waveAmplitude * (waveA + waveB * 0.6) +
          u_jitterAmplitude * jitter;
 }
@@ -101,7 +105,9 @@ float normalDisplacement(vec3 p, float t) {
  * holds a cell to a near-constant on-screen size).
  */
 float shimmerMultiplier(vec3 p, float t) {
-  float along = dot(p, u_shimmerDir);
+  float directional = dot(p, u_shimmerDir);
+  float radial = length(p.xy);
+  float along = mix(directional, radial, clamp(u_shimmerRadial, 0.0, 1.0));
   float phase = along * u_shimmerScale + t * u_shimmerSpeed;
   float band =
     (sin(phase) + u_shimmerHarmonic * sin(phase * 3.0)) /

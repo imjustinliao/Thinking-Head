@@ -142,6 +142,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_cellSize",
     "u_breathAmplitude",
     "u_breathSpeed",
+    "u_outwardAmplitude",
     "u_waveAmplitude",
     "u_waveScale",
     "u_waveSpeed",
@@ -152,6 +153,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_shimmerSpeed",
     "u_shimmerHarmonic",
     "u_shimmerDir",
+    "u_shimmerRadial",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
     "u_regionFeature[0]",
@@ -417,6 +419,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_cellSize, pointSet.cellSize);
     gl.uniform1f(u.u_breathAmplitude, motion.breathAmplitude);
     gl.uniform1f(u.u_breathSpeed, motion.breathSpeed);
+    gl.uniform1f(u.u_outwardAmplitude, motion.outwardAmplitude);
     gl.uniform1f(u.u_waveAmplitude, motion.waveAmplitude);
     gl.uniform1f(u.u_waveScale, motion.waveScale);
     gl.uniform1f(u.u_waveSpeed, motion.waveSpeed);
@@ -427,6 +430,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_shimmerSpeed, motion.shimmerSpeed);
     gl.uniform1f(u.u_shimmerHarmonic, motion.shimmerHarmonic);
     gl.uniform3f(u.u_shimmerDir, motion.shimmerDirX, motion.shimmerDirY, motion.shimmerDirZ);
+    gl.uniform1f(u.u_shimmerRadial, motion.shimmerRadial);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);
