@@ -46,7 +46,7 @@ export const DEFAULT_FEATURE_PARAMS: FeatureParams = {
   mouthHeight: -0.3,
   mouthWidth: 0.15,
   mouthCurve: 0.03,
-  mouthThickness: 0.035,
+  mouthThickness: 0.08,
 
   faceDepth: 0.1,
 };

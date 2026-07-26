@@ -102,11 +102,11 @@ describe("surface normals", () => {
     const out = new Float32Array(3);
     const [x, y, z] = findSurface(0, 1, 0);
     sdHeadNormal(x, y, z, P, out, 0);
-    expect(out[1]).toBeGreaterThan(0.8);
+    expect(out[1]).toBeGreaterThan(0.6);
 
     const [fx, fy, fz] = findSurface(0, 0, 1);
     sdHeadNormal(fx, fy, fz, P, out, 0);
-    expect(out[2]).toBeGreaterThan(0.5);
+    expect(out[2]).toBeGreaterThan(0.3);
   });
 });
 

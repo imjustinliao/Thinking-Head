@@ -76,14 +76,33 @@ describe("lattice structure", () => {
   });
 
   test("every cell is close enough to the surface to contain it", () => {
-    // The narrow-band test keeps cells within a half-diagonal of the isosurface. Anything
-    // further out is a cell the refinement should have pruned.
-    const limit = head.cellSize * 0.58 + 1e-6;
     for (let i = 0; i < head.count; i++) {
-      const d = Math.abs(
-        sdHead(head.positions[i * 3], head.positions[i * 3 + 1], head.positions[i * 3 + 2], P),
-      );
-      expect(d).toBeLessThanOrEqual(limit);
+      const x = head.positions[i * 3];
+      const y = head.positions[i * 3 + 1];
+      const z = head.positions[i * 3 + 2];
+      const centreDistance = Math.abs(sdHead(x, y, z, P));
+      let minDistance = Number.POSITIVE_INFINITY;
+      let maxDistance = Number.NEGATIVE_INFINITY;
+
+      for (let dx = -0.5; dx <= 0.5; dx++) {
+        for (let dy = -0.5; dy <= 0.5; dy++) {
+          for (let dz = -0.5; dz <= 0.5; dz++) {
+            const distance = sdHead(
+              x + dx * head.cellSize,
+              y + dy * head.cellSize,
+              z + dz * head.cellSize,
+              P,
+            );
+            minDistance = Math.min(minDistance, distance);
+            maxDistance = Math.max(maxDistance, distance);
+          }
+        }
+      }
+
+      expect(
+        minDistance <= 0 && maxDistance >= 0,
+        `cell ${i} does not cross the surface; centre distance ${centreDistance}`,
+      ).toBe(true);
     }
   });
 

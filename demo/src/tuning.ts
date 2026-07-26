@@ -69,31 +69,11 @@ export interface Field<T> {
 }
 
 export const HEAD_FIELDS: Field<HeadParams>[] = [
-  { key: "craniumWidth", label: "cranium width", min: 0.3, max: 1, step: 0.005 },
-  { key: "craniumHeight", label: "cranium height", min: 0.3, max: 1, step: 0.005 },
-  { key: "craniumDepth", label: "cranium depth", min: 0.3, max: 1, step: 0.005 },
-  { key: "craniumLift", label: "cranium lift", min: -0.2, max: 0.5, step: 0.005 },
-  { key: "jawWidth", label: "jaw width", min: 0.15, max: 0.8, step: 0.005 },
-  { key: "jawHeight", label: "jaw height", min: 0.15, max: 0.7, step: 0.005 },
-  { key: "jawDepth", label: "jaw depth", min: 0.2, max: 0.8, step: 0.005 },
-  { key: "jawDrop", label: "jaw drop", min: -0.8, max: 0, step: 0.005 },
-  { key: "chinTaper", label: "chin taper", min: 0.1, max: 1, step: 0.01 },
-  { key: "chinForward", label: "chin forward", min: -0.1, max: 0.3, step: 0.005 },
-  { key: "chinBoss", label: "chin ball", min: 0.02, max: 0.22, step: 0.005 },
-  { key: "cheekRadius", label: "cheek radius", min: 0.05, max: 0.4, step: 0.005 },
-  { key: "cheekSpread", label: "cheek spread", min: 0.1, max: 0.5, step: 0.005 },
-  { key: "cheekHeight", label: "cheek height", min: -0.4, max: 0.2, step: 0.005 },
-  { key: "cheekForward", label: "cheek forward", min: 0, max: 0.5, step: 0.005 },
-  { key: "noseLength", label: "nose length", min: 0.02, max: 0.35, step: 0.005 },
-  { key: "noseWidth", label: "nose width", min: 0.03, max: 0.2, step: 0.005 },
-  { key: "noseHeight", label: "nose height", min: -0.35, max: 0.15, step: 0.005 },
-  { key: "browRidge", label: "brow ridge", min: 0.01, max: 0.2, step: 0.005 },
-  { key: "browRidgeHeight", label: "brow ridge height", min: -0.1, max: 0.35, step: 0.005 },
-  { key: "socketRadius", label: "socket radius", min: 0.05, max: 0.3, step: 0.005 },
-  { key: "socketSpread", label: "socket spread", min: 0.1, max: 0.45, step: 0.005 },
-  { key: "socketHeight", label: "socket height", min: -0.25, max: 0.2, step: 0.005 },
-  { key: "socketBite", label: "socket bite", min: 0, max: 1, step: 0.02 },
-  { key: "smoothK", label: "smooth blend", min: 0.01, max: 0.5, step: 0.005 },
+  { key: "width", label: "head width", min: 0.4, max: 0.8, step: 0.005 },
+  { key: "height", label: "head height", min: 0.6, max: 1, step: 0.005 },
+  { key: "frontDepth", label: "facial depth", min: 0.35, max: 0.75, step: 0.005 },
+  { key: "backDepth", label: "cranial depth", min: 0.45, max: 0.9, step: 0.005 },
+  { key: "relief", label: "anatomical relief", min: 0, max: 1.5, step: 0.02 },
 ];
 
 export const FEATURE_FIELDS: Field<FeatureParams>[] = [
