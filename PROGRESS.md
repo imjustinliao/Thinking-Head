@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Motion tuned through `reviewing`** (v5.4). Next: `error`, one state at a time |
-| **Last commit** | `236ce85` — v5.4 - Add reviewing motion with inward focus bands |
+| **Step** | **Motion tuned through `error`** (v5.6). Next: `done`, the final motion signature |
+| **Last commit** | `61388b7` — v5.6 - Add error motion and alarm accent |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -324,9 +324,9 @@ Verified: max per-particle alpha swing 241/255 on a 48px pill; 29,228 changed pi
 320px orbit view. Regression tests lock in non-zero shimmer for every state so this can't
 silently regress back to sub-pixel-only motion.
 
-### Tuned state motion (v4.5–v5.4)
+### Tuned state motion (v4.5–v5.6)
 
-Eight states now have distinct continuous motion signatures. The gallery pills drive the inline
+Nine states now have distinct continuous motion signatures. The gallery pills drive the inline
 sample and orbit head, so each state can be selected and reviewed in the live demo.
 
 - **`listening` (v4.5):** held lateral tilt, suppressed ambient wandering, and a quicker,
@@ -355,6 +355,11 @@ sample and orbit head, so each state can be selected and reviewed in the live de
   centreline. Added opt-in `shimmerMirror` with matching Canvas/WebGL formulas; every earlier
   state keeps it at zero and is mathematically unchanged. Verified in the live WebGL demo with no
   browser errors; 102 tests, typecheck, lint and build pass.
+- **`error` (v5.6):** a fast, wide secondary yaw produces a clear lateral rejection while
+  sharpened concentric brightness rings contract inward—the inverse of generating's outward
+  energy. The demo applies the alarm accent to Error's particles and active interface, while the
+  motion keeps the state legible without colour. Verified in the live WebGL demo with no browser
+  errors; 108 tests, typecheck, lint and build pass.
 
 These milestones tune **motion and whole-head posture**. Per-region facial deformation is not
 built yet; the tagged regions and scalar `weight` channel are ready, but the expression control
@@ -406,8 +411,8 @@ replace it with defaults.
 
 ## Next
 
-1. **The remaining two motion signatures**, one at a time with a check-in after each:
-   `error`, then `done`. `error` is next.
+1. **The final motion signature: `done`.** It must briefly settle and brighten, then return to
+   `idle`, while remaining compatible with arbitrary-time state transitions.
 2. **Expression control vector and per-region deformation**, then tune the ten expressions one
    at a time. The geometry already carries `regionId` and `weight`; neither backend applies them
    as deformation yet.
