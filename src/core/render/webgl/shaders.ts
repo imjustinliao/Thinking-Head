@@ -62,6 +62,7 @@ uniform float u_jitterSpeed;
 uniform float u_shimmerAmplitude;
 uniform float u_shimmerScale;
 uniform float u_shimmerSpeed;
+uniform float u_shimmerHarmonic;
 // Direction the shimmer band travels along, in object space. Raised to a uniform so states
 // can point the sweep deliberately — reading uses (1, 0, 0) for a horizontal scan.
 uniform vec3 u_shimmerDir;
@@ -101,7 +102,10 @@ float normalDisplacement(vec3 p, float t) {
  */
 float shimmerMultiplier(vec3 p, float t) {
   float along = dot(p, u_shimmerDir);
-  float band = sin(along * u_shimmerScale + t * u_shimmerSpeed);
+  float phase = along * u_shimmerScale + t * u_shimmerSpeed;
+  float band =
+    (sin(phase) + u_shimmerHarmonic * sin(phase * 3.0)) /
+    (1.0 + abs(u_shimmerHarmonic));
   return 1.0 + u_shimmerAmplitude * band;
 }
 

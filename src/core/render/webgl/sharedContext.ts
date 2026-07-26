@@ -150,6 +150,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_shimmerAmplitude",
     "u_shimmerScale",
     "u_shimmerSpeed",
+    "u_shimmerHarmonic",
     "u_shimmerDir",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
@@ -424,6 +425,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_shimmerAmplitude, motion.shimmerAmplitude);
     gl.uniform1f(u.u_shimmerScale, motion.shimmerScale);
     gl.uniform1f(u.u_shimmerSpeed, motion.shimmerSpeed);
+    gl.uniform1f(u.u_shimmerHarmonic, motion.shimmerHarmonic);
     gl.uniform3f(u.u_shimmerDir, motion.shimmerDirX, motion.shimmerDirY, motion.shimmerDirZ);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);

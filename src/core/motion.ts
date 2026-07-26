@@ -49,6 +49,11 @@ export interface MotionParams {
   shimmerScale: number;
   shimmerSpeed: number;
   /**
+   * Third harmonic mixed into the shimmer wave. Zero is a soft sinusoid; values near one third
+   * sharpen its transitions toward a mechanical pulse while remaining continuous and bounded.
+   */
+  shimmerHarmonic: number;
+  /**
    * Direction vector for the shimmer band, in object space. The wave travels along this axis,
    * so states can point it deliberately — horizontal for reading (left-to-right scan), vertical
    * for a state that wants a top-down flow, radial for later expressive states. The three legacy
@@ -100,6 +105,7 @@ export const STILL_MOTION: MotionParams = {
   shimmerAmplitude: 0,
   shimmerScale: 0,
   shimmerSpeed: 0,
+  shimmerHarmonic: 0,
   // Direction is unused when amplitude is zero, but keep it a valid unit-ish vector so the
   // shader never divides through a zero-length input.
   shimmerDirX: 0.7,
@@ -134,6 +140,7 @@ export const IDLE_MOTION: MotionParams = {
   shimmerAmplitude: 0.4,
   shimmerScale: 2.6,
   shimmerSpeed: 0.42,
+  shimmerHarmonic: 0,
   // Diagonal — the direction the shimmer had before it became a parameter, kept here so
   // idle looks exactly as it did.
   shimmerDirX: 0.7,
@@ -179,6 +186,7 @@ export const LISTENING_MOTION: MotionParams = {
   shimmerAmplitude: 0.55,
   shimmerScale: 3.4,
   shimmerSpeed: 0.9,
+  shimmerHarmonic: 0,
   // Same diagonal as idle. Listening's *pattern* differs from idle by speed and amplitude,
   // not by the axis it travels along.
   shimmerDirX: 0.7,
@@ -230,6 +238,7 @@ export const READING_MOTION: MotionParams = {
   // face rather than a wide swell — reading is line-by-line, not broad-strokes.
   shimmerScale: 4.2,
   shimmerSpeed: 1.15,
+  shimmerHarmonic: 0,
   // Pure x: the shimmer travels along the head's horizontal axis, mimicking the eye path.
   // Zero y and z isolate the direction so the wave is unambiguously left-to-right.
   shimmerDirX: 1,
@@ -284,6 +293,7 @@ export const THINKING_MOTION: MotionParams = {
   // reading (scale 4.2, speed 1.15), which is a narrow fast line.
   shimmerScale: 1.5,
   shimmerSpeed: 0.22,
+  shimmerHarmonic: 0,
   // Tilted mostly vertical, so the swell rises up the head — motion that leads the eye upward,
   // reinforcing the lifted gaze.
   shimmerDirX: 0.25,
@@ -330,6 +340,7 @@ export const SEARCHING_MOTION: MotionParams = {
   shimmerAmplitude: 0.62,
   shimmerScale: 5.2,
   shimmerSpeed: 1.65,
+  shimmerHarmonic: 0,
   // Mostly horizontal, with a small depth component so the band wraps across the turned head
   // rather than looking pasted onto the screen.
   shimmerDirX: 1,
@@ -351,7 +362,56 @@ export const SEARCHING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` through `searching` are tuned; the rest inherit `idle` until their own
+ * `executing` — running a tool, command, or action. Controlled, mechanical, and precise.
+ *
+ * The head is almost locked in place: the lowest breath and sway in the tuned set remove the
+ * organic wandering that belongs to thought and attention. Activity moves into a strict vertical
+ * processing band instead. A third harmonic sharpens that band from a soft glow into a crisp
+ * pulse, but the sum remains analytic and continuous — mechanical character without a keyframe
+ * tick or a discontinuity.
+ *
+ * Fine, fast positional texture gives the lattice a controlled machine-like vibration at display
+ * sizes. Its amplitude stays well below one cell so the voxel surface never tears apart.
+ */
+export const EXECUTING_MOTION: MotionParams = {
+  // Near-still chassis: the action is deliberate, not breathing or wandering.
+  breathAmplitude: 0.06,
+  breathSpeed: 1.05,
+
+  waveAmplitude: 0.2,
+  waveScale: 4.8,
+  waveSpeed: 1.1,
+
+  jitterAmplitude: 0.1,
+  jitterSpeed: 5.2,
+
+  shimmerAmplitude: 0.56,
+  shimmerScale: 6.2,
+  shimmerSpeed: 1.9,
+  // The first added odd harmonic in a square-wave series: sharper, still smooth and bounded.
+  shimmerHarmonic: 0.33,
+  // Pure vertical travel reads as a deterministic processing pass, deliberately orthogonal to
+  // reading and searching's horizontal scans.
+  shimmerDirX: 0,
+  shimmerDirY: 1,
+  shimmerDirZ: 0,
+
+  // The smallest periodic camera motion in the tuned set. Enough to stay alive at display size,
+  // not enough to undermine the locked, tool-running posture.
+  swayYaw: 0.01,
+  swayPitch: 0.007,
+  swaySpeed: 0.82,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
+
+  // Slight forward-and-across focus. The positive/positive sign pair is unique among tuned states
+  // so the posture remains distinguishable in a reduced-motion still.
+  poseYawBias: 0.035,
+  posePitchBias: 0.045,
+};
+
+/**
+ * Motion per state. `idle` through `executing` are tuned; the rest inherit `idle` until their own
  * milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
@@ -360,7 +420,7 @@ export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   reading: READING_MOTION,
   thinking: THINKING_MOTION,
   searching: SEARCHING_MOTION,
-  executing: IDLE_MOTION,
+  executing: EXECUTING_MOTION,
   generating: IDLE_MOTION,
   reviewing: IDLE_MOTION,
   error: IDLE_MOTION,
@@ -425,7 +485,11 @@ export function shimmerMultiplier(
   m: MotionParams,
 ): number {
   const along = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
-  const band = Math.sin(along * m.shimmerScale + time * m.shimmerSpeed);
+  const phase = along * m.shimmerScale + time * m.shimmerSpeed;
+  // Normalised by the sum of amplitudes so adding the harmonic never expands the caller's
+  // configured brightness range beyond ±shimmerAmplitude.
+  const band =
+    (Math.sin(phase) + m.shimmerHarmonic * Math.sin(phase * 3)) / (1 + Math.abs(m.shimmerHarmonic));
   return 1 + m.shimmerAmplitude * band;
 }
 

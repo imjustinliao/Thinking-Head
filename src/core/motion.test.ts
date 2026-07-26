@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { clockState, resetClock, subscribeToClock } from "./clock.js";
 import {
+  EXECUTING_MOTION,
   IDLE_MOTION,
   LISTENING_MOTION,
   normalDisplacement,
@@ -414,6 +415,99 @@ describe("searching state", () => {
   });
 });
 
+describe("executing state", () => {
+  test("locks the head down — the least breath and camera wander in the tuned set", () => {
+    const earlier = [
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+    ];
+    for (const motion of earlier) {
+      expect(EXECUTING_MOTION.breathAmplitude).toBeLessThan(motion.breathAmplitude);
+      expect(EXECUTING_MOTION.swayYaw).toBeLessThan(motion.swayYaw);
+      expect(EXECUTING_MOTION.swayPitch).toBeLessThan(motion.swayPitch);
+    }
+  });
+
+  test("runs a strict vertical processing band, orthogonal to the reading scan", () => {
+    expect(EXECUTING_MOTION.shimmerDirX).toBe(0);
+    expect(EXECUTING_MOTION.shimmerDirY).toBe(1);
+    expect(EXECUTING_MOTION.shimmerDirZ).toBe(0);
+
+    const t = 2.7;
+    const top = shimmerMultiplier(0.1, 0.3, 0.2, t, EXECUTING_MOTION);
+    const bottom = shimmerMultiplier(0.1, -0.3, 0.2, t, EXECUTING_MOTION);
+    expect(Math.abs(top - bottom)).toBeGreaterThan(0.01);
+
+    const left = shimmerMultiplier(-0.3, 0.1, 0.2, t, EXECUTING_MOTION);
+    const right = shimmerMultiplier(0.3, 0.1, 0.2, t, EXECUTING_MOTION);
+    expect(Math.abs(left - right)).toBeLessThan(1e-6);
+  });
+
+  test("third harmonic sharpens the pulse without exceeding the configured brightness range", () => {
+    expect(EXECUTING_MOTION.shimmerHarmonic).toBeGreaterThan(0);
+    const smooth = { ...EXECUTING_MOTION, shimmerHarmonic: 0 };
+
+    // Around the zero crossing, the harmonic version changes faster than a plain sinusoid. The
+    // function stays continuous; only its character becomes crisper and more mechanical.
+    const sharpDelta =
+      shimmerMultiplier(0, 0, 0, 0.01, EXECUTING_MOTION) -
+      shimmerMultiplier(0, 0, 0, -0.01, EXECUTING_MOTION);
+    const smoothDelta =
+      shimmerMultiplier(0, 0, 0, 0.01, smooth) - shimmerMultiplier(0, 0, 0, -0.01, smooth);
+    expect(sharpDelta).toBeGreaterThan(smoothDelta * 1.4);
+
+    for (let t = 0; t < 60; t += 0.05) {
+      const value = shimmerMultiplier(0.2, -0.1, 0.3, t, EXECUTING_MOTION);
+      expect(value).toBeGreaterThanOrEqual(1 - EXECUTING_MOTION.shimmerAmplitude);
+      expect(value).toBeLessThanOrEqual(1 + EXECUTING_MOTION.shimmerAmplitude);
+    }
+  });
+
+  test("keeps the harmonic opt-in so earlier tuned states retain their exact shimmer", () => {
+    for (const motion of [
+      STILL_MOTION,
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+    ]) {
+      expect(motion.shimmerHarmonic).toBe(0);
+    }
+  });
+
+  test("STATE_MOTION.executing points at EXECUTING_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.executing).toBe(EXECUTING_MOTION);
+    expect(STATE_MOTION.executing).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, phase-safe, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, EXECUTING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, EXECUTING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    for (const t of [0, 0.7, 3.3, 11.9, 47.2]) {
+      const a = shimmerMultiplier(0.1, 0.2, 0.3, t, EXECUTING_MOTION);
+      const b = shimmerMultiplier(0.1, 0.2, 0.3, t + 1 / 60, EXECUTING_MOTION);
+      expect(Math.abs(b - a)).toBeLessThan(0.2);
+    }
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, EXECUTING_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
 describe("tuned states are mutually distinguishable", () => {
   // Guards the whole point of the state system: a user glancing at two indicators must be able
   // to tell them apart. Each new state milestone should extend this list.
@@ -423,6 +517,7 @@ describe("tuned states are mutually distinguishable", () => {
     reading: READING_MOTION,
     thinking: THINKING_MOTION,
     searching: SEARCHING_MOTION,
+    executing: EXECUTING_MOTION,
   } as const;
 
   test("no two tuned states share an identical parameter vector", () => {
