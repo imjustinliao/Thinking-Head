@@ -23,14 +23,14 @@ export interface HeadParams {
 }
 
 export const DEFAULT_HEAD_PARAMS: HeadParams = {
-  width: 0.63,
-  height: 0.8,
-  frontDepth: 0.53,
-  backDepth: 0.68,
+  width: 0.59,
+  height: 0.82,
+  frontDepth: 0.49,
+  backDepth: 0.66,
   relief: 1,
 };
 
-const MAX_RELIEF = 0.33;
+const MAX_RELIEF = 0.22;
 
 export function headSurfaceRadius(theta: number, phi: number, p: HeadParams): number {
   return 1 + clamp(p.relief, 0, 1.5) * sampleCanonicalRelief(theta, phi);

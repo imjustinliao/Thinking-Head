@@ -34,21 +34,21 @@ export interface FeatureParams {
 }
 
 export const DEFAULT_FEATURE_PARAMS: FeatureParams = {
-  eyeSpread: 0.24,
-  eyeHeight: -0.02,
-  eyeRadius: 0.115,
+  eyeSpread: 0.2,
+  eyeHeight: 0.025,
+  eyeRadius: 0.075,
 
-  browHeight: 0.15,
-  browWidth: 0.15,
+  browHeight: 0.14,
+  browWidth: 0.13,
   browArc: 0.035,
-  browThickness: 0.035,
+  browThickness: 0.025,
 
-  mouthHeight: -0.3,
-  mouthWidth: 0.15,
-  mouthCurve: 0.03,
-  mouthThickness: 0.08,
+  mouthHeight: -0.36,
+  mouthWidth: 0.18,
+  mouthCurve: 0.022,
+  mouthThickness: 0.045,
 
-  faceDepth: 0.1,
+  faceDepth: 0.07,
 };
 
 /**

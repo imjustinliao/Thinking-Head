@@ -18,7 +18,15 @@ describe("canonical head atlas", () => {
     const nasalSide = sampleCanonicalRelief(0.32, -0.15);
     const cheekPlane = sampleCanonicalRelief(0.58, -0.15);
     expect(noseTip).toBeGreaterThan(nasalSide + 0.12);
-    expect(noseTip).toBeGreaterThan(cheekPlane + 0.18);
+    expect(noseTip).toBeGreaterThan(cheekPlane + 0.1);
+  });
+
+  test("the neutral eye opening is wider than it is tall", () => {
+    const centreTheta = 0.36;
+    const centrePhi = 0.055;
+    const horizontal = sampleCanonicalRelief(centreTheta + 0.09, centrePhi);
+    const vertical = sampleCanonicalRelief(centreTheta, centrePhi + 0.09);
+    expect(horizontal).toBeLessThan(vertical);
   });
 
   test("longitude converges smoothly at the crown and chin", () => {

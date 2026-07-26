@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Local showcase redesign requested.** Research and compatibility audit complete; implementation route needs review |
-| **Last completed code commit** | `abff0a2` — v7.3 - Record canonical neutral head review checkpoint |
+| **Step** | **Neutral anatomy revision ready for visual review.** Website redesign remains queued for later |
+| **Last completed commit** | `b0ba999` — v7.4 - Record local showcase redesign brief |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | liquidGL creates a second WebGL context; Justin must choose the integration rule |
+| **Blocked on** | Justin's browser review of the revised neutral head |
 
 ---
 
@@ -472,6 +472,25 @@ It is a fundamental geometry replacement, not another quadric tuning pass.
 This is **ready for Justin's visual review, not yet visually approved**. Named-expression work
 remains paused until the neutral head is accepted or receives a specific correction list.
 
+### Neutral anatomy correction checkpoint (v7.5)
+
+Justin rejected the v7.2 neutral as non-human and explicitly requested browser-led comparison
+against the supplied dense particle-face references. The first correction checkpoint is live:
+
+- Re-authored the canonical relief at 128×96 resolution around adult facial planes. Circular
+  orbital cavities are replaced by shallow horizontal eye openings with separate upper and lower
+  lid support.
+- Reduced the bulb-like nasal tip and lip/chin projection, widened the bridge into a continuous
+  nasal line, and rebalanced zygomatic, temple and mandibular planes.
+- Corrected the global skull from a short broad egg to a more adult width/height ratio, with
+  facial region anchors retuned to the new eyes, brows and mouth.
+- Compared the old and new large Idle head in the live browser after each uncommitted adjustment.
+  The new surface is visibly more human and less skull-like, but it is **not signed off or claimed
+  to match the reference yet**.
+- Full verification passes: 132 tests, typecheck, build and lint. The new test coverage locks the
+  horizontal eye opening and allows a high-curvature landmark to cross a lattice cell without
+  requiring opposite signs at the cell's eight corners.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -551,35 +570,32 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin chooses the liquidGL integration rule** described above. Then implement the redesign
-   in separately reviewed milestones: foundation/navigation/theme; dominant head workbench;
-   asymmetric state gallery; physical grid/material effects; responsive and accessibility pass.
-2. **Return to the canonical neutral-head review.** Apply only specific anatomical corrections;
-   do not resume named-expression tuning until the neutral base is approved.
-3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+1. **Justin reviews the v7.5 neutral at `http://localhost:5173`.** Continue browser-led anatomy
+   correction from the supplied references; do not resume named expressions until the neutral base
+   is approved.
+2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-4. The React wrapper and the `./react` subpath export — currently `package.json` exports
+3. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-5. Bake the tuned point set into a committed artifact once the shape is locked, and drop
+4. Bake the tuned point set into a committed artifact once the shape is locked, and drop
    the generator from the runtime path entirely.
-6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
+6. Return to the local black/white showcase redesign when Justin supplies the next website
+   direction. Resolve the liquidGL context rule before its material milestone.
 7. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
 ## Open questions for Justin
 
-Blocking:
-
-- Whether literal use of `liquid-gl` justifies a demo-only second WebGL context, or the one-context
-  guarantee takes priority and the material is implemented inside the existing renderer.
-
 Deferred until they matter:
 
 - Default inline size and default particle budget per device tier — to be resolved
   empirically in the demo rather than decided up front.
+- Whether literal use of `liquid-gl` justifies a demo-only second WebGL context, or the one-context
+  guarantee takes priority and the material is implemented inside the existing renderer.
 - Whether a Web Components wrapper is Phase 1 scope or deferred.
 
 ---

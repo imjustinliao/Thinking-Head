@@ -1,8 +1,8 @@
 import { clamp, mix, smoothstep } from "./math.js";
 
-const ATLAS_WIDTH = 96;
-const ATLAS_HEIGHT = 72;
-const QUANTIZATION_SCALE = 400;
+const ATLAS_WIDTH = 128;
+const ATLAS_HEIGHT = 96;
+const QUANTIZATION_SCALE = 480;
 
 function angularDistance(a: number, b: number): number {
   const distance = Math.abs(a - b) % (Math.PI * 2);
@@ -55,56 +55,59 @@ function authoredRelief(theta: number, phi: number): number {
   const side = Math.abs(Math.sin(theta));
   let relief = 0;
 
-  // Adult silhouette: high zygomatic width, a visible jaw angle and a rounded rather than
-  // needle-like chin. The rear cranium is handled independently by the asymmetric base ellipsoid.
-  relief -= 0.035 * gaussian(phi, -0.72, 0.3) * smoothstep(0.3, 0.95, side);
-  relief += 0.04 * gaussian(phi, -0.48, 0.2) * gaussian(side, 0.78, 0.18);
-  relief -= 0.032 * bilateralPatch(theta, phi, 0.92, 0.14, 0.24, 0.33);
-  relief -= 0.02 * gaussian(phi, 1.25, 0.23);
-  relief -= 0.035 * patch(theta, phi, 0, 0.65, 0.38, 0.42);
-  relief += 0.018 * patch(theta, phi, 0, -0.12, 0.58, 0.58);
+  // Establish the adult silhouette before facial detail: a broad upper cranium, zygomatic shelf,
+  // distinct mandibular angle and a chin that narrows without ending in a point.
+  relief -= 0.055 * gaussian(phi, -0.72, 0.26) * smoothstep(0.22, 0.9, side);
+  relief += 0.032 * gaussian(phi, -0.48, 0.16) * gaussian(side, 0.8, 0.15);
+  relief -= 0.025 * bilateralPatch(theta, phi, 0.92, -0.45, 0.24, 0.27);
+  relief -= 0.035 * bilateralPatch(theta, phi, 0.86, 0.16, 0.26, 0.33);
+  relief -= 0.026 * gaussian(phi, 1.23, 0.2);
+  relief -= 0.042 * patch(theta, phi, 0, 0.62, 0.68, 0.38);
+  relief += 0.012 * patch(theta, phi, 0, -0.1, 0.7, 0.62);
 
-  // Supraorbital structure and temples. A raised rim wrapped around a recessed socket catches
-  // light like bone around an eye instead of painting a dark circle onto a flat face.
-  const socketTheta = 0.39;
-  const socketPhi = 0.06;
-  const socketX = angularDistance(Math.abs(theta), socketTheta) / 0.13;
-  const socketY = (phi - socketPhi) / 0.09;
+  // Human eyes read as shallow horizontal openings held by lids, not circular skull cavities.
+  // The narrow vertical radius is the critical distinction from the rejected atlas.
+  const socketTheta = 0.36;
+  const socketPhi = 0.055;
+  const socketX = angularDistance(Math.abs(theta), socketTheta) / 0.155;
+  const socketY = (phi - socketPhi) / 0.052;
   const socketRadius = Math.hypot(socketX, socketY);
-  relief -= 0.052 * Math.exp(-0.5 * socketRadius * socketRadius);
-  relief += 0.02 * Math.exp(-0.5 * ((socketRadius - 1.25) / 0.2) ** 2);
-  relief += 0.032 * bilateralPatch(theta, phi, 0.38, 0.225, 0.18, 0.07);
-  relief += 0.026 * patch(theta, phi, 0, 0.22, 0.13, 0.13);
-  relief -= 0.025 * bilateralPatch(theta, phi, 0.79, 0.05, 0.24, 0.3);
+  relief -= 0.024 * Math.exp(-0.5 * socketRadius * socketRadius);
+  relief += 0.012 * Math.exp(-0.5 * ((socketRadius - 1.18) / 0.22) ** 2);
+  relief += 0.013 * bilateralPatch(theta, phi, 0.36, 0.115, 0.17, 0.032);
+  relief += 0.007 * bilateralPatch(theta, phi, 0.36, 0.005, 0.16, 0.027);
+  relief += 0.017 * bilateralPatch(theta, phi, 0.37, 0.19, 0.19, 0.06);
+  relief += 0.015 * patch(theta, phi, 0, 0.2, 0.14, 0.13);
+  relief -= 0.02 * bilateralPatch(theta, phi, 0.78, 0.07, 0.25, 0.28);
 
   // Zygomatic and mid-face planes.
-  relief += 0.052 * bilateralPatch(theta, phi, 0.55, -0.14, 0.2, 0.2);
-  relief -= 0.018 * bilateralPatch(theta, phi, 0.35, -0.075, 0.18, 0.11);
-  relief -= 0.017 * bilateralPatch(theta, phi, 0.3, -0.32, 0.1, 0.18);
+  relief += 0.034 * bilateralPatch(theta, phi, 0.55, -0.13, 0.22, 0.18);
+  relief -= 0.012 * bilateralPatch(theta, phi, 0.35, -0.04, 0.18, 0.08);
+  relief -= 0.018 * bilateralPatch(theta, phi, 0.31, -0.31, 0.1, 0.17);
 
   // Nasal bone, bridge, tip and alar wings. The bridge is a vertical chain with increasing
   // projection, while separate wings prevent the lower nose reading as one spherical bulb.
-  relief += 0.035 * patch(theta, phi, 0, 0.18, 0.1, 0.16);
-  relief += 0.06 * patch(theta, phi, 0, 0.04, 0.07, 0.2);
-  relief += 0.11 * patch(theta, phi, 0, -0.1, 0.075, 0.16);
-  relief += 0.28 * patch(theta, phi, 0, -0.22, 0.09, 0.085);
-  relief += 0.075 * bilateralPatch(theta, phi, 0.145, -0.255, 0.065, 0.065);
-  relief -= 0.028 * bilateralPatch(theta, phi, 0.115, -0.325, 0.045, 0.04);
-  relief -= 0.02 * patch(theta, phi, 0, -0.36, 0.05, 0.08);
+  relief += 0.024 * patch(theta, phi, 0, 0.17, 0.09, 0.17);
+  relief += 0.045 * patch(theta, phi, 0, 0.035, 0.065, 0.2);
+  relief += 0.075 * patch(theta, phi, 0, -0.105, 0.07, 0.15);
+  relief += 0.155 * patch(theta, phi, 0, -0.22, 0.085, 0.075);
+  relief += 0.042 * bilateralPatch(theta, phi, 0.14, -0.255, 0.06, 0.06);
+  relief -= 0.019 * bilateralPatch(theta, phi, 0.115, -0.315, 0.043, 0.038);
+  relief -= 0.014 * patch(theta, phi, 0, -0.345, 0.05, 0.07);
 
   // Perioral anatomy: philtrum, upper lip, mouth seam, lower lip and mentolabial sulcus.
-  relief -= 0.018 * patch(theta, phi, 0, -0.39, 0.055, 0.07);
-  relief += 0.055 * bilateralPatch(theta, phi, 0.075, -0.435, 0.09, 0.045);
-  relief -= 0.025 * patch(theta, phi, 0, -0.475, 0.26, 0.025);
-  relief += 0.075 * patch(theta, phi, 0, -0.515, 0.24, 0.05);
-  relief -= 0.018 * bilateralPatch(theta, phi, 0.25, -0.475, 0.055, 0.06);
-  relief -= 0.032 * patch(theta, phi, 0, -0.615, 0.24, 0.05);
+  relief -= 0.012 * patch(theta, phi, 0, -0.385, 0.05, 0.065);
+  relief += 0.026 * bilateralPatch(theta, phi, 0.07, -0.43, 0.09, 0.037);
+  relief -= 0.015 * patch(theta, phi, 0, -0.468, 0.27, 0.021);
+  relief += 0.034 * patch(theta, phi, 0, -0.505, 0.235, 0.04);
+  relief -= 0.013 * bilateralPatch(theta, phi, 0.25, -0.47, 0.052, 0.052);
+  relief -= 0.024 * patch(theta, phi, 0, -0.59, 0.23, 0.045);
 
   // Chin boss and the front mandibular plane.
-  relief += 0.11 * patch(theta, phi, 0, -0.73, 0.33, 0.17);
-  relief += 0.03 * bilateralPatch(theta, phi, 0.46, -0.55, 0.23, 0.21);
+  relief += 0.058 * patch(theta, phi, 0, -0.72, 0.3, 0.15);
+  relief += 0.022 * bilateralPatch(theta, phi, 0.44, -0.56, 0.22, 0.2);
 
-  return clamp(relief, -0.14, 0.31);
+  return clamp(relief, -0.12, 0.2);
 }
 
 function buildAtlas(): Uint8Array {
