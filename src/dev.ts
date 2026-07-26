@@ -34,6 +34,7 @@ export {
   STILL_MOTION,
   shimmerMultiplier,
   swayOffsets,
+  THINKING_MOTION,
 } from "./core/motion.js";
 export type { HeadPointSet } from "./core/pointset.js";
 export { validatePointSet } from "./core/pointset.js";

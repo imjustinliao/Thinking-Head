@@ -9,6 +9,7 @@ import {
   STILL_MOTION,
   shimmerMultiplier,
   swayOffsets,
+  THINKING_MOTION,
 } from "./motion.js";
 import { THINKING_HEAD_STATES } from "./states.js";
 
@@ -273,6 +274,108 @@ describe("reading state", () => {
     for (const period of [1, 2, 5, 10, 20]) {
       expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
     }
+  });
+});
+
+describe("thinking state", () => {
+  test("gaze lifts — persistent negative pitch, never dips below centre", () => {
+    // Chin up and away from the viewer: the universal "working it out" posture.
+    let minPitch = Number.POSITIVE_INFINITY;
+    let maxPitch = Number.NEGATIVE_INFINITY;
+    for (let t = 0; t < 30; t += 0.35) {
+      const { pitch } = swayOffsets(t, THINKING_MOTION);
+      minPitch = Math.min(minPitch, pitch);
+      maxPitch = Math.max(maxPitch, pitch);
+    }
+    expect(maxPitch).toBeLessThan(0);
+    expect((minPitch + maxPitch) / 2).toBeLessThan(-0.08);
+  });
+
+  test("pose is the inverse of reading — the two are distinguishable from posture alone", () => {
+    // This relationship is the point: reading drops the chin, thinking lifts it. If both ever
+    // drifted to the same sign the states would be indistinguishable when paused.
+    expect(READING_MOTION.posePitchBias).toBeGreaterThan(0);
+    expect(THINKING_MOTION.posePitchBias).toBeLessThan(0);
+  });
+
+  test("is the slowest, broadest shimmer in the set — a lazy swell, not a scan", () => {
+    // Contrast with reading, which narrows the band and speeds it up to mimic an eye tracking
+    // a line. Thinking does the opposite on both axes.
+    expect(THINKING_MOTION.shimmerScale).toBeLessThan(READING_MOTION.shimmerScale);
+    expect(THINKING_MOTION.shimmerSpeed).toBeLessThan(READING_MOTION.shimmerSpeed);
+    expect(THINKING_MOTION.shimmerSpeed).toBeLessThan(IDLE_MOTION.shimmerSpeed);
+    expect(THINKING_MOTION.shimmerSpeed).toBeLessThan(LISTENING_MOTION.shimmerSpeed);
+  });
+
+  test("breathes deeper and slower than idle — absorbed, not merely waiting", () => {
+    // The only state whose breath exceeds idle's. Listening and reading both suppress it for
+    // attentive stillness; thinking is the opposite kind of inattention.
+    expect(THINKING_MOTION.breathAmplitude).toBeGreaterThan(IDLE_MOTION.breathAmplitude);
+    expect(THINKING_MOTION.breathSpeed).toBeLessThan(IDLE_MOTION.breathSpeed);
+  });
+
+  test("sway wanders widest and slowest — a drifting train of thought", () => {
+    for (const other of [IDLE_MOTION, LISTENING_MOTION, READING_MOTION]) {
+      expect(THINKING_MOTION.swayYaw).toBeGreaterThan(other.swayYaw);
+      expect(THINKING_MOTION.swaySpeed).toBeLessThan(other.swaySpeed);
+    }
+  });
+
+  test("STATE_MOTION.thinking points at THINKING_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.thinking).toBe(THINKING_MOTION);
+    expect(STATE_MOTION.thinking).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, THINKING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, THINKING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, THINKING_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
+describe("tuned states are mutually distinguishable", () => {
+  // Guards the whole point of the state system: a user glancing at two indicators must be able
+  // to tell them apart. Each new state milestone should extend this list.
+  const TUNED = {
+    idle: IDLE_MOTION,
+    listening: LISTENING_MOTION,
+    reading: READING_MOTION,
+    thinking: THINKING_MOTION,
+  } as const;
+
+  test("no two tuned states share an identical parameter vector", () => {
+    const entries = Object.entries(TUNED);
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const [nameA, a] = entries[i];
+        const [nameB, b] = entries[j];
+        expect(JSON.stringify(a), `${nameA} and ${nameB} are identical`).not.toBe(
+          JSON.stringify(b),
+        );
+      }
+    }
+  });
+
+  test("each tuned state occupies a distinct resting pose", () => {
+    // Pose is the cue that survives a still screenshot, so it has to differ even when the
+    // animated parameters happen to be close.
+    const poses = Object.entries(TUNED).map(([name, m]) => ({
+      name,
+      key: `${Math.sign(m.poseYawBias)}:${Math.sign(m.posePitchBias)}`,
+    }));
+    const keys = new Set(poses.map((p) => p.key));
+    expect(keys.size, `poses collide: ${JSON.stringify(poses)}`).toBe(poses.length);
   });
 });
 

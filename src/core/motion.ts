@@ -229,14 +229,65 @@ export const READING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle`, `listening`, and `reading` are tuned; the rest inherit `idle` until
- * their own milestones land, so every state animates rather than freezing.
+ * `thinking` — reasoning or planning, no external action yet. Gaze lifted and unfocused.
+ *
+ * The contemplative read comes from being the slowest state in the set, and from looking *away*:
+ * - **Chin lifted** — a negative `posePitchBias`, the exact inverse of `reading`'s drop. Looking
+ *   up and away from the viewer is the universal "working it out" posture, and pairing it against
+ *   reading's dip means the two states are distinguishable from pose alone.
+ * - **Slight yaw off-centre** — the gaze is directed somewhere unspecified rather than at the
+ *   viewer. Smaller than `listening`'s deliberate cock, so it reads as unfocused rather than
+ *   attentive.
+ * - **The slowest shimmer of any state** at a broad spatial scale — a wide, lazy swell rather
+ *   than a scanning band. Where `reading` narrows the band into a line and speeds it up,
+ *   `thinking` does the opposite on both axes.
+ * - **Deep, slow breath** — the only state whose breath exceeds `idle`'s. Thinking is not
+ *   attentive stillness; it is absorbed, and a long breath cycle carries that.
+ * - **Wandering sway** at low speed, so the head drifts as if following a train of thought.
+ */
+export const THINKING_MOTION: MotionParams = {
+  // Deeper and slower than idle — absorbed rather than merely waiting.
+  breathAmplitude: 0.7,
+  breathSpeed: 0.34,
+
+  waveAmplitude: 0.5,
+  waveScale: 1.6,
+  waveSpeed: 0.24,
+
+  jitterAmplitude: 0.09,
+  jitterSpeed: 1.2,
+
+  shimmerAmplitude: 0.42,
+  // Broadest and slowest shimmer in the set: a lazy swell across the whole head. Contrast with
+  // reading (scale 4.2, speed 1.15), which is a narrow fast line.
+  shimmerScale: 1.5,
+  shimmerSpeed: 0.22,
+  // Tilted mostly vertical, so the swell rises up the head — motion that leads the eye upward,
+  // reinforcing the lifted gaze.
+  shimmerDirX: 0.25,
+  shimmerDirY: 1,
+  shimmerDirZ: 0.15,
+
+  // Wide, slow wander. Larger amplitude than any other tuned state and the lowest speed, so the
+  // head drifts rather than bobs.
+  swayYaw: 0.09,
+  swayPitch: 0.045,
+  swaySpeed: 0.17,
+
+  // Chin lifted, gaze off to one side. Negative pitch is the inverse of reading's +0.16.
+  poseYawBias: 0.1,
+  posePitchBias: -0.13,
+};
+
+/**
+ * Motion per state. `idle`, `listening`, `reading`, and `thinking` are tuned; the rest inherit
+ * `idle` until their own milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
   listening: LISTENING_MOTION,
   reading: READING_MOTION,
-  thinking: IDLE_MOTION,
+  thinking: THINKING_MOTION,
   searching: IDLE_MOTION,
   executing: IDLE_MOTION,
   generating: IDLE_MOTION,
