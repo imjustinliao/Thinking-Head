@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **All ten motion signatures tuned** (v5.8). Next: expression control vector |
-| **Last commit** | `6e537b5` — v5.8 - Add done motion with settled completion glow |
+| **Step** | **Glyph-tier LOD floor corrected** (v6.0). Next: expression rig foundation |
+| **Last commit** | `44295fd` — v6.0 - Preserve glyph landmarks during LOD selection |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -372,6 +372,12 @@ built yet; the tagged regions and scalar `weight` channel are ready, but the exp
 vector and shader deformation still need their own dedicated milestone before Phase 1 is
 functionally complete.
 
+- **Glyph landmark floor (v6.0):** LOD selection now accepts the active size tier's minimum
+  lattice resolution, so a 16px DPR-1 head cannot fall back to the 12-cell lattice that has eyes
+  but no mouth. Higher-size density selection is unchanged. Verified in the live WebGL demo at
+  16px (resolution 17, 596 particles, one GL context, no runtime errors); 115 tests, typecheck,
+  lint and build pass.
+
 ### Demo design language — established, do not flatten
 
 Justin asked for a creative, high-contrast liquid-glass treatment. The demo now has a
@@ -419,7 +425,8 @@ replace it with defaults.
 
 1. **Expression control vector and per-region deformation**, then tune the ten expressions one
    at a time. The geometry already carries `regionId` and `weight`; neither backend applies them
-   as deformation yet. This is the next major component and begins with a plan/review boundary.
+   as deformation yet. The component plan is approved; next build the scalar contract, derived
+   region metrics and allocation-free CPU deformation kernel as one reviewed foundation step.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
