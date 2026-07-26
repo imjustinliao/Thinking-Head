@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **`listening` expression tuned** (v6.6). Awaiting visual review |
-| **Last commit** | `35ba7b0` — v6.6 - Add alert listening expression preset |
+| **Step** | **`reading` expression tuned** (v6.8). Awaiting visual review |
+| **Last commit** | `4c2f22d` — v6.8 - Add focused reading expression preset |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -402,6 +402,14 @@ own reviewed tuning milestone.
   listening motion was compared live with neutral and tuned faces at pill and orbit sizes.
   WebGL2 remained on one shared context with no browser warnings; 126 tests, typecheck, lint and
   build pass.
+- **`reading` expression (v6.8):** lowers both brows (`-0.1`), narrows both eyes (`-0.15`),
+  lowers the gaze (`-0.3`) and lightly presses the mouth (`0.1`). Paired with Reading's chin dip,
+  horizontal line-following shimmer and lateral head motion, it reads as sustained concentration
+  rather than Listening's alert attention. Furrow stays neutral so it does not drift into
+  Reviewing or frustration, and every later untuned state still shares the neutral baseline.
+  The same Reading motion was compared live with neutral and tuned faces at pill and orbit sizes.
+  WebGL2 remained on one shared context with no browser warnings; 128 tests, typecheck, lint and
+  build pass.
 
 ### Demo design language — established, do not flatten
 
@@ -448,10 +456,10 @@ replace it with defaults.
 
 ## Next
 
-1. **Justin reviews `listening`** at `http://localhost:5173`, especially beside neutral `idle`
-   at pill size and in the orbit view. Its reviewed controls appear in the Tuning panel; changing
-   one enters the temporary manual sandbox, while selecting a pill or resetting restores presets.
-   After approval, tune `reading` as the next expression milestone.
+1. **Justin reviews `reading`** at `http://localhost:5173`, especially beside `listening` and
+   neutral `idle` at pill size and in the orbit view. Its reviewed controls appear in the Tuning
+   panel; changing one enters the temporary manual sandbox, while selecting a pill or resetting
+   restores presets. After approval, tune `thinking` as the next expression milestone.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
