@@ -65,6 +65,20 @@ export interface MotionParams {
   swaySpeed: number;
 
   /**
+   * Fast secondary yaw oscillation summed onto the sway, in radians.
+   *
+   * A single sinusoid reads as a smooth pendulum however fast you drive it — the velocity curve
+   * is always gentle at the extremes. Summing a quick, small oscillation onto a slow, wide one
+   * produces sharp changes of direction partway through the sweep, which is what "darting" looks
+   * like. Zero for states that want a clean sweep.
+   *
+   * The speed is deliberately not harmonically related to `swaySpeed`, so the two never realign
+   * and the compound motion stays non-repeating.
+   */
+  swayDartYaw: number;
+  swayDartSpeed: number;
+
+  /**
    * Persistent pose offset, in radians. Non-zero values keep the head at a rest tilt — a small
    * yaw is a head cocked to one side (attentive), a downward pitch is a gaze dropped (reading).
    * Distinct from `swayYaw`/`swayPitch`, which oscillate around zero.
@@ -94,6 +108,8 @@ export const STILL_MOTION: MotionParams = {
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
   poseYawBias: 0,
   posePitchBias: 0,
 };
@@ -127,6 +143,8 @@ export const IDLE_MOTION: MotionParams = {
   swayYaw: 0.07,
   swayPitch: 0.028,
   swaySpeed: 0.23,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
 
   poseYawBias: 0,
   posePitchBias: 0,
@@ -170,6 +188,8 @@ export const LISTENING_MOTION: MotionParams = {
   swayYaw: 0.03,
   swayPitch: 0.02,
   swaySpeed: 0.45,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
 
   // Head cocked ~10° to one side, chin dropped a hair. The bias axis is deliberately opposite
   // to `idle`'s three-quarter camera yaw so the tilt reads as an *added* posture rather than
@@ -221,6 +241,8 @@ export const READING_MOTION: MotionParams = {
   swayYaw: 0.055,
   swayPitch: 0.012,
   swaySpeed: 0.55,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
 
   // Chin tucked toward the text. No yaw bias — the reader is looking straight down at the
   // page, not off to one side.
@@ -273,6 +295,8 @@ export const THINKING_MOTION: MotionParams = {
   swayYaw: 0.09,
   swayPitch: 0.045,
   swaySpeed: 0.17,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
 
   // Chin lifted, gaze off to one side. Negative pitch is the inverse of reading's +0.16.
   poseYawBias: 0.1,
@@ -280,15 +304,62 @@ export const THINKING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle`, `listening`, `reading`, and `thinking` are tuned; the rest inherit
- * `idle` until their own milestones land, so every state animates rather than freezing.
+ * `searching` — actively retrieving from an external source. Eyes dart across a field while the
+ * head scans with them.
+ *
+ * A fast single sinusoid still reads as a smooth pendulum, not a search: its direction changes
+ * only at the two ends of the sweep. Searching therefore layers a small, quick yaw oscillation
+ * over a slower, wider scan. Their incommensurate speeds create extra reversals throughout the
+ * arc, producing the saccadic "check here — now there" rhythm without a keyframed sequence.
+ *
+ * The shimmer is narrower, faster, and brighter than reading's horizontal line. Reading follows
+ * one line deliberately; searching repeatedly interrogates a wider field. Low breath and wave
+ * amplitudes keep the surface focused while the head and highlight do the semantic work.
+ */
+export const SEARCHING_MOTION: MotionParams = {
+  breathAmplitude: 0.12,
+  breathSpeed: 0.78,
+
+  waveAmplitude: 0.16,
+  waveScale: 3.6,
+  waveSpeed: 0.72,
+
+  jitterAmplitude: 0.08,
+  jitterSpeed: 4.1,
+
+  shimmerAmplitude: 0.62,
+  shimmerScale: 5.2,
+  shimmerSpeed: 1.65,
+  // Mostly horizontal, with a small depth component so the band wraps across the turned head
+  // rather than looking pasted onto the screen.
+  shimmerDirX: 1,
+  shimmerDirY: 0.08,
+  shimmerDirZ: 0.24,
+
+  // Slow wide scan plus quick saccadic corrections. 2.35 / 0.38 is intentionally not an
+  // integer ratio, so the corrections never recur at the same place in the broad sweep.
+  swayYaw: 0.105,
+  swayPitch: 0.018,
+  swaySpeed: 0.38,
+  swayDartYaw: 0.045,
+  swayDartSpeed: 2.35,
+
+  // A slight opposing tilt distinguishes the resting silhouette from the four earlier states.
+  // Both offsets are deliberately small: the animated scan, not a held pose, is the main cue.
+  poseYawBias: -0.045,
+  posePitchBias: -0.025,
+};
+
+/**
+ * Motion per state. `idle` through `searching` are tuned; the rest inherit `idle` until their own
+ * milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
   listening: LISTENING_MOTION,
   reading: READING_MOTION,
   thinking: THINKING_MOTION,
-  searching: IDLE_MOTION,
+  searching: SEARCHING_MOTION,
   executing: IDLE_MOTION,
   generating: IDLE_MOTION,
   reviewing: IDLE_MOTION,
@@ -367,7 +438,10 @@ export function shimmerMultiplier(
  */
 export function swayOffsets(time: number, m: MotionParams): { yaw: number; pitch: number } {
   return {
-    yaw: m.poseYawBias + m.swayYaw * Math.sin(time * m.swaySpeed),
+    yaw:
+      m.poseYawBias +
+      m.swayYaw * Math.sin(time * m.swaySpeed) +
+      m.swayDartYaw * Math.sin(time * m.swayDartSpeed + 0.37),
     // Incommensurate with yaw, so the head traces a slow open path instead of a closed loop.
     pitch: m.posePitchBias + m.swayPitch * Math.sin(time * m.swaySpeed * PHI + 1.1),
   };

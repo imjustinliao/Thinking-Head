@@ -5,6 +5,7 @@ import {
   LISTENING_MOTION,
   normalDisplacement,
   READING_MOTION,
+  SEARCHING_MOTION,
   STATE_MOTION,
   STILL_MOTION,
   shimmerMultiplier,
@@ -344,6 +345,75 @@ describe("thinking state", () => {
   });
 });
 
+describe("searching state", () => {
+  test("layers quick yaw corrections over a slower wide scan", () => {
+    expect(SEARCHING_MOTION.swayDartYaw).toBeGreaterThan(0);
+    expect(SEARCHING_MOTION.swayDartSpeed).toBeGreaterThan(SEARCHING_MOTION.swaySpeed * 4);
+    expect(SEARCHING_MOTION.swayYaw).toBeGreaterThan(READING_MOTION.swayYaw);
+
+    // Count direction changes in the sampled yaw path. The compound search must reverse more
+    // often than the clean reading sweep over the same window — that is the saccadic cue.
+    const reversals = (motion: typeof SEARCHING_MOTION): number => {
+      let previous = swayOffsets(0, motion).yaw;
+      let previousDirection = 0;
+      let changes = 0;
+      for (let t = 0.05; t <= 20; t += 0.05) {
+        const yaw = swayOffsets(t, motion).yaw;
+        const direction = Math.sign(yaw - previous);
+        if (previousDirection !== 0 && direction !== 0 && direction !== previousDirection)
+          changes++;
+        if (direction !== 0) previousDirection = direction;
+        previous = yaw;
+      }
+      return changes;
+    };
+
+    expect(reversals(SEARCHING_MOTION)).toBeGreaterThan(reversals(READING_MOTION) * 3);
+  });
+
+  test("keeps darting exclusive to searching so earlier state motion is unchanged", () => {
+    for (const motion of [
+      STILL_MOTION,
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+    ]) {
+      expect(motion.swayDartYaw).toBe(0);
+      expect(motion.swayDartSpeed).toBe(0);
+    }
+  });
+
+  test("uses a tighter, faster, brighter scan than reading", () => {
+    expect(SEARCHING_MOTION.shimmerAmplitude).toBeGreaterThan(READING_MOTION.shimmerAmplitude);
+    expect(SEARCHING_MOTION.shimmerScale).toBeGreaterThan(READING_MOTION.shimmerScale);
+    expect(SEARCHING_MOTION.shimmerSpeed).toBeGreaterThan(READING_MOTION.shimmerSpeed);
+    expect(SEARCHING_MOTION.shimmerDirX).toBeGreaterThan(Math.abs(SEARCHING_MOTION.shimmerDirY));
+  });
+
+  test("STATE_MOTION.searching points at SEARCHING_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.searching).toBe(SEARCHING_MOTION);
+    expect(STATE_MOTION.searching).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, SEARCHING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, SEARCHING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    const at = (t: number) => swayOffsets(t, SEARCHING_MOTION).yaw;
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
 describe("tuned states are mutually distinguishable", () => {
   // Guards the whole point of the state system: a user glancing at two indicators must be able
   // to tell them apart. Each new state milestone should extend this list.
@@ -352,6 +422,7 @@ describe("tuned states are mutually distinguishable", () => {
     listening: LISTENING_MOTION,
     reading: READING_MOTION,
     thinking: THINKING_MOTION,
+    searching: SEARCHING_MOTION,
   } as const;
 
   test("no two tuned states share an identical parameter vector", () => {
