@@ -25,6 +25,7 @@ export {
   LISTENING_EXPRESSION,
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
+  READING_EXPRESSION,
   STATE_EXPRESSION,
 } from "./core/expression.js";
 export {

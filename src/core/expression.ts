@@ -113,13 +113,30 @@ export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `reading` — gaze lowered onto existing material with quiet concentration.
+ *
+ * Both eyes shift down and narrow slightly under lowered brows. The mouth press keeps the lower
+ * face still while the state's horizontal shimmer and lateral head motion carry the active scan.
+ * Furrow stays neutral so focused reading cannot be mistaken for reviewing or frustration.
+ */
+export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: -0.1,
+  brow_raiseR: -0.1,
+  eye_openL: -0.15,
+  eye_openR: -0.15,
+  eye_gazeY: -0.3,
+  mouth_press: 0.1,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
 export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionParams>> = {
   idle: IDLE_EXPRESSION,
   listening: LISTENING_EXPRESSION,
-  reading: NEUTRAL_EXPRESSION,
+  reading: READING_EXPRESSION,
   thinking: NEUTRAL_EXPRESSION,
   searching: NEUTRAL_EXPRESSION,
   executing: NEUTRAL_EXPRESSION,

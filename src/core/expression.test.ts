@@ -10,6 +10,7 @@ import {
   LISTENING_EXPRESSION,
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
+  READING_EXPRESSION,
   STATE_EXPRESSION,
 } from "./expression.js";
 import { generateHeadLevel } from "./geometry.js";
@@ -98,12 +99,28 @@ describe("listening expression", () => {
     expect(LISTENING_EXPRESSION.eye_gazeY).toBe(0);
   });
 
-  test("is immutable and registered without changing untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(LISTENING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.listening).toBe(LISTENING_EXPRESSION);
     expect(STATE_EXPRESSION.idle).toBe(IDLE_EXPRESSION);
+  });
+});
+
+describe("reading expression", () => {
+  test("lowers and narrows the gaze without adding a negative furrow", () => {
+    expect(READING_EXPRESSION.eye_gazeY).toBeLessThan(IDLE_EXPRESSION.eye_gazeY);
+    expect(READING_EXPRESSION.eye_openL).toBeLessThan(IDLE_EXPRESSION.eye_openL);
+    expect(READING_EXPRESSION.eye_openR).toBeLessThan(IDLE_EXPRESSION.eye_openR);
+    expect(READING_EXPRESSION.brow_raiseL).toBeLessThan(IDLE_EXPRESSION.brow_raiseL);
+    expect(READING_EXPRESSION.brow_raiseR).toBeLessThan(IDLE_EXPRESSION.brow_raiseR);
+    expect(READING_EXPRESSION.brow_furrow).toBe(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(READING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.reading).toBe(READING_EXPRESSION);
     for (const state of THINKING_HEAD_STATES) {
-      if (state === "listening") continue;
+      if (state === "idle" || state === "listening" || state === "reading") continue;
       expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
     }
   });
