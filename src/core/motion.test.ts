@@ -7,6 +7,7 @@ import {
   LISTENING_MOTION,
   normalDisplacement,
   READING_MOTION,
+  REVIEWING_MOTION,
   SEARCHING_MOTION,
   STATE_MOTION,
   STILL_MOTION,
@@ -604,6 +605,94 @@ describe("generating state", () => {
   });
 });
 
+describe("reviewing state", () => {
+  test("makes the repeated whole-head gesture a nod rather than a lateral scan", () => {
+    expect(REVIEWING_MOTION.swayPitch).toBeGreaterThan(REVIEWING_MOTION.swayYaw * 4);
+
+    for (const motion of [
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+      EXECUTING_MOTION,
+      GENERATING_MOTION,
+    ]) {
+      expect(REVIEWING_MOTION.swayPitch).toBeGreaterThan(motion.swayPitch);
+    }
+  });
+
+  test("mirrors the verification bands across the facial centreline", () => {
+    expect(REVIEWING_MOTION.shimmerMirror).toBe(1);
+    expect(REVIEWING_MOTION.shimmerDirX).toBe(1);
+    expect(REVIEWING_MOTION.shimmerDirY).toBe(0);
+    expect(REVIEWING_MOTION.shimmerDirZ).toBe(0);
+
+    const t = 1.6;
+    const left = shimmerMultiplier(-0.4, 0.1, -0.2, t, REVIEWING_MOTION);
+    const right = shimmerMultiplier(0.4, -0.3, 0.5, t, REVIEWING_MOTION);
+    expect(left).toBeCloseTo(right, 6);
+  });
+
+  test("carries equal-phase bands inward toward the centre over time", () => {
+    expect(REVIEWING_MOTION.shimmerSpeed).toBeGreaterThan(0);
+
+    const startDistance = 0.45;
+    const elapsed = 0.5;
+    const laterDistance =
+      startDistance - (REVIEWING_MOTION.shimmerSpeed / REVIEWING_MOTION.shimmerScale) * elapsed;
+    const start = shimmerMultiplier(startDistance, 0, 0, 0, REVIEWING_MOTION);
+    const later = shimmerMultiplier(laterDistance, 0, 0, elapsed, REVIEWING_MOTION);
+
+    expect(laterDistance).toBeGreaterThan(0);
+    expect(laterDistance).toBeLessThan(startDistance);
+    expect(later).toBeCloseTo(start, 6);
+  });
+
+  test("keeps mirroring opt-in so every earlier state retains its exact shimmer", () => {
+    for (const motion of [
+      STILL_MOTION,
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+      EXECUTING_MOTION,
+      GENERATING_MOTION,
+    ]) {
+      expect(motion.shimmerMirror).toBe(0);
+    }
+  });
+
+  test("STATE_MOTION.reviewing points at REVIEWING_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.reviewing).toBe(REVIEWING_MOTION);
+    expect(STATE_MOTION.reviewing).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, phase-safe, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, REVIEWING_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, REVIEWING_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    for (const t of [0, 0.7, 3.3, 11.9, 47.2]) {
+      const a = shimmerMultiplier(0.1, 0.2, 0.3, t, REVIEWING_MOTION);
+      const b = shimmerMultiplier(0.1, 0.2, 0.3, t + 1 / 60, REVIEWING_MOTION);
+      expect(Math.abs(b - a)).toBeLessThan(0.2);
+    }
+
+    const at = (t: number) => swayOffsets(t, REVIEWING_MOTION).pitch;
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
 describe("tuned states are mutually distinguishable", () => {
   // Guards the whole point of the state system: a user glancing at two indicators must be able
   // to tell them apart. Each new state milestone should extend this list.
@@ -615,6 +704,7 @@ describe("tuned states are mutually distinguishable", () => {
     searching: SEARCHING_MOTION,
     executing: EXECUTING_MOTION,
     generating: GENERATING_MOTION,
+    reviewing: REVIEWING_MOTION,
   } as const;
 
   test("no two tuned states share an identical parameter vector", () => {

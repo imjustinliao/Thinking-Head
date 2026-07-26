@@ -73,6 +73,11 @@ export interface MotionParams {
    * concentric bands; zero preserves the directional sweep used by every earlier state.
    */
   shimmerRadial: number;
+  /**
+   * Mix from the selected shimmer coordinate to its absolute value. One mirrors the band across
+   * the coordinate origin, allowing paired fronts to converge without a second wave or timeline.
+   */
+  shimmerMirror: number;
 
   /** Slow whole-head sway, in radians, applied to the camera rather than the particles. */
   swayYaw: number;
@@ -123,6 +128,7 @@ export const STILL_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
   shimmerRadial: 0,
+  shimmerMirror: 0,
   swayYaw: 0,
   swayPitch: 0,
   swaySpeed: 0,
@@ -160,6 +166,7 @@ export const IDLE_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   swayYaw: 0.07,
   swayPitch: 0.028,
@@ -208,6 +215,7 @@ export const LISTENING_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   swayYaw: 0.03,
   swayPitch: 0.02,
@@ -262,6 +270,7 @@ export const READING_MOTION: MotionParams = {
   shimmerDirY: 0,
   shimmerDirZ: 0,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   // Lateral sway — yaw amplitude is larger than pitch so the dominant movement is side-to-side
   // rather than the nod that `listening` uses. Speed is faster than idle's ambient drift.
@@ -319,6 +328,7 @@ export const THINKING_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: 0.15,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   // Wide, slow wander. Larger amplitude than any other tuned state and the lowest speed, so the
   // head drifts rather than bobs.
@@ -368,6 +378,7 @@ export const SEARCHING_MOTION: MotionParams = {
   shimmerDirY: 0.08,
   shimmerDirZ: 0.24,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   // Slow wide scan plus quick saccadic corrections. 2.35 / 0.38 is intentionally not an
   // integer ratio, so the corrections never recur at the same place in the broad sweep.
@@ -419,6 +430,7 @@ export const EXECUTING_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: 0,
   shimmerRadial: 0,
+  shimmerMirror: 0,
 
   // The smallest periodic camera motion in the tuned set. Enough to stay alive at display size,
   // not enough to undermine the locked, tool-running posture.
@@ -468,6 +480,7 @@ export const GENERATING_MOTION: MotionParams = {
   shimmerDirY: 1,
   shimmerDirZ: -0.4,
   shimmerRadial: 1,
+  shimmerMirror: 0,
 
   swayYaw: 0.055,
   swayPitch: 0.03,
@@ -481,7 +494,53 @@ export const GENERATING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` through `generating` are tuned; the rest inherit `idle` until their own
+ * `reviewing` — self-checking a result. A deliberate nod accompanies paired inspection bands
+ * that close from both sides of the face toward its centreline.
+ *
+ * Mirroring the horizontal shimmer coordinate produces the paired bands analytically: equal
+ * phase lives at `+x` and `-x`, and positive time moves both fronts inward. This remains
+ * phase-safe at arbitrary entry times and reads as narrowed focus even when the nod is sub-pixel.
+ *
+ * The periodic pose is pitch-dominant rather than a search-like yaw scan. Surface displacement is
+ * subdued so the result feels like examination, not continued generation.
+ */
+export const REVIEWING_MOTION: MotionParams = {
+  breathAmplitude: 0.1,
+  breathSpeed: 0.68,
+  outwardAmplitude: 0,
+
+  waveAmplitude: 0.14,
+  waveScale: 3.2,
+  waveSpeed: 0.52,
+
+  jitterAmplitude: 0.045,
+  jitterSpeed: 2.9,
+
+  shimmerAmplitude: 0.58,
+  shimmerScale: 5.4,
+  shimmerSpeed: 1.15,
+  shimmerHarmonic: 0,
+  // Absolute x creates matched bands at both sides; positive speed carries them inward.
+  shimmerDirX: 1,
+  shimmerDirY: 0,
+  shimmerDirZ: 0,
+  shimmerRadial: 0,
+  shimmerMirror: 1,
+
+  // Pitch dominates by design: a restrained repeated nod, not a lateral scan.
+  swayYaw: 0.012,
+  swayPitch: 0.075,
+  swaySpeed: 0.72,
+  swayDartYaw: 0,
+  swayDartSpeed: 0,
+
+  // A slight held turn keeps the reduced-motion silhouette distinct while the chin stays level.
+  poseYawBias: -0.03,
+  posePitchBias: 0,
+};
+
+/**
+ * Motion per state. `idle` through `reviewing` are tuned; the rest inherit `idle` until their own
  * milestones land, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
@@ -492,7 +551,7 @@ export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   searching: SEARCHING_MOTION,
   executing: EXECUTING_MOTION,
   generating: GENERATING_MOTION,
-  reviewing: IDLE_MOTION,
+  reviewing: REVIEWING_MOTION,
   error: IDLE_MOTION,
   done: IDLE_MOTION,
 };
@@ -559,7 +618,9 @@ export function shimmerMultiplier(
   const directional = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
   const radial = Math.hypot(px, py);
   const radialMix = Math.max(0, Math.min(1, m.shimmerRadial));
-  const along = directional + (radial - directional) * radialMix;
+  const radialAlong = directional + (radial - directional) * radialMix;
+  const mirrorMix = Math.max(0, Math.min(1, m.shimmerMirror));
+  const along = radialAlong + (Math.abs(radialAlong) - radialAlong) * mirrorMix;
   const phase = along * m.shimmerScale + time * m.shimmerSpeed;
   // Normalised by the sum of amplitudes so adding the harmonic never expands the caller's
   // configured brightness range beyond ±shimmerAmplitude.

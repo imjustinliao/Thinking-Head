@@ -32,6 +32,7 @@ export {
   type MotionParams,
   normalDisplacement,
   READING_MOTION,
+  REVIEWING_MOTION,
   SEARCHING_MOTION,
   STATE_MOTION,
   STILL_MOTION,

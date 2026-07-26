@@ -68,6 +68,7 @@ uniform float u_shimmerHarmonic;
 // can point the sweep deliberately — reading uses (1, 0, 0) for a horizontal scan.
 uniform vec3 u_shimmerDir;
 uniform float u_shimmerRadial;
+uniform float u_shimmerMirror;
 
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
@@ -107,7 +108,8 @@ float normalDisplacement(vec3 p, float t) {
 float shimmerMultiplier(vec3 p, float t) {
   float directional = dot(p, u_shimmerDir);
   float radial = length(p.xy);
-  float along = mix(directional, radial, clamp(u_shimmerRadial, 0.0, 1.0));
+  float radialAlong = mix(directional, radial, clamp(u_shimmerRadial, 0.0, 1.0));
+  float along = mix(radialAlong, abs(radialAlong), clamp(u_shimmerMirror, 0.0, 1.0));
   float phase = along * u_shimmerScale + t * u_shimmerSpeed;
   float band =
     (sin(phase) + u_shimmerHarmonic * sin(phase * 3.0)) /

@@ -154,6 +154,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_shimmerHarmonic",
     "u_shimmerDir",
     "u_shimmerRadial",
+    "u_shimmerMirror",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
     "u_regionFeature[0]",
@@ -431,6 +432,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_shimmerHarmonic, motion.shimmerHarmonic);
     gl.uniform3f(u.u_shimmerDir, motion.shimmerDirX, motion.shimmerDirY, motion.shimmerDirZ);
     gl.uniform1f(u.u_shimmerRadial, motion.shimmerRadial);
+    gl.uniform1f(u.u_shimmerMirror, motion.shimmerMirror);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);
