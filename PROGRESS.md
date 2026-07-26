@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Motion tuned through `searching`** (v4.8). Next: `executing`, one state at a time |
-| **Last commit** | `9f510a7` — v4.8 - Add searching motion with compound darting scan |
+| **Step** | **Motion tuned through `executing`** (v5.0). Next: `generating`, one state at a time |
+| **Last commit** | `6cec4f1` — v5.0 - Add executing motion with precise harmonic pulse |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -324,9 +324,9 @@ Verified: max per-particle alpha swing 241/255 on a 48px pill; 29,228 changed pi
 320px orbit view. Regression tests lock in non-zero shimmer for every state so this can't
 silently regress back to sub-pixel-only motion.
 
-### Tuned state motion (v4.5–v4.8)
+### Tuned state motion (v4.5–v5.0)
 
-Five states now have distinct continuous motion signatures. The gallery pills drive the inline
+Six states now have distinct continuous motion signatures. The gallery pills drive the inline
 sample and orbit head, so each state can be selected and reviewed in the live demo.
 
 - **`listening` (v4.5):** held lateral tilt, suppressed ambient wandering, and a quicker,
@@ -337,8 +337,13 @@ sample and orbit head, so each state can be selected and reviewed in the live de
   and a wide wandering sway.
 - **`searching` (v4.8):** a slow wide scan with a second incommensurate fast yaw layered over
   it, producing extra saccadic reversals rather than a smooth pendulum. Its horizontal shimmer
-  is tighter, faster and brighter than reading's. Verified in the live WebGL demo with no
-  browser errors; 84 tests, typecheck, lint and build pass.
+  is tighter, faster and brighter than reading's.
+- **`executing` (v5.0):** the lowest breath and camera sway in the tuned set, with a strict
+  vertical processing band and fast fine lattice texture. Added `shimmerHarmonic`, an opt-in
+  normalised third harmonic that sharpens a sinusoidal brightness wave without discontinuities
+  or exceeding its configured amplitude. Earlier states keep it at zero and are mathematically
+  unchanged. Verified in the live WebGL demo with no browser errors; 90 tests, typecheck, lint
+  and build pass.
 
 These milestones tune **motion and whole-head posture**. Per-region facial deformation is not
 built yet; the tagged regions and scalar `weight` channel are ready, but the expression control
@@ -390,8 +395,8 @@ replace it with defaults.
 
 ## Next
 
-1. **The remaining five motion signatures**, one at a time with a check-in after each:
-   `executing`, `generating`, `reviewing`, `error`, then `done`. `executing` is next.
+1. **The remaining four motion signatures**, one at a time with a check-in after each:
+   `generating`, `reviewing`, `error`, then `done`. `generating` is next.
 2. **Expression control vector and per-region deformation**, then tune the ten expressions one
    at a time. The geometry already carries `regionId` and `weight`; neither backend applies them
    as deformation yet.
