@@ -25,6 +25,7 @@ export {
   type FeatureParams,
 } from "./core/landmarks.js";
 export {
+  ERROR_MOTION,
   EXECUTING_MOTION,
   GENERATING_MOTION,
   IDLE_MOTION,

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { clockState, resetClock, subscribeToClock } from "./clock.js";
 import {
+  ERROR_MOTION,
   EXECUTING_MOTION,
   GENERATING_MOTION,
   IDLE_MOTION,
@@ -693,6 +694,98 @@ describe("reviewing state", () => {
   });
 });
 
+describe("error state", () => {
+  const yawReversals = (motion: typeof ERROR_MOTION): number => {
+    let previous = swayOffsets(0, motion).yaw;
+    let previousDirection = 0;
+    let changes = 0;
+    for (let t = 0.05; t <= 20; t += 0.05) {
+      const yaw = swayOffsets(t, motion).yaw;
+      const direction = Math.sign(yaw - previous);
+      if (previousDirection !== 0 && direction !== 0 && direction !== previousDirection) changes++;
+      if (direction !== 0) previousDirection = direction;
+      previous = yaw;
+    }
+    return changes;
+  };
+
+  test("uses the fastest, widest lateral fault shake rather than a searching scan", () => {
+    expect(ERROR_MOTION.swayDartYaw).toBeGreaterThan(SEARCHING_MOTION.swayDartYaw);
+    expect(ERROR_MOTION.swayDartSpeed).toBeGreaterThan(SEARCHING_MOTION.swayDartSpeed);
+    expect(yawReversals(ERROR_MOTION)).toBeGreaterThan(yawReversals(SEARCHING_MOTION) * 1.5);
+  });
+
+  test("uses concentric warning rings so motion—not colour alone—carries the fault", () => {
+    expect(ERROR_MOTION.shimmerRadial).toBe(1);
+
+    const t = 1.3;
+    const horizontal = shimmerMultiplier(0.4, 0, 0.2, t, ERROR_MOTION);
+    const vertical = shimmerMultiplier(0, -0.4, -0.3, t, ERROR_MOTION);
+    expect(horizontal).toBeCloseTo(vertical, 6);
+  });
+
+  test("contracts equal-phase warning rings inward, opposite to generating", () => {
+    expect(ERROR_MOTION.shimmerSpeed).toBeGreaterThan(0);
+    expect(GENERATING_MOTION.shimmerSpeed).toBeLessThan(0);
+
+    const startRadius = 0.45;
+    const elapsed = 0.5;
+    const laterRadius =
+      startRadius - (ERROR_MOTION.shimmerSpeed / ERROR_MOTION.shimmerScale) * elapsed;
+    const start = shimmerMultiplier(startRadius, 0, 0, 0, ERROR_MOTION);
+    const later = shimmerMultiplier(laterRadius, 0, 0, elapsed, ERROR_MOTION);
+
+    expect(laterRadius).toBeGreaterThan(0);
+    expect(laterRadius).toBeLessThan(startRadius);
+    expect(later).toBeCloseTo(start, 6);
+  });
+
+  test("has the strongest, sharpest brightness pulse in the tuned set", () => {
+    const earlier = [
+      IDLE_MOTION,
+      LISTENING_MOTION,
+      READING_MOTION,
+      THINKING_MOTION,
+      SEARCHING_MOTION,
+      EXECUTING_MOTION,
+      GENERATING_MOTION,
+      REVIEWING_MOTION,
+    ];
+    for (const motion of earlier) {
+      expect(ERROR_MOTION.shimmerAmplitude).toBeGreaterThan(motion.shimmerAmplitude);
+    }
+    expect(ERROR_MOTION.shimmerHarmonic).toBeGreaterThan(EXECUTING_MOTION.shimmerHarmonic);
+  });
+
+  test("STATE_MOTION.error points at ERROR_MOTION, not the idle placeholder", () => {
+    expect(STATE_MOTION.error).toBe(ERROR_MOTION);
+    expect(STATE_MOTION.error).not.toBe(IDLE_MOTION);
+  });
+
+  test("still meets the general motion contract — never rests, phase-safe, no visible loop", () => {
+    let previous = normalDisplacement(0.2, 0.1, 0.4, 0, ERROR_MOTION);
+    let moved = 0;
+    for (let t = 0.25; t <= 30; t += 0.25) {
+      const value = normalDisplacement(0.2, 0.1, 0.4, t, ERROR_MOTION);
+      if (Math.abs(value - previous) > 1e-5) moved++;
+      previous = value;
+    }
+    expect(moved).toBeGreaterThan(100);
+
+    for (const t of [0, 0.7, 3.3, 11.9, 47.2]) {
+      const a = swayOffsets(t, ERROR_MOTION).yaw;
+      const b = swayOffsets(t + 1 / 60, ERROR_MOTION).yaw;
+      expect(Math.abs(b - a)).toBeLessThan(0.2);
+    }
+
+    const at = (t: number) => shimmerMultiplier(0.3, -0.2, 0.5, t, ERROR_MOTION);
+    const base = at(0);
+    for (const period of [1, 2, 5, 10, 20]) {
+      expect(Math.abs(at(period) - base)).toBeGreaterThan(1e-3);
+    }
+  });
+});
+
 describe("tuned states are mutually distinguishable", () => {
   // Guards the whole point of the state system: a user glancing at two indicators must be able
   // to tell them apart. Each new state milestone should extend this list.
@@ -705,6 +798,7 @@ describe("tuned states are mutually distinguishable", () => {
     executing: EXECUTING_MOTION,
     generating: GENERATING_MOTION,
     reviewing: REVIEWING_MOTION,
+    error: ERROR_MOTION,
   } as const;
 
   test("no two tuned states share an identical parameter vector", () => {

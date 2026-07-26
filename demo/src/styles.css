@@ -46,6 +46,9 @@
 .shell[data-modality="vision"] {
   --accent: var(--accent-rose);
 }
+.shell[data-state="error"] {
+  --accent: var(--alarm);
+}
 
 * {
   box-sizing: border-box;

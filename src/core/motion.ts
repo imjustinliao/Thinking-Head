@@ -540,8 +540,53 @@ export const REVIEWING_MOTION: MotionParams = {
 };
 
 /**
- * Motion per state. `idle` through `reviewing` are tuned; the rest inherit `idle` until their own
- * milestones land, so every state animates rather than freezing.
+ * `error` — failed or blocked. A quick lateral recoil says "no" while sharpened warning rings
+ * contract into the face.
+ *
+ * The motion has to carry the state without its alarm colour. Its secondary yaw is both faster
+ * and wider than searching's saccades, so it reads as a fault shake rather than visual tracking.
+ * The radial shimmer reverses generating's direction: positive phase speed pulls equal-phase
+ * rings toward the centre, while a stronger third harmonic gives each band an urgent edge without
+ * introducing discontinuities.
+ */
+export const ERROR_MOTION: MotionParams = {
+  breathAmplitude: 0.08,
+  breathSpeed: 1.15,
+  outwardAmplitude: 0,
+
+  waveAmplitude: 0.18,
+  waveScale: 4.6,
+  waveSpeed: 1.25,
+
+  jitterAmplitude: 0.14,
+  jitterSpeed: 6.4,
+
+  shimmerAmplitude: 0.76,
+  shimmerScale: 6.8,
+  // Positive speed contracts radial phase fronts; generating uses negative speed to emit them.
+  shimmerSpeed: 2.04,
+  shimmerHarmonic: 0.5,
+  shimmerDirX: 0.7,
+  shimmerDirY: 1,
+  shimmerDirZ: -0.4,
+  shimmerRadial: 1,
+  shimmerMirror: 0,
+
+  // A restrained chassis underneath a dominant fast side-to-side rejection.
+  swayYaw: 0.018,
+  swayPitch: 0.01,
+  swaySpeed: 0.64,
+  swayDartYaw: 0.085,
+  swayDartSpeed: 4.4,
+
+  // Recoiled to the opposite side from reviewing; level pitch keeps the shake axis unambiguous.
+  poseYawBias: 0.055,
+  posePitchBias: 0,
+};
+
+/**
+ * Motion per state. `idle` through `error` are tuned; `done` inherits `idle` until its own
+ * milestone lands, so every state animates rather than freezing.
  */
 export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   idle: IDLE_MOTION,
@@ -552,7 +597,7 @@ export const STATE_MOTION: Record<ThinkingHeadState, MotionParams> = {
   executing: EXECUTING_MOTION,
   generating: GENERATING_MOTION,
   reviewing: REVIEWING_MOTION,
-  error: IDLE_MOTION,
+  error: ERROR_MOTION,
   done: IDLE_MOTION,
 };
 
