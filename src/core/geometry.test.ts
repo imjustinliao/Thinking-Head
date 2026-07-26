@@ -134,6 +134,19 @@ describe("levels of detail", () => {
     // Lazy: a page showing two sizes must not have built all eight levels.
     expect(model.builtLevels.length).toBeLessThan(LEVEL_RESOLUTIONS.length);
   });
+
+  test("level selection honours a visual tier's landmark floor", () => {
+    const model = new HeadModel();
+    // At DPR 1, pure density selects resolution 12 for a 16px head. The glyph tier floors that
+    // above 12 because the coarsest lattice contains eyes but no mouth.
+    const glyph = model.levelForSize(16, 1.6, 14);
+    const present = new Set<number>(glyph.regionId);
+
+    expect(glyph.resolution).toBeGreaterThanOrEqual(14);
+    expect(present).toContain(REGION.eyeL);
+    expect(present).toContain(REGION.eyeR);
+    expect(present).toContain(REGION.mouth);
+  });
 });
 
 describe("determinism", () => {

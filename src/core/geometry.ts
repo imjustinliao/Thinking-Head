@@ -121,12 +121,16 @@ export class HeadModel {
    * Picks the level whose cells land closest to `targetCellPx` on screen, then builds it.
    *
    * `headPx` is the rendered size in device pixels. A lattice spans the head's full domain, so
-   * a cell projects to roughly `headPx / resolution` pixels.
+   * a cell projects to roughly `headPx / resolution` pixels. `minResolution` lets a visual tier
+   * preserve the landmarks it needs even when pure pixel density would choose a coarser level.
    */
-  levelForSize(headPx: number, targetCellPx = 3): HeadPointSet {
-    let best: number = LEVEL_RESOLUTIONS[0];
+  levelForSize(headPx: number, targetCellPx = 3, minResolution = 0): HeadPointSet {
+    // If a future tier asks for more than the baked ladder provides, generate that exact floor
+    // instead of silently returning a level below the caller's legibility requirement.
+    let best: number = Math.max(LEVEL_RESOLUTIONS[LEVEL_RESOLUTIONS.length - 1], minResolution);
     let bestError = Number.POSITIVE_INFINITY;
     for (const resolution of LEVEL_RESOLUTIONS) {
+      if (resolution < minResolution) continue;
       const cellPx = headPx / resolution;
       // Compared in log space so being 2x too fine is penalised the same as 2x too coarse.
       const error = Math.abs(Math.log(cellPx / targetCellPx));

@@ -89,8 +89,9 @@ export function HeadSlot({
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     renderer.resize(size, dpr);
     // The LOD is chosen against *device* pixels: a high-DPR screen genuinely has room for a
-    // finer lattice, and choosing against CSS pixels would throw that resolution away.
-    const pointSet = model.levelForSize(size * dpr, targetCellCss);
+    // finer lattice, and choosing against CSS pixels would throw that resolution away. The
+    // CSS-size tier still supplies a floor so glyph heads never lose their eyes or mouth.
+    const pointSet = model.levelForSize(size * dpr, targetCellCss, resolveTier(size).minResolution);
 
     // Reduced motion simplifies rather than removes: the head still renders, fully shaded, it
     // simply holds still. Deleting the indicator would delete the status signal with it.
