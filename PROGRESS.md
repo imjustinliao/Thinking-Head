@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Motion tuned through `error`** (v5.6). Next: `done`, the final motion signature |
-| **Last commit** | `61388b7` — v5.6 - Add error motion and alarm accent |
+| **Step** | **All ten motion signatures tuned** (v5.8). Next: expression control vector |
+| **Last commit** | `6e537b5` — v5.8 - Add done motion with settled completion glow |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -324,9 +324,9 @@ Verified: max per-particle alpha swing 241/255 on a 48px pill; 29,228 changed pi
 320px orbit view. Regression tests lock in non-zero shimmer for every state so this can't
 silently regress back to sub-pixel-only motion.
 
-### Tuned state motion (v4.5–v5.6)
+### Tuned state motion (v4.5–v5.8)
 
-Nine states now have distinct continuous motion signatures. The gallery pills drive the inline
+All ten states now have distinct continuous motion signatures. The gallery pills drive the inline
 sample and orbit head, so each state can be selected and reviewed in the live demo.
 
 - **`listening` (v4.5):** held lateral tilt, suppressed ambient wandering, and a quicker,
@@ -360,6 +360,12 @@ sample and orbit head, so each state can be selected and reviewed in the live de
   energy. The demo applies the alarm accent to Error's particles and active interface, while the
   motion keeps the state legible without colour. Verified in the live WebGL demo with no browser
   errors; 108 tests, typecheck, lint and build pass.
+- **`done` (v5.8):** the smallest movement envelope in the active set settles into Idle's
+  neutral pose, with an opt-in uniform brightness lift that keeps every particle above its normal
+  shaded level and a slow broad glow that remains alive if held. The demo applies a green
+  completion accent. Done defines the endpoint only; the later transition controller owns the
+  brief hold and smooth return to Idle. Verified in the live WebGL demo with no browser errors;
+  114 tests, typecheck, lint and build pass.
 
 These milestones tune **motion and whole-head posture**. Per-region facial deformation is not
 built yet; the tagged regions and scalar `weight` channel are ready, but the expression control
@@ -411,21 +417,19 @@ replace it with defaults.
 
 ## Next
 
-1. **The final motion signature: `done`.** It must briefly settle and brighten, then return to
-   `idle`, while remaining compatible with arbitrary-time state transitions.
-2. **Expression control vector and per-region deformation**, then tune the ten expressions one
+1. **Expression control vector and per-region deformation**, then tune the ten expressions one
    at a time. The geometry already carries `regionId` and `weight`; neither backend applies them
-   as deformation yet.
-3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+   as deformation yet. This is the next major component and begins with a plan/review boundary.
+2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-4. The React wrapper and the `./react` subpath export — currently `package.json` exports
+3. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-5. Bake the tuned point set into a committed artifact once the shape is locked, and drop
+4. Bake the tuned point set into a committed artifact once the shape is locked, and drop
    the generator from the runtime path entirely.
-6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-7. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+6. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
