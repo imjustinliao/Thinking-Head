@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Glyph-tier LOD floor corrected** (v6.0). Next: expression rig foundation |
-| **Last commit** | `44295fd` — v6.0 - Preserve glyph landmarks during LOD selection |
+| **Step** | **Expression rig foundation complete** (v6.2). Next: renderer wiring and live controls |
+| **Last commit** | `10c213e` — v6.2 - Add analytic facial expression rig foundation |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing. Facial realism is explicitly deferred — see CLAUDE.md §2 |
 
@@ -377,6 +377,14 @@ functionally complete.
   but no mouth. Higher-size density selection is unchanged. Verified in the live WebGL demo at
   16px (resolution 17, 596 particles, one GL context, no runtime errors); 115 tests, typecheck,
   lint and build pass.
+- **Expression rig foundation (v6.2):** `ExpressionParams` defines 18 bounded scalar controls
+  across brows, eyes/gaze, cheeks, nose, mouth and jaw. Region centres and extents are derived
+  from any tagged point set and cached by identity, so neither the current procedural geometry
+  nor a future Phase 2 point set needs hard-coded facial coordinates or a changed data format.
+  `deformExpressionPoint` writes deformed position plus normal into caller-owned scratch with no
+  per-point allocation; jaw articulation rotates its normals, and every control is tested for
+  target-region isolation. No renderer consumes it yet, so this milestone has no intended visual
+  change. 123 tests, typecheck, lint and build pass; the public bundle remains 0.59 kB.
 
 ### Demo design language — established, do not flatten
 
@@ -423,10 +431,11 @@ replace it with defaults.
 
 ## Next
 
-1. **Expression control vector and per-region deformation**, then tune the ten expressions one
-   at a time. The geometry already carries `regionId` and `weight`; neither backend applies them
-   as deformation yet. The component plan is approved; next build the scalar contract, derived
-   region metrics and allocation-free CPU deformation kernel as one reviewed foundation step.
+1. **Wire expression deformation into both renderers and add live controls.** Add the expression
+   vector to `RenderFrame`; pass the existing `weight` channel plus derived region metrics to
+   WebGL; mirror the CPU kernel in the vertex shader and call it from Canvas 2D; then expose the
+   active expression vector as demo sliders. Keep every state neutral during this infrastructure
+   step. Once backend parity is reviewed, tune the ten expressions one state at a time.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
