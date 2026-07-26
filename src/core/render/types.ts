@@ -1,3 +1,4 @@
+import type { ExpressionParams } from "../expression.js";
 import type { MotionParams } from "../motion.js";
 import type { HeadPointSet } from "../pointset.js";
 
@@ -75,6 +76,8 @@ export interface RenderFrame {
   time: number;
   /** Motion parameters for the current state. */
   motion: MotionParams;
+  /** Facial deformation parameters for the current state or manual preview. */
+  expression: ExpressionParams;
   /** How many particles of the progressive ordering to draw. */
   count: number;
   camera: Camera;

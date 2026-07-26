@@ -3,6 +3,7 @@ import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
   createRenderer,
+  type ExpressionParams,
   type HeadModel,
   type HeadRenderer,
   type RenderBackend,
@@ -20,6 +21,7 @@ interface HeadSlotProps {
   model: HeadModel;
   camera: Camera;
   style: RenderStyle;
+  expression: ExpressionParams;
   targetCellCss: number;
   /** Multiplies the shared clock, so the demo's speed control affects every instance alike. */
   speed: number;
@@ -47,6 +49,7 @@ export function HeadSlot({
   model,
   camera,
   style,
+  expression,
   targetCellCss,
   speed,
   onBackend,
@@ -105,6 +108,7 @@ export function HeadSlot({
         style: effectiveStyle,
         time,
         motion,
+        expression,
       });
     };
 
@@ -138,7 +142,17 @@ export function HeadSlot({
       observer.disconnect();
       stop();
     };
-  }, [size, model, effectiveCamera, effectiveStyle, targetCellCss, state, speed, reducedMotion]);
+  }, [
+    size,
+    model,
+    effectiveCamera,
+    effectiveStyle,
+    expression,
+    targetCellCss,
+    state,
+    speed,
+    reducedMotion,
+  ]);
 
   return (
     <span

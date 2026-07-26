@@ -1,3 +1,4 @@
+import { deformExpressionPoint, expressionRigOf } from "../expression.js";
 import { normalDisplacement, shimmerMultiplier, swayOffsets } from "../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
@@ -30,6 +31,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
   let sa = new Float32Array(0);
   let depth = new Float32Array(0);
   let order = new Int32Array(0);
+  const expressionPoint = new Float32Array(6);
 
   function ensureCapacity(n: number): void {
     if (n <= capacity) return;
@@ -71,7 +73,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
       const sway = swayOffsets(frame.time, frame.motion);
       const b = cameraBasis(frame.camera, sway.yaw, sway.pitch);
-      const { positions, normals, center, occlusion } = pointSet;
+      const { positions, normals, center, occlusion, weight } = pointSet;
+      const expressionRig = expressionRigOf(pointSet);
       // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
       const cell = pointSet.cellSize;
       const radius = pointSet.radius || 1;
@@ -92,13 +95,37 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const nx = normals[i * 3];
         const ny = normals[i * 3 + 1];
         const nz = normals[i * 3 + 2];
+        const region = pointSet.regionId[i];
+
+        // Expression is evaluated from the immutable rest point before continuous motion. Motion
+        // keeps its rest-position phase seed, so changing expression cannot make a ripple jump.
+        deformExpressionPoint(
+          expressionPoint,
+          rx0,
+          ry0,
+          rz0,
+          nx,
+          ny,
+          nz,
+          region,
+          weight[i],
+          radius,
+          expressionRig,
+          frame.expression,
+        );
+        const ex = expressionPoint[0];
+        const ey = expressionPoint[1];
+        const ez = expressionPoint[2];
+        const enx = expressionPoint[3];
+        const eny = expressionPoint[4];
+        const enz = expressionPoint[5];
 
         // Continuous motion: displace along the normal so the surface swells and ripples
         // without particles leaving it.
         const disp = normalDisplacement(rx0, ry0, rz0, frame.time, frame.motion) * cell;
-        const px = rx0 + nx * disp;
-        const py = ry0 + ny * disp;
-        const pz = rz0 + nz * disp;
+        const px = ex + enx * disp;
+        const py = ey + eny * disp;
+        const pz = ez + enz * disp;
 
         // Yaw about y, then pitch about x.
         const rx = px * b.cosYaw + pz * b.sinYaw;
@@ -110,10 +137,9 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         if (viewZ <= 0.05) continue;
 
         // Facing: the rotated normal's z against the view direction.
-        const nzYaw = -nx * b.sinYaw + nz * b.cosYaw;
-        const facing = ny * b.sinPitch + nzYaw * b.cosPitch;
+        const nzYaw = -enx * b.sinYaw + enz * b.cosYaw;
+        const facing = eny * b.sinPitch + nzYaw * b.cosPitch;
 
-        const region = pointSet.regionId[i];
         const feature = isFeatureRegion(region);
 
         // Far-side features are culled outright, not dimmed. A dimmed eye showing through the
@@ -132,8 +158,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         // Lambertian shade against the key light plus baked occlusion. Lambert models which way
         // the surface faces; occlusion models what it sits inside — sockets and creases go dark
         // even where their floor still catches the light. Both scale off the one lighting knob.
-        const nxV = nx * b.cosYaw + nz * b.sinYaw;
-        const nyV = ny * b.cosPitch - nzYaw * b.sinPitch;
+        const nxV = enx * b.cosYaw + enz * b.sinYaw;
+        const nyV = eny * b.cosPitch - nzYaw * b.sinPitch;
         const diffuse = Math.max(0, nxV * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z);
         const ao = occlusion[i];
         const lit =

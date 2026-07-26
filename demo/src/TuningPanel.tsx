@@ -1,10 +1,17 @@
 import { useId, useState } from "react";
+import type { ExpressionParams } from "thinking-head/dev";
 import {
+  BROW_EXPRESSION_FIELDS,
   CAMERA_FIELDS,
+  DEFAULT_EXPRESSION,
   DEFAULT_TUNING,
+  EYE_EXPRESSION_FIELDS,
   FEATURE_FIELDS,
   type Field,
   HEAD_FIELDS,
+  JAW_EXPRESSION_FIELDS,
+  MIDFACE_EXPRESSION_FIELDS,
+  MOUTH_EXPRESSION_FIELDS,
   SAMPLING_FIELDS,
   STYLE_FIELDS,
   type TuningConfig,
@@ -54,13 +61,25 @@ interface TuningPanelProps {
   /** Milliseconds the last geometry generation took. Watched against a 30ms live-feel target. */
   generateMs: number;
   particleCount: number;
+  expression: ExpressionParams;
+  onExpressionChange: (next: ExpressionParams) => void;
 }
 
-export function TuningPanel({ config, onChange, generateMs, particleCount }: TuningPanelProps) {
+export function TuningPanel({
+  config,
+  onChange,
+  generateMs,
+  particleCount,
+  expression,
+  onExpressionChange,
+}: TuningPanelProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className={`tune glass${open ? " tune--open" : ""}`} aria-label="Geometry tuning">
+    <section
+      className={`tune glass${open ? " tune--open" : ""}`}
+      aria-label="Head and expression tuning"
+    >
       <header className="tune-head">
         <button
           type="button"
@@ -71,7 +90,7 @@ export function TuningPanel({ config, onChange, generateMs, particleCount }: Tun
           <span className="tune-caret" aria-hidden="true">
             {open ? "▾" : "▸"}
           </span>
-          Geometry
+          Tuning
         </button>
         <div className="tune-stats">
           <span>
@@ -83,7 +102,10 @@ export function TuningPanel({ config, onChange, generateMs, particleCount }: Tun
           <button
             type="button"
             className="tune-reset"
-            onClick={() => onChange(structuredClone(DEFAULT_TUNING))}
+            onClick={() => {
+              onChange(structuredClone(DEFAULT_TUNING));
+              onExpressionChange({ ...DEFAULT_EXPRESSION });
+            }}
           >
             reset
           </button>
@@ -121,6 +143,36 @@ export function TuningPanel({ config, onChange, generateMs, particleCount }: Tun
             fields={STYLE_FIELDS}
             values={config.style}
             onChange={(style) => onChange({ ...config, style })}
+          />
+          <SliderGroup
+            title="Expression · brows"
+            fields={BROW_EXPRESSION_FIELDS}
+            values={expression}
+            onChange={onExpressionChange}
+          />
+          <SliderGroup
+            title="Expression · eyes"
+            fields={EYE_EXPRESSION_FIELDS}
+            values={expression}
+            onChange={onExpressionChange}
+          />
+          <SliderGroup
+            title="Expression · mid-face"
+            fields={MIDFACE_EXPRESSION_FIELDS}
+            values={expression}
+            onChange={onExpressionChange}
+          />
+          <SliderGroup
+            title="Expression · mouth"
+            fields={MOUTH_EXPRESSION_FIELDS}
+            values={expression}
+            onChange={onExpressionChange}
+          />
+          <SliderGroup
+            title="Expression · jaw"
+            fields={JAW_EXPRESSION_FIELDS}
+            values={expression}
+            onChange={onExpressionChange}
           />
         </div>
       )}

@@ -1,3 +1,4 @@
+import { EXPRESSION_KEYS, expressionRigOf } from "../../expression.js";
 import { swayOffsets } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
@@ -26,6 +27,7 @@ interface GLResources {
   positionBuffer: WebGLBuffer;
   normalBuffer: WebGLBuffer;
   regionBuffer: WebGLBuffer;
+  weightBuffer: WebGLBuffer;
   occlusionBuffer: WebGLBuffer;
   uniforms: Record<string, WebGLUniformLocation | null>;
 }
@@ -80,6 +82,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
   const positionBuffer = gl.createBuffer();
   const normalBuffer = gl.createBuffer();
   const regionBuffer = gl.createBuffer();
+  const weightBuffer = gl.createBuffer();
   const occlusionBuffer = gl.createBuffer();
   if (
     !vao ||
@@ -87,6 +90,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     !positionBuffer ||
     !normalBuffer ||
     !regionBuffer ||
+    !weightBuffer ||
     !occlusionBuffer
   ) {
     throw new Error("Failed to allocate GL buffers");
@@ -114,6 +118,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
   bindAttrib(positionBuffer, "a_position", 3, true);
   bindAttrib(normalBuffer, "a_normal", 3, true);
   bindAttrib(regionBuffer, "a_region", 1, true);
+  bindAttrib(weightBuffer, "a_weight", 1, true);
   bindAttrib(occlusionBuffer, "a_occlusion", 1, true);
 
   gl.bindVertexArray(null);
@@ -156,6 +161,9 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_shimmerDir",
     "u_shimmerRadial",
     "u_shimmerMirror",
+    "u_expression[0]",
+    "u_regionCenter[0]",
+    "u_regionHalfExtent[0]",
     "u_regionIntensity[0]",
     "u_regionDrawScale[0]",
     "u_regionFeature[0]",
@@ -171,6 +179,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     positionBuffer,
     normalBuffer,
     regionBuffer,
+    weightBuffer,
     occlusionBuffer,
     uniforms,
   };
@@ -198,6 +207,7 @@ class SharedGL implements SharedGLRenderer {
   private readonly center = new Float32Array(3);
   private readonly light = new Float32Array(3);
   private readonly color = new Float32Array(3);
+  private readonly expressionValues = new Float32Array(EXPRESSION_KEYS.length);
   /** Grown on demand for the Uint8 -> float region conversion; never reallocated per frame. */
   private regionScratch = new Float32Array(0);
 
@@ -297,6 +307,7 @@ class SharedGL implements SharedGLRenderer {
       gl.deleteBuffer(res.positionBuffer);
       gl.deleteBuffer(res.normalBuffer);
       gl.deleteBuffer(res.regionBuffer);
+      gl.deleteBuffer(res.weightBuffer);
       gl.deleteBuffer(res.occlusionBuffer);
       // Explicit teardown rather than waiting for GC — the whole point of sharing one context is
       // to stay well clear of the browser's context limit.
@@ -326,6 +337,8 @@ class SharedGL implements SharedGLRenderer {
     gl.bufferData(gl.ARRAY_BUFFER, set.normals, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, res.occlusionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, set.occlusion, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, res.weightBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, set.weight, gl.STATIC_DRAW);
 
     // regionId is a Uint8Array but the attribute is a float; convert once per upload into a
     // reused buffer.
@@ -363,7 +376,8 @@ class SharedGL implements SharedGLRenderer {
     gl.scissor(0, yOffset, devicePixels, devicePixels);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const { pointSet, style, camera, motion } = frame;
+    const { pointSet, style, camera, motion, expression } = frame;
+    const expressionRig = expressionRigOf(pointSet);
     const sway = swayOffsets(frame.time, motion);
     const b = cameraBasis(camera, sway.yaw, sway.pitch);
     const boundRadius = pointSet.radius || 1;
@@ -394,6 +408,9 @@ class SharedGL implements SharedGLRenderer {
     this.light[2] = KEY_LIGHT.z / lightLen;
 
     parseColor(style.color, this.color);
+    for (let i = 0; i < EXPRESSION_KEYS.length; i++) {
+      this.expressionValues[i] = expression[EXPRESSION_KEYS[i]];
+    }
 
     gl.useProgram(res.program);
     gl.bindVertexArray(res.vao);
@@ -435,6 +452,9 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform3f(u.u_shimmerDir, motion.shimmerDirX, motion.shimmerDirY, motion.shimmerDirZ);
     gl.uniform1f(u.u_shimmerRadial, motion.shimmerRadial);
     gl.uniform1f(u.u_shimmerMirror, motion.shimmerMirror);
+    gl.uniform1fv(u["u_expression[0]"], this.expressionValues);
+    gl.uniform3fv(u["u_regionCenter[0]"], expressionRig.regionCenter);
+    gl.uniform3fv(u["u_regionHalfExtent[0]"], expressionRig.regionHalfExtent);
     gl.uniform1fv(u["u_regionIntensity[0]"], REGION_INTENSITY);
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);

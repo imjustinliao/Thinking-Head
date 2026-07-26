@@ -4,8 +4,10 @@ import {
   DEFAULT_FEATURE_PARAMS,
   DEFAULT_HEAD_PARAMS,
   DEFAULT_STYLE,
+  type ExpressionParams,
   type FeatureParams,
   type HeadParams,
+  NEUTRAL_EXPRESSION,
   TARGET_CELL_CSS,
 } from "thinking-head/dev";
 
@@ -48,6 +50,8 @@ export const DEFAULT_TUNING: TuningConfig = {
     lighting: DEFAULT_STYLE.lighting,
   },
 };
+
+export const DEFAULT_EXPRESSION: ExpressionParams = { ...NEUTRAL_EXPRESSION };
 
 /**
  * The number-valued string keys of `T`. Interfaces have no index signature, so a
@@ -127,4 +131,37 @@ export const STYLE_FIELDS: Field<StyleConfig>[] = [
   { key: "depthDim", label: "depth dim", min: 0, max: 1, step: 0.02 },
   { key: "featureBoost", label: "feature emphasis", min: 0, max: 1.5, step: 0.05 },
   { key: "lighting", label: "key light", min: 0, max: 1, step: 0.02 },
+];
+
+export const BROW_EXPRESSION_FIELDS: Field<ExpressionParams>[] = [
+  { key: "brow_raiseL", label: "left raise", min: -1, max: 1, step: 0.05 },
+  { key: "brow_raiseR", label: "right raise", min: -1, max: 1, step: 0.05 },
+  { key: "brow_innerUp", label: "inner lift", min: -1, max: 1, step: 0.05 },
+  { key: "brow_furrow", label: "furrow", min: 0, max: 1, step: 0.05 },
+];
+
+export const EYE_EXPRESSION_FIELDS: Field<ExpressionParams>[] = [
+  { key: "eye_openL", label: "left open", min: -1, max: 1, step: 0.05 },
+  { key: "eye_openR", label: "right open", min: -1, max: 1, step: 0.05 },
+  { key: "eye_gazeX", label: "gaze horizontal", min: -1, max: 1, step: 0.05 },
+  { key: "eye_gazeY", label: "gaze vertical", min: -1, max: 1, step: 0.05 },
+];
+
+export const MIDFACE_EXPRESSION_FIELDS: Field<ExpressionParams>[] = [
+  { key: "cheek_raise", label: "cheek raise", min: 0, max: 1, step: 0.05 },
+  { key: "nose_scrunch", label: "nose scrunch", min: 0, max: 1, step: 0.05 },
+];
+
+export const MOUTH_EXPRESSION_FIELDS: Field<ExpressionParams>[] = [
+  { key: "mouth_cornerUpL", label: "left corner", min: -1, max: 1, step: 0.05 },
+  { key: "mouth_cornerUpR", label: "right corner", min: -1, max: 1, step: 0.05 },
+  { key: "mouth_open", label: "mouth open", min: 0, max: 1, step: 0.05 },
+  { key: "mouth_pucker", label: "pucker", min: 0, max: 1, step: 0.05 },
+  { key: "mouth_press", label: "press", min: 0, max: 1, step: 0.05 },
+];
+
+export const JAW_EXPRESSION_FIELDS: Field<ExpressionParams>[] = [
+  { key: "jaw_open", label: "jaw open", min: 0, max: 1, step: 0.05 },
+  { key: "jaw_shiftX", label: "jaw shift", min: -1, max: 1, step: 0.05 },
+  { key: "jaw_forward", label: "jaw forward", min: -1, max: 1, step: 0.05 },
 ];

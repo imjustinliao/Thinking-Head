@@ -1,4 +1,5 @@
-import { REGION_COUNT } from "../../regions.js";
+import { EXPRESSION_KEYS, type ExpressionKey } from "../../expression.js";
+import { REGION, REGION_COUNT } from "../../regions.js";
 
 /**
  * Shaders as tagged template literals — no bundler plugin, so consumer build config stays at
@@ -16,6 +17,8 @@ import { REGION_COUNT } from "../../regions.js";
 const glsl = (strings: TemplateStringsArray, ...values: unknown[]): string =>
   strings.reduce((out, part, i) => out + part + (i < values.length ? String(values[i]) : ""), "");
 
+const expressionIndex = (key: ExpressionKey): number => EXPRESSION_KEYS.indexOf(key);
+
 export const VERTEX_SHADER = glsl`#version 300 es
 precision highp float;
 
@@ -26,6 +29,7 @@ in vec2 a_corner;
 in vec3 a_position;
 in vec3 a_normal;
 in float a_region;
+in float a_weight;
 in float a_occlusion;
 
 // Camera.
@@ -71,6 +75,11 @@ uniform vec3 u_shimmerDir;
 uniform float u_shimmerRadial;
 uniform float u_shimmerMirror;
 
+// Packed in EXPRESSION_KEYS order. One array upload carries the complete facial control vector.
+uniform float u_expression[${EXPRESSION_KEYS.length}];
+uniform vec3 u_regionCenter[${REGION_COUNT}];
+uniform vec3 u_regionHalfExtent[${REGION_COUNT}];
+
 // Per-region tables, indexed by the particle's region tag.
 uniform float u_regionIntensity[${REGION_COUNT}];
 uniform float u_regionDrawScale[${REGION_COUNT}];
@@ -82,6 +91,123 @@ out float v_radiusPx;
 
 const float PHI = 1.6180339887;
 const float SQRT2 = 1.4142135624;
+
+float clampUnit(float value) {
+  return clamp(value, 0.0, 1.0);
+}
+
+float clampSigned(float value) {
+  return clamp(value, -1.0, 1.0);
+}
+
+/**
+ * Analytic facial deformation. This mirrors deformExpressionPoint() in expression.ts; motion is
+ * applied afterwards from the immutable rest-space phase seed.
+ */
+void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
+  if (region == ${REGION.cranium}) return;
+
+  vec3 center = u_regionCenter[region];
+  vec3 extent = max(u_regionHalfExtent[region], vec3(1e-6));
+  vec3 regionLocal = clamp((p - center) / extent, vec3(-1.0), vec3(1.0));
+  float influence = clampUnit(rawWeight);
+  float scale = max(u_boundRadius, 0.0);
+
+  if (region == ${REGION.browL} || region == ${REGION.browR}) {
+    bool left = region == ${REGION.browL};
+    float side = left ? 1.0 : -1.0;
+    float raise = clampSigned(
+      left
+        ? u_expression[${expressionIndex("brow_raiseL")}]
+        : u_expression[${expressionIndex("brow_raiseR")}]
+    );
+    float inner = clampUnit((1.0 - side * regionLocal.x) * 0.5);
+    float innerUp = clampSigned(u_expression[${expressionIndex("brow_innerUp")}]);
+    float furrow = clampUnit(u_expression[${expressionIndex("brow_furrow")}]);
+    p.x -= side * scale * 0.018 * furrow * inner * influence;
+    p.y +=
+      scale * (0.036 * raise + 0.028 * innerUp * inner - 0.02 * furrow * inner) * influence;
+    return;
+  }
+
+  if (region == ${REGION.eyeL} || region == ${REGION.eyeR}) {
+    float open = clampSigned(
+      region == ${REGION.eyeL}
+        ? u_expression[${expressionIndex("eye_openL")}]
+        : u_expression[${expressionIndex("eye_openR")}]
+    );
+    p.x += scale * 0.025 * clampSigned(u_expression[${expressionIndex("eye_gazeX")}]) * influence;
+    p.y +=
+      scale *
+      (0.028 * open * regionLocal.y +
+       0.022 * clampSigned(u_expression[${expressionIndex("eye_gazeY")}])) *
+      influence;
+    return;
+  }
+
+  if (region == ${REGION.cheek}) {
+    float support =
+      clampUnit(1.0 - abs(regionLocal.y)) * clampUnit(1.0 - abs(regionLocal.z));
+    float raise = clampUnit(u_expression[${expressionIndex("cheek_raise")}]);
+    p.y += scale * 0.024 * raise * support;
+    p.z += scale * 0.012 * raise * support;
+    return;
+  }
+
+  if (region == ${REGION.nose}) {
+    float lower = clampUnit((1.0 - regionLocal.y) * 0.5);
+    float support = lower * (0.35 + 0.65 * clampUnit(1.0 - abs(regionLocal.x)));
+    float scrunch = clampUnit(u_expression[${expressionIndex("nose_scrunch")}]);
+    p.y += scale * 0.018 * scrunch * support;
+    p.z -= scale * 0.014 * scrunch * support;
+    return;
+  }
+
+  if (region == ${REGION.mouth}) {
+    float leftMix = clampUnit(regionLocal.x * 0.5 + 0.5);
+    float cornerControl = mix(
+      clampSigned(u_expression[${expressionIndex("mouth_cornerUpR")}]),
+      clampSigned(u_expression[${expressionIndex("mouth_cornerUpL")}]),
+      leftMix
+    );
+    float corner = clampUnit(1.0 - influence);
+    float open = clampUnit(u_expression[${expressionIndex("mouth_open")}]);
+    float split = regionLocal.y == 0.0 ? -1.0 : sign(regionLocal.y);
+    float openingSupport = 0.3 + 0.7 * influence;
+    float pucker = clampUnit(u_expression[${expressionIndex("mouth_pucker")}]);
+    float press = clampUnit(u_expression[${expressionIndex("mouth_press")}]);
+
+    p.x -= regionLocal.x * scale * 0.02 * pucker * influence;
+    p.y +=
+      scale *
+      (0.032 * cornerControl * corner +
+       0.022 * open * split * openingSupport -
+       0.016 * press * regionLocal.y * influence);
+    p.z +=
+      scale *
+      (0.025 * pucker * influence - 0.008 * open * influence - 0.012 * press * influence);
+    return;
+  }
+
+  if (region == ${REGION.jaw}) {
+    float hingeY = center.y + extent.y;
+    float hinge = clampUnit((hingeY - p.y) / (2.0 * extent.y));
+    float angle = 0.22 * clampUnit(u_expression[${expressionIndex("jaw_open")}]) * hinge;
+    float cosine = cos(angle);
+    float sine = sin(angle);
+    float relativeY = p.y - hingeY;
+    float relativeZ = p.z - center.z;
+
+    p.x += scale * 0.035 * clampSigned(u_expression[${expressionIndex("jaw_shiftX")}]) * hinge;
+    p.y = hingeY + relativeY * cosine - relativeZ * sine;
+    p.z =
+      center.z +
+      relativeY * sine +
+      relativeZ * cosine +
+      scale * 0.04 * clampSigned(u_expression[${expressionIndex("jaw_forward")}]) * hinge;
+    n.yz = vec2(n.y * cosine - n.z * sine, n.y * sine + n.z * cosine);
+  }
+}
 
 /**
  * Normal displacement in cell units. This is a verbatim reimplementation of
@@ -122,15 +248,19 @@ void main() {
   v_corner = a_corner;
 
   vec3 rest = a_position - u_center;
+  int region = int(a_region + 0.5);
+  vec3 expressed = rest;
+  vec3 expressedNormal = a_normal;
+  deformExpression(expressed, expressedNormal, region, a_weight);
+
   // Displace along the normal so the surface swells and ripples without particles leaving it.
   float disp = normalDisplacement(rest, u_time) * u_cellSize;
-  vec3 p = u_rot * (rest + a_normal * disp);
+  vec3 p = u_rot * (expressed + expressedNormal * disp);
   float viewZ = u_distance - p.z;
 
-  vec3 n = u_rot * a_normal;
+  vec3 n = u_rot * expressedNormal;
   float facing = n.z;
 
-  int region = int(a_region + 0.5);
   float isFeature = u_regionFeature[region];
 
   // Far-side features are culled outright rather than dimmed: a dimmed eye showing through the

@@ -1,11 +1,16 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
-import { HeadModel, type RenderBackend, type RenderStyle } from "thinking-head/dev";
+import {
+  type ExpressionParams,
+  HeadModel,
+  type RenderBackend,
+  type RenderStyle,
+} from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
 import { HeadSlot } from "./HeadSlot.js";
 import { STATE_NOTES } from "./states.js";
 import { TuningPanel } from "./TuningPanel.js";
-import { DEFAULT_TUNING, type TuningConfig } from "./tuning.js";
+import { DEFAULT_EXPRESSION, DEFAULT_TUNING, type TuningConfig } from "./tuning.js";
 import { useSpotlight } from "./useSpotlight.js";
 
 const MODALITY_OPTIONS = ["none", "text", "audio", "vision"] as const;
@@ -42,6 +47,11 @@ export function App() {
   const [speed, setSpeed] = useState(1);
   const [modality, setModality] = useState<ModalityOption>("none");
   const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
+  // Manual sandbox shared by every displayed size. State presets stay neutral until each
+  // expression is tuned and reviewed in its own milestone.
+  const [expression, setExpression] = useState<ExpressionParams>(() => ({
+    ...DEFAULT_EXPRESSION,
+  }));
   const [backend, setBackend] = useState<RenderBackend | null>(null);
   // The pill the user has clicked; drives the inline sample and the orbit head. Until every
   // state has its own motion this only changes the labels — but it's the wiring the state
@@ -187,6 +197,8 @@ export function App() {
           onChange={setTuning}
           generateMs={generateMs}
           particleCount={model.levelForSize(size * 2, targetCellCss).count}
+          expression={expression}
+          onExpressionChange={setExpression}
         />
 
         <section className="section" aria-labelledby="inline-heading">
@@ -208,6 +220,7 @@ export function App() {
                 model={model}
                 camera={camera}
                 style={style}
+                expression={expression}
                 targetCellCss={targetCellCss}
                 speed={speed}
                 onBackend={onBackend}
@@ -257,6 +270,7 @@ export function App() {
                       model={model}
                       camera={camera}
                       style={style}
+                      expression={expression}
                       targetCellCss={targetCellCss}
                       speed={speed}
                     />
@@ -290,6 +304,7 @@ export function App() {
               model={model}
               camera={camera}
               style={style}
+              expression={expression}
               targetCellCss={targetCellCss}
               speed={speed}
             />
