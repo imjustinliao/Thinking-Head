@@ -44,8 +44,7 @@ uniform vec2 u_viewportPx;
 uniform float u_baseRadius;
 uniform float u_featureEmphasis;
 uniform float u_glyphMode;
-uniform float u_glyphSkinRadius;
-uniform float u_glyphSkinAlpha;
+uniform float u_skinRadius;
 uniform float u_lighting;
 uniform float u_albedoFlatten;
 uniform float u_backfaceDim;
@@ -290,7 +289,7 @@ void main() {
 
   float radiusPx =
     u_baseRadius * persp * u_regionDrawScale[region] *
-    mix(u_glyphSkinRadius, u_featureEmphasis, isFeature);
+    mix(u_skinRadius, u_featureEmphasis, isFeature);
   v_radiusPx = radiusPx;
 
   // Lambert against the key light, then baked occlusion. Lambert models which way the surface
@@ -302,7 +301,8 @@ void main() {
   float lit =
     (u_ambient + (1.0 - u_ambient) * diffuse) *
     (u_occlusionFloor + (1.0 - u_occlusionFloor) * a_occlusion);
-  float shade = 1.0 - u_lighting * (1.0 - lit);
+  float linearShade = 1.0 - u_lighting * (1.0 - lit);
+  float shade = linearShade * (0.5 + 0.5 * linearShade);
 
   // Material albedo for the region; lighting and occlusion do the modelling.
   float regionAlpha = u_regionIntensity[region];
@@ -315,7 +315,6 @@ void main() {
 
   v_brightness =
     baseAlpha * shade * shimmer *
-    mix(u_glyphSkinAlpha, 1.0, isFeature) *
     (1.0 - backness * u_backfaceDim) *
     (1.0 - depthT * clamp(u_depthDim, 0.0, 1.0));
 

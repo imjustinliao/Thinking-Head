@@ -53,8 +53,9 @@ export const CELL_FILL = 1.15;
  * first continuous attempt proved it. Tiers keep the number of configurations that must actually
  * look good down to three, and each one is tuned on its own terms.
  *
- * Dot size and density are deliberately *not* tier properties: those stay constant so a head
- * never changes its grain. Tiers control only how much modelling detail the size can carry.
+ * The sampled density stays tied to rendered size. Surface coverage and feature scale are tier
+ * properties because the head occupies only part of its square canvas: below roughly 36 visible
+ * face pixels, equal-size separated tiles read as holes rather than skin.
  */
 export type TierName = "glyph" | "compact" | "display";
 
@@ -70,6 +71,10 @@ export interface SizeTier {
   minResolution: number;
   /** Mixes feature material toward uniform white as real surface anatomy becomes legible. */
   albedoFlatten: number;
+  /** Skin-tile coverage multiplier. Small projected faces need a closed surface. */
+  skinRadius: number;
+  /** Feature-tile scale. Eye and mouth landmarks need a glyph-sized footprint. */
+  featureScale: number;
 }
 
 const TIERS: SizeTier[] = [
@@ -82,6 +87,8 @@ const TIERS: SizeTier[] = [
     poseScale: 0,
     minResolution: 14,
     albedoFlatten: 0,
+    skinRadius: 1.35,
+    featureScale: 1.35,
   },
   {
     name: "compact",
@@ -89,7 +96,9 @@ const TIERS: SizeTier[] = [
     cullFarSide: false,
     poseScale: 0.55,
     minResolution: 26,
-    albedoFlatten: 0.45,
+    albedoFlatten: 0.25,
+    skinRadius: 1.18,
+    featureScale: 1.12,
   },
   {
     name: "display",
@@ -97,12 +106,14 @@ const TIERS: SizeTier[] = [
     cullFarSide: false,
     poseScale: 1,
     minResolution: 44,
-    albedoFlatten: 0.82,
+    albedoFlatten: 0.55,
+    skinRadius: 1,
+    featureScale: 1,
   },
 ];
 
-export const GLYPH_MAX_SIZE = 40;
-export const COMPACT_MAX_SIZE = 120;
+export const GLYPH_MAX_SIZE = 64;
+export const COMPACT_MAX_SIZE = 160;
 
 export function resolveTier(cssSize: number): SizeTier {
   if (cssSize <= GLYPH_MAX_SIZE) return TIERS[0];
@@ -126,8 +137,8 @@ export interface DerivedShading {
   /** Draw-size multiplier for feature regions. 1 keeps every dot identical. */
   featureEmphasis: number;
   glyphMode: boolean;
-  glyphSkinRadius: number;
-  glyphSkinAlpha: number;
+  /** Draw-size multiplier for non-feature skin particles. */
+  skinRadius: number;
   /** Lighting strength after the tier's scaling. */
   lighting: number;
   /** Mix amount from region albedo to one neutral sculptural material. */
@@ -149,10 +160,10 @@ export function deriveShading(
   const cellPx = devicePixels / Math.max(cellsAcross, 1);
   const baseRadius = Math.max(0.35, cellPx * 0.5 * CELL_FILL * style.particleScale);
 
-  // Feature emphasis is now off by default: with a correct particle count the eyes read from
-  // placement and density, and enlarging them breaks the identical-dot rule.
+  // Feature footprint changes only at explicit size tiers; the optional public knob layers on
+  // top and eases away as the full sculpt becomes large enough to carry itself.
   const sizeT = Math.min(1, cssSize / 256);
-  const featureEmphasis = 1 + style.featureBoost * (1 - sizeT);
+  const featureEmphasis = tier.featureScale + style.featureBoost * (1 - sizeT);
 
   const glyphMode = tier.cullFarSide;
 
@@ -161,11 +172,16 @@ export function deriveShading(
     baseRadius,
     featureEmphasis,
     glyphMode,
-    glyphSkinRadius: glyphMode ? 0.92 : 1,
-    glyphSkinAlpha: glyphMode ? 0.72 : 1,
+    skinRadius: tier.skinRadius,
     lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
     albedoFlatten: tier.albedoFlatten,
   };
+}
+
+/** Contrast curve that keeps highlights fixed while separating midtones and recesses. */
+export function sculptShade(linearShade: number): number {
+  const clamped = Math.max(0, Math.min(1, linearShade));
+  return clamped * (0.5 + 0.5 * clamped);
 }
 
 /**

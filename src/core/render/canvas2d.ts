@@ -10,6 +10,7 @@ import {
   FILL_STRENGTH,
   KEY_LIGHT,
   OCCLUSION_FLOOR,
+  sculptShade,
 } from "./shading.js";
 import type { HeadRenderer, RenderFrame } from "./types.js";
 
@@ -89,15 +90,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
 
-      const {
-        baseRadius,
-        featureEmphasis,
-        glyphMode,
-        glyphSkinRadius,
-        glyphSkinAlpha,
-        lighting,
-        albedoFlatten,
-      } = deriveShading(cssSize, device, pointSet.cellSize, style, radius);
+      const { baseRadius, featureEmphasis, glyphMode, skinRadius, lighting, albedoFlatten } =
+        deriveShading(cssSize, device, pointSet.cellSize, style, radius);
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -169,7 +163,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         sx[visible] = half + rx * scale * persp;
         sy[visible] = half - ry * scale * persp;
         sr[visible] =
-          baseRadius * persp * drawScaleOf(region) * (feature ? featureEmphasis : glyphSkinRadius);
+          baseRadius * persp * drawScaleOf(region) * (feature ? featureEmphasis : skinRadius);
         depth[visible] = rz;
 
         // Lambertian shade against the key light plus baked occlusion. Lambert models which way
@@ -191,7 +185,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const ao = occlusion[i];
         const lit =
           (AMBIENT + (1 - AMBIENT) * diffuse) * (OCCLUSION_FLOOR + (1 - OCCLUSION_FLOOR) * ao);
-        const shade = 1 - lighting * (1 - lit);
+        const linearShade = 1 - lighting * (1 - lit);
+        const shade = sculptShade(linearShade);
 
         // Material albedo for the region; lighting and occlusion do the modelling.
         const regionAlpha = intensityOf(region);
@@ -206,7 +201,6 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           baseAlpha *
           shade *
           shimmer *
-          (feature ? 1 : glyphSkinAlpha) *
           (1 - backness * style.backfaceDim) *
           depthFadeOf(rz, radius, style.depthDim);
         sa[visible] = Math.max(0, Math.min(1, alpha));

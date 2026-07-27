@@ -9,6 +9,7 @@ import {
   GLYPH_MAX_SIZE,
   resolutionForSize,
   resolveTier,
+  sculptShade,
 } from "./shading.js";
 import { DEFAULT_CAMERA, DEFAULT_STYLE } from "./types.js";
 
@@ -51,28 +52,30 @@ describe("shading derivation", () => {
     expect(deriveShading(GLYPH_MAX_SIZE + 1, 33, 0.1, DEFAULT_STYLE, 1).glyphMode).toBe(false);
   });
 
-  test("glyph mode recedes the skin and full mode leaves it alone", () => {
-    const small = deriveShading(20, 20, 0.1, DEFAULT_STYLE, 1);
-    expect(small.glyphSkinRadius).toBeLessThan(1);
-    expect(small.glyphSkinAlpha).toBeLessThan(1);
-
-    const large = deriveShading(120, 240, 0.05, DEFAULT_STYLE, 1);
-    expect(large.glyphSkinRadius).toBe(1);
-    expect(large.glyphSkinAlpha).toBe(1);
+  test("small tiers close the skin surface while display keeps the particle grain", () => {
+    const glyph = deriveShading(32, 64, 0.1, DEFAULT_STYLE, 1);
+    const compact = deriveShading(96, 192, 0.05, DEFAULT_STYLE, 1);
+    const display = deriveShading(320, 640, 0.02, DEFAULT_STYLE, 1);
+    expect(glyph.skinRadius).toBeGreaterThan(compact.skinRadius);
+    expect(compact.skinRadius).toBeGreaterThan(display.skinRadius);
+    expect(display.skinRadius).toBe(1);
   });
 
-  test("every particle is the same size by default, at every size", () => {
-    // The governing rule: a bigger head is a denser surface, never bigger particles.
-    for (const px of [20, 32, 64, 128, 256]) {
-      expect(deriveShading(px, px, 0.05, DEFAULT_STYLE, 1).featureEmphasis).toBe(1);
-    }
+  test("feature footprint steps down as real facial anatomy gains enough pixels", () => {
+    const glyph = deriveShading(32, 64, 0.1, DEFAULT_STYLE, 1);
+    const compact = deriveShading(96, 192, 0.05, DEFAULT_STYLE, 1);
+    const display = deriveShading(320, 640, 0.02, DEFAULT_STYLE, 1);
+    expect(glyph.featureEmphasis).toBeGreaterThan(compact.featureEmphasis);
+    expect(compact.featureEmphasis).toBeGreaterThan(display.featureEmphasis);
+    expect(display.featureEmphasis).toBe(1);
   });
 
   test("feature emphasis still responds to the knob when a caller opts in", () => {
     const boosted = { ...DEFAULT_STYLE, featureBoost: 0.5 };
     const tiny = deriveShading(20, 20, 0.05, boosted, 1).featureEmphasis;
+    const tinyDefault = deriveShading(20, 20, 0.05, DEFAULT_STYLE, 1).featureEmphasis;
     const large = deriveShading(256, 256, 0.05, boosted, 1).featureEmphasis;
-    expect(tiny).toBeGreaterThan(large);
+    expect(tiny).toBeGreaterThan(tinyDefault);
     expect(large).toBeCloseTo(1, 5);
   });
 
@@ -122,6 +125,9 @@ describe("shading derivation", () => {
     expect(resolveTier(GLYPH_MAX_SIZE + 1).name).toBe("compact");
     expect(resolveTier(COMPACT_MAX_SIZE).name).toBe("compact");
     expect(resolveTier(COMPACT_MAX_SIZE + 1).name).toBe("display");
+    expect(resolveTier(48).name).toBe("glyph");
+    expect(resolveTier(96).name).toBe("compact");
+    expect(resolveTier(320).name).toBe("display");
   });
 
   test("display anatomy relies on light rather than painted feature holes", () => {
@@ -163,5 +169,13 @@ describe("shading derivation", () => {
     expect(depthFadeOf(2, 1, 2)).toBe(1);
     expect(depthFadeOf(-2, 1, 2)).toBe(0);
     expect(depthFadeOf(0, 0, 0.5)).toBe(1);
+  });
+
+  test("sculpt contrast preserves highlights and deepens facial midtones", () => {
+    expect(sculptShade(1)).toBe(1);
+    expect(sculptShade(0.5)).toBeLessThan(0.5);
+    expect(sculptShade(0)).toBe(0);
+    expect(sculptShade(-1)).toBe(0);
+    expect(sculptShade(2)).toBe(1);
   });
 });

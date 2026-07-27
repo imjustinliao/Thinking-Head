@@ -140,8 +140,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_baseRadius",
     "u_featureEmphasis",
     "u_glyphMode",
-    "u_glyphSkinRadius",
-    "u_glyphSkinAlpha",
+    "u_skinRadius",
     "u_lighting",
     "u_albedoFlatten",
     "u_backfaceDim",
@@ -441,8 +440,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_baseRadius, shading.baseRadius);
     gl.uniform1f(u.u_featureEmphasis, shading.featureEmphasis);
     gl.uniform1f(u.u_glyphMode, shading.glyphMode ? 1 : 0);
-    gl.uniform1f(u.u_glyphSkinRadius, shading.glyphSkinRadius);
-    gl.uniform1f(u.u_glyphSkinAlpha, shading.glyphSkinAlpha);
+    gl.uniform1f(u.u_skinRadius, shading.skinRadius);
     gl.uniform1f(u.u_lighting, shading.lighting);
     gl.uniform1f(u.u_albedoFlatten, shading.albedoFlatten);
     gl.uniform1f(u.u_backfaceDim, style.backfaceDim);
