@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Baked human-surface replacement ready for visual review.** Website redesign remains queued for later |
-| **Last implementation commit** | `13d3a15` — v8.0 - Replace procedural atlas with baked human surface |
+| **Step** | **Dense facial-definition checkpoint ready for visual review; expression tuning has begun.** Website redesign remains queued for later |
+| **Last implementation commit** | `dcbaaa0` — v8.2 - Clarify facial features with dense sculptural rendering |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's browser review of the new neutral human surface |
+| **Blocked on** | Justin's review of v8.2 before the next one-state expression tuning pass |
 
 ---
 
@@ -516,8 +516,31 @@ radial atlas and Cartesian voxel pipeline are now removed rather than tuned agai
 - The offline bake reproduced byte-identical output. Browser logs contain no warning or error;
   116 tests, typecheck, lint and build pass.
 
-This is **ready for Justin's visual review, not yet visually approved**. Named-expression work
-remains paused until the neutral human surface is accepted.
+At that checkpoint this was **ready for Justin's visual review, not yet visually approved**, and
+named-expression work remained paused until Justin reopened tuning at v8.2.
+
+### Dense facial definition and first expression-rig correction (v8.2)
+
+Justin found the v8.0 mid-face difficult to read: the eyelid openings exposed empty space and
+low ambient light made valid nose, eye and mouth samples appear as holes. He also explicitly
+approved beginning the tuning process.
+
+- Doubled the progressive maximum from 4,096 to 8,192 points while preserving deterministic LOD
+  prefixes and the existing tagged point-set contract.
+- Added paired anterior ocular surfaces behind the source body's eyelids. They are generated
+  deterministically by the baker and do not add a runtime asset or dependency.
+- Rebalanced the portrait material around a broad frontal key, weaker opposing fill, higher
+  occlusion floor and size-tiered albedo. Real surface lighting now defines the eyes, nose, lips
+  and jaw instead of dark regional paint creating false holes.
+- Began expression-region validation by separating eyeball points from eyelid deformation. Eye
+  opening now moves the lids while preserving the spherical ocular surface.
+- Compared Idle, Listening and Reading at large size and the default Thinking state at 48px in
+  the live WebGL renderer. Front and profile anatomy remain coherent; browser logs have no
+  warnings or errors.
+- The deterministic rebake matches byte-for-byte. All 120 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. The next tuning step is
+one named expression at a time, beginning with Listening, after review of this checkpoint.
 
 ### Local showcase redesign brief (requested 2026-07-26)
 
@@ -581,7 +604,7 @@ the local showcase redesign brief above supersedes it.
 
 ### Decisions locked in this session
 
-1. Geometry: **progressive 4,096-point human surface**, offline-baked from an explicitly CC0
+1. Geometry: **progressive 8,192-point human surface**, offline-baked from an explicitly CC0
    neutral base. The source mesh and topology do not ship; the runtime decodes compact quantised
    point data and derives LODs from deterministic prefixes. This supersedes the rejected quadric,
    radial-atlas and Cartesian-voxel routes while preserving zero runtime dependencies and the
@@ -599,16 +622,15 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v8.0 neutral at `http://localhost:5173`.** It is a complete anatomy-source
-   replacement, not another procedural correction. Do not resume named expressions until the
-   neutral base is approved.
-2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+1. **Justin reviews the v8.2 facial-definition checkpoint at `http://localhost:5173`.** Check the
+   large head's eyes, nasal bridge/tip, lips and jaw plus the default 48px Thinking sample.
+2. **Tune Listening as the first isolated named-expression pass.** Validate eye opening, alert
+   focus and head tilt at compact and large sizes before moving to Reading.
+3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-3. The React wrapper and the `./react` subpath export — currently `package.json` exports
+4. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-4. If v8.0 is approved, lock the baked neutral data and resume expression-region validation on
-   the new anatomy. The source mesh is already absent from the runtime path.
 5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
 6. Return to the local black/white showcase redesign when Justin supplies the next website

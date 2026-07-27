@@ -31,7 +31,7 @@ size continuum: glyph face (two eyes + mouth) at ≤32px, feature-emphasised at 
 fully sculpted shading at ≥96px. "Not uncanny" still holds — stylisation via the medium,
 not photorealism.
 
-- Small, dense, precise: dozens (inline) to ~4k (large view) tiny tightly-packed particles
+- Small, dense, precise: dozens (inline) to ~8k (large view) tiny tightly-packed particles
   forming a clean, recognisable head silhouette.
 - Compact by default — ~20–64px, used inline next to text, matching how loading
   indicators are sized in chat UIs.
@@ -118,7 +118,8 @@ photoreal-accurate human facial structure, matching dense voxel-head reference a
 rejected both the quadric head and the later radial-displacement atlas five times in total:
 neither carried coherent human eyelids, nasal anatomy, lips, jaw and cranial profile. After
 reviewing the first expression presets, Justin explicitly brought this dedicated pass forward
-on 2026-07-26. Pause further preset tuning until the replacement neutral head is approved.
+on 2026-07-26. On 2026-07-27 Justin approved beginning expression tuning alongside the remaining
+facial-definition review; tune one state at a time against the same anatomy.
 
 The honest constraint: an accurate human head is a *data* problem, not a tuning problem. The
 fifth rejection superseded the original-atlas decision. The replacement is a compact
@@ -126,23 +127,24 @@ fifth rejection superseded the original-atlas decision. The replacement is a com
 human base:
 
 - The input mesh supplies coherent anatomy once, offline. The runtime contains no mesh, topology
-  or UV data — only 4,096 quantised positions/normals plus ambient occlusion, embedded in
+  or UV data — only 8,192 quantised positions/normals plus ambient occlusion, embedded in
   TypeScript and decoded once.
 - A committed deterministic baker crops the head/neck, derives normals and face-centroid
   candidates, preserves sixteen anatomical landmarks, progressively farthest-point samples the
-  surface with extra facial density, bakes local occlusion and quantises the result.
+  surface with extra facial density, adds separate anterior ocular surfaces behind the eyelids,
+  bakes local occlusion and quantises the result.
 - Runtime LODs are prefixes of that progressive order. The renderer, motion system, expression
   rig and tagged point-set contract remain intact; global tuning scales one coherent identity.
 - The source asset explicitly declares CC0 in its header. No source mesh, binary model, runtime
   dependency, attribution requirement or network call ships. Provenance is recorded in
   `docs/research-notes.md`.
-- Approve the neutral head at front, three-quarter and profile views before expanding the region
-  rig or retuning any named expression.
+- Review the neutral head at front, three-quarter and profile views while retuning each named
+  expression in a separate, reviewable checkpoint.
 
-The baked surface is live at the v8.0 checkpoint and reads as human in browser checks, but it is
-not visually approved until Justin reviews it. The public marketing/demo website remains
-deferred. This facial pass is the active Phase 1 work because expressions cannot be judged
-honestly on an unapproved base anatomy.
+The denser, ocular-complete surface and key-plus-fill material are live at the v8.2 checkpoint.
+It reads as human in browser checks, but it is not visually approved until Justin reviews it.
+The public marketing/demo website remains deferred. Facial review and state-by-state expression
+tuning are the active Phase 1 work.
 
 ---
 
@@ -239,7 +241,7 @@ Approved by Justin 2026-07-24.
 | Particle primitive | **Instanced billboard quads**, single draw call | Point sprites cap at size 64 on Apple silicon (vs 512–2048 elsewhere) and clip on particle centre. Instancing costs 4× vertex invocations — negligible at our counts |
 | Animation | **Parametric deformation** evaluated analytically in the vertex shader | Baked morph targets can't do 10 states × arbitrary blend pairs, and would make custom states impossible without shipping a mesh baker |
 | Continuous motion | 4D simplex noise (position as spatial seed, time as 4th dim) + **incommensurate sinusoids** for deliberate rhythms | Neither has a start or end, so entry/exit at any moment is phase-safe and there is no perceptible loop point |
-| Geometry | **Progressive 4,096-point human surface**, offline-baked from an explicitly CC0 neutral base | Real anatomy replaces ceiling-limited procedural relief; only compact quantised point data ships, with deterministic LOD prefixes and the tagged rig contract unchanged |
+| Geometry | **Progressive 8,192-point human surface**, offline-baked from an explicitly CC0 neutral base | Real anatomy replaces ceiling-limited procedural relief; only compact quantised point data ships, with deterministic LOD prefixes and the tagged rig contract unchanged |
 | Language | TypeScript, strict | |
 | Package | Single package `thinking-head`, exports `.` (core) and `./react` (wrapper, React optional peer) | Framework-agnostic core with thin wrappers; keeps core testable in isolation |
 | Build | **Vite library mode**, ESM-only, declarations via `tsc -p tsconfig.build.json` | tsdown was the original choice but cannot be installed by current stable npm (10.9.8) — it trips an arborist peer-resolution bug (`Cannot read properties of null (reading 'edgesOut')`), which would hit every contributor on `npm install`. Vite is already required for the demo, so this removes a dependency rather than adding one |

@@ -344,9 +344,12 @@ The selected architecture separates anatomy authoring from runtime rendering:
 6. At runtime, decode once and construct each LOD from a prefix. Region tags and rig weights are
    derived after global proportion scaling, so the Phase 2 point-set contract is unchanged.
 
-The maximum level is 4,096 particles. Lower levels preserve the same identity because they are
-prefixes rather than independently resampled surfaces. The source mesh, its topology and the
-baking toolchain are absent from consumer execution; rendering remains completely client-side.
+The maximum level is 8,192 particles. Lower levels preserve the same identity because they are
+prefixes rather than independently resampled surfaces. Separate deterministic anterior ocular
+patches close the source body's eyelid openings without shipping another asset. A broad frontal
+key plus weaker opposing fill reveals the dense mid-face without turning valid shadowed samples
+into apparent holes. The source mesh, its topology and the baking toolchain are absent from
+consumer execution; rendering remains completely client-side.
 
 ## 13. Open questions carried into the architecture proposal
 
