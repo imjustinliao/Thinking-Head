@@ -53,7 +53,7 @@ uniform vec3 u_light;
 uniform float u_ambient;
 uniform float u_occlusionFloor;
 
-// Continuous motion. Amplitudes are in lattice cell units.
+// Continuous motion. Amplitudes are in nominal particle-spacing units.
 uniform float u_time;
 uniform float u_cellSize;
 uniform float u_breathAmplitude;

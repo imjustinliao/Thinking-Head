@@ -7,8 +7,8 @@
  * once against that topology, server-side and offline, and reused for every user. This format
  * therefore does not need to change to support personalised heads.
  *
- * Particles sit on a regular lattice — see voxel.ts for why that rather than blue noise. Order
- * is not significant; density is chosen by picking a lattice resolution, not by truncating.
+ * The neutral head uses an even progressive surface sampling. Order is significant: each prefix
+ * is a complete lower-density head, so density changes never swap to a different identity.
  */
 export interface HeadPointSet {
   /** Rest position per particle, xyz interleaved. Length `3 * count`. */
@@ -36,11 +36,11 @@ export interface HeadPointSet {
   occlusion: Float32Array;
   count: number;
   /**
-   * Object-space edge length of one lattice cell. The renderer sizes particles to tile this, so
-   * the grid reads as a contiguous voxel surface rather than scattered dots.
+   * Nominal object-space particle spacing at this level. Motion amplitudes and rendered particle
+   * size derive from it, so the visible grain remains stable across sizes.
    */
   cellSize: number;
-  /** Lattice resolution this level was built at. */
+  /** Nominal particles across the head at this level. */
   resolution: number;
   /** Axis-aligned half-extents of the actual generated points. */
   bounds: { x: number; y: number; z: number };

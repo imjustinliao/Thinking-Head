@@ -26,8 +26,8 @@ export const DEFAULT_CAMERA: Camera = {
 };
 
 /**
- * Square reads as a voxel surface — neighbouring cells meet edge to edge and the lattice becomes
- * visible as structure. Round particles always read as scattered dots however densely packed.
+ * Square produces the compact voxel/tile medium in the reference direction; disc produces a
+ * softer point-cloud treatment over the same anatomy.
  */
 export type ParticleShape = "square" | "disc";
 
@@ -78,7 +78,7 @@ export interface RenderFrame {
   motion: MotionParams;
   /** Facial deformation parameters for the current state or manual preview. */
   expression: ExpressionParams;
-  /** How many particles of the progressive ordering to draw. */
+  /** How many particles of the progressive surface ordering to draw. */
   count: number;
   camera: Camera;
   style: RenderStyle;

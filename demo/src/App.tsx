@@ -110,7 +110,7 @@ export function App() {
       value: String(model.level(model.levelForSize(size * 2, targetCellCss).resolution).count),
       label: `particles at ${size}px`,
     },
-    { value: String(model.levelForSize(size * 2, targetCellCss).resolution), label: "lattice" },
+    { value: String(model.levelForSize(size * 2, targetCellCss).resolution), label: "sampling" },
     {
       value: backend === "webgl2" ? "WebGL2" : backend === "canvas2d" ? "2D" : "—",
       label: "backend",

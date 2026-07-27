@@ -30,28 +30,6 @@ export const REGION_NAMES = Object.keys(REGION) as RegionName[];
 export const REGION_COUNT = REGION_NAMES.length;
 
 /**
- * Per-region sampling priority. These divide a particle's elimination weight, so a higher
- * number means the region resists elimination and therefore lands earlier in the progressive
- * ordering.
- *
- * That ordering is the whole legibility mechanism: at 20px only the first ~56 particles are
- * drawn, and this table is what guarantees those are eyes, brows and mouth rather than an
- * evenly-spread fog with no face in it. Cranium and cheeks are cheap to lose because the
- * silhouette already implies them.
- */
-export const REGION_PRIORITY: Record<RegionName, number> = {
-  eyeL: 6,
-  eyeR: 6,
-  browL: 4,
-  browR: 4,
-  mouth: 3.5,
-  nose: 2.2,
-  jaw: 1.4,
-  cheek: 0.8,
-  cranium: 0.7,
-};
-
-/**
  * Per-region albedo — how reflective the material is, not how bright to paint it.
  *
  * Features are *darker* than skin, which is how a real face works: eyes sit in shadowed sockets,
@@ -99,15 +77,6 @@ export const REGION_DRAW_SCALE: Record<RegionName, number> = {
 
 /** Regions that carry expression. Used by tests to assert small-size legibility. */
 export const FEATURE_REGIONS: RegionName[] = ["browL", "browR", "eyeL", "eyeR", "mouth"];
-
-const PRIORITY_BY_ID = new Float64Array(REGION_COUNT);
-for (const name of REGION_NAMES) {
-  PRIORITY_BY_ID[REGION[name]] = REGION_PRIORITY[name];
-}
-
-export function priorityOf(region: number): number {
-  return PRIORITY_BY_ID[region] ?? 1;
-}
 
 const INTENSITY_BY_ID = new Float32Array(REGION_COUNT);
 for (const name of REGION_NAMES) {

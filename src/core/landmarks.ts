@@ -1,14 +1,12 @@
+import { classifyRegion, type HeadParams } from "./head.js";
 import { REGION, type RegionId } from "./regions.js";
-import { classifyRegion, type HeadParams } from "./sdf.js";
 
 /**
- * Facial feature anchors, used to tag lattice cells with expression regions.
+ * Facial feature anchors, used to tag sampled surface points with expression regions.
  *
- * Features are no longer separate particles placed on top of the surface. On a lattice that
- * would break the one rule the whole render model rests on — every particle the same size, on
- * the same grid — because extra points would sit between cells at their own spacing. Instead the
- * anchors *classify* cells that already exist: a cell near the eye centre simply becomes an eye
- * cell. Spacing stays uniform, and the rig still gets its region handles.
+ * Features are not separate particles placed on top of the surface. The anchors classify points
+ * already selected from real anatomy, so expressions retain local handles without changing the
+ * neutral silhouette or creating a second synthetic face layer.
  */
 export interface FeatureParams {
   /** Horizontal distance from centreline to eye centre. */
@@ -34,25 +32,25 @@ export interface FeatureParams {
 }
 
 export const DEFAULT_FEATURE_PARAMS: FeatureParams = {
-  eyeSpread: 0.2,
-  eyeHeight: 0.025,
-  eyeRadius: 0.075,
+  eyeSpread: 0.195,
+  eyeHeight: 0.18,
+  eyeRadius: 0.085,
 
-  browHeight: 0.14,
-  browWidth: 0.13,
-  browArc: 0.035,
-  browThickness: 0.025,
+  browHeight: 0.25,
+  browWidth: 0.15,
+  browArc: 0.025,
+  browThickness: 0.035,
 
-  mouthHeight: -0.36,
-  mouthWidth: 0.18,
-  mouthCurve: 0.022,
-  mouthThickness: 0.045,
+  mouthHeight: -0.18,
+  mouthWidth: 0.2,
+  mouthCurve: 0.018,
+  mouthThickness: 0.06,
 
-  faceDepth: 0.07,
+  faceDepth: 0.35,
 };
 
 /**
- * Region tag for one lattice cell. Feature anchors take precedence over structural
+ * Region tag for one surface point. Feature anchors take precedence over structural
  * classification, and only apply on the front of the head.
  */
 export function regionOfCell(
@@ -93,7 +91,7 @@ export function regionOfCell(
 }
 
 /**
- * Falloff toward the centre of a cell's region, 1 at the core. Drives rig influence, so a
+ * Falloff toward the centre of a point's region, 1 at the core. Drives rig influence, so a
  * deformation can taper rather than move a region as a rigid block.
  */
 export function weightOfCell(x: number, y: number, region: RegionId, f: FeatureParams): number {

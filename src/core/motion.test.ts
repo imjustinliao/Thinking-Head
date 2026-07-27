@@ -95,7 +95,7 @@ describe("continuous motion", () => {
 });
 
 describe("brightness shimmer", () => {
-  // Regression guard for a real bug: positional amplitudes are in lattice-cell units, and the
+  // Regression guard for a real bug: positional amplitudes are in particle-spacing units, and the
   // LOD system holds a cell to a near-constant on-screen size (~1.6px). That makes even a
   // generous positional amplitude a sub-pixel wobble at small and mid sizes — invisible in
   // practice, which is exactly what a first render of `idle` showed. Brightness has no such
@@ -534,7 +534,7 @@ describe("generating state", () => {
 
     // Positive mean is the difference between emitted energy and an ordinary centred wobble.
     expect(sum / samples).toBeGreaterThan(0.15);
-    // Still stays within roughly one lattice cell, so the voxel shell never tears apart.
+    // Still stays within roughly one particle spacing, so the sampled surface never tears apart.
     expect(peak).toBeLessThan(1.5);
   });
 

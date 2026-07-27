@@ -7,14 +7,14 @@ import type { RenderStyle } from "./types.js";
  * from the GPU path.
  *
  * The governing principle (Justin's direction, 2026-07-24): **a particle is always the same
- * size**. A bigger head is not bigger particles — it is *more* particles. Particles tile a
- * lattice cell, and the LOD chooser keeps a cell near a fixed on-screen size, so growing the
- * head selects a finer lattice rather than inflating what is already there.
+ * size**. A bigger head is not bigger particles — it is *more* particles. The LOD chooser keeps
+ * nominal surface spacing near a fixed on-screen size, so growing the head selects a denser
+ * prefix rather than inflating what is already there.
  *
  * Two earlier models failed this. Deriving radius from particle *spacing* inverted it outright —
  * fewer particles meant fatter ones, so a 32px head rendered as a handful of blobs. A fixed CSS
- * radius over scattered points fixed the size but left the surface as unaligned stipple, which
- * cannot produce the contiguous, grid-aligned voxel surface the design calls for.
+ * radius over a poorly distributed procedural cloud fixed the size but left the face as
+ * unstructured stipple. The current points are sampled from coherent human anatomy.
  */
 
 /** Fixed key light in view space: upper-front-left, the default portrait key. */
@@ -33,16 +33,14 @@ export const AMBIENT = 0.1;
 export const OCCLUSION_FLOOR = 0.08;
 
 /**
- * On-screen edge length, in CSS pixels, that one lattice cell should occupy. The LOD level is
- * chosen to land near this, which is what holds particle size constant while the head's rendered
- * size changes — a bigger head is a finer lattice, not bigger particles.
+ * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy. The LOD
+ * level is chosen to land near this, which holds particle size stable while the head grows.
  */
 export const TARGET_CELL_CSS = 1.6;
 
 /**
- * Fraction of its cell a particle fills. Slightly under 1 leaves a hairline between neighbours,
- * which is what makes the grid legible *as* a grid; at 1.0 the surface fuses into a solid mass
- * and the voxel character disappears.
+ * Fraction of nominal spacing a particle fills. Slightly under 1 keeps the human surface
+ * visibly particulate; at 1.0 nearby tiles fuse into a solid mask.
  */
 export const CELL_FILL = 0.82;
 
@@ -66,7 +64,7 @@ export interface SizeTier {
   cullFarSide: boolean;
   /** How much of the camera's yaw/pitch to apply; a small head reads best near face-on. */
   poseScale: number;
-  /** Minimum lattice resolution, so the smallest heads still resolve a face. */
+  /** Minimum surface resolution, so the smallest heads still resolve a face. */
   minResolution: number;
 }
 
@@ -106,8 +104,8 @@ export function resolveTier(cssSize: number): SizeTier {
 }
 
 /**
- * Lattice resolution for a rendered size: enough cells that each lands near TARGET_CELL_CSS on
- * screen, floored by the tier so a tiny head still resolves eyes and a mouth.
+ * Surface resolution for a rendered size: enough points that spacing lands near TARGET_CELL_CSS,
+ * floored by the tier so a tiny head still resolves eyes and a mouth.
  */
 export function resolutionForSize(cssSize: number, targetCellCss = TARGET_CELL_CSS): number {
   const tier = resolveTier(cssSize);
@@ -136,10 +134,8 @@ export function deriveShading(
 ): DerivedShading {
   const tier = resolveTier(cssSize);
 
-  // Particles tile their lattice cell. Because the LOD chooser keeps a cell near a fixed
-  // on-screen size, this is constant in practice — but it is derived from the geometry rather
-  // than asserted, so a mismatched level degrades into slightly larger or smaller cubes instead
-  // of tearing the surface open.
+  // Particle radius follows nominal surface spacing. Because the LOD chooser keeps that spacing
+  // near a fixed on-screen size, this is constant in practice.
   const cellsAcross = worldRadius > 0 ? (2 * worldRadius) / Math.max(cellSize, 1e-6) : 1;
   const cellPx = devicePixels / Math.max(cellsAcross, 1);
   const baseRadius = Math.max(0.35, cellPx * 0.5 * CELL_FILL * style.particleScale);

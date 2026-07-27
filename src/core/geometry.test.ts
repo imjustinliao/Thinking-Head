@@ -1,38 +1,33 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import { generateHeadLevel, HeadModel, LEVEL_RESOLUTIONS } from "./geometry.js";
+import { DEFAULT_HEAD_PARAMS } from "./head.js";
 import type { HeadPointSet } from "./pointset.js";
 import { validatePointSet } from "./pointset.js";
 import { FEATURE_REGIONS, REGION, REGION_NAMES } from "./regions.js";
-import { headBounds, DEFAULT_HEAD_PARAMS as P, sdHead } from "./sdf.js";
 
 let head: HeadPointSet;
 
 beforeAll(() => {
-  head = generateHeadLevel({ resolution: 48 });
+  head = generateHeadLevel({ resolution: 96 });
 });
 
 describe("point set format", () => {
   test("satisfies the array-length invariants", () => {
     expect(() => validatePointSet(head)).not.toThrow();
-    expect(head.count).toBeGreaterThan(1000);
+    expect(head.count).toBeGreaterThan(2000);
   });
 
   test("normals are unit length", () => {
     for (let i = 0; i < head.count; i++) {
       const len = Math.hypot(head.normals[i * 3], head.normals[i * 3 + 1], head.normals[i * 3 + 2]);
-      expect(len).toBeCloseTo(1, 3);
+      expect(len).toBeCloseTo(1, 4);
     }
   });
 
-  test("region tags are all known values", () => {
-    const valid = new Set<number>(REGION_NAMES.map((n) => REGION[n]));
+  test("region tags are known and weights and occlusion stay bounded", () => {
+    const valid = new Set<number>(REGION_NAMES.map((name) => REGION[name]));
     for (let i = 0; i < head.count; i++) {
       expect(valid).toContain(head.regionId[i]);
-    }
-  });
-
-  test("weights and occlusion are within the unit range", () => {
-    for (let i = 0; i < head.count; i++) {
       expect(head.weight[i]).toBeGreaterThan(0);
       expect(head.weight[i]).toBeLessThanOrEqual(1);
       expect(head.occlusion[i]).toBeGreaterThanOrEqual(0);
@@ -41,105 +36,82 @@ describe("point set format", () => {
   });
 });
 
-describe("lattice structure", () => {
-  // The defining property of the new model: particles sit on a regular grid. This is what makes
-  // every particle the same size a property of the data rather than a convention, and it is what
-  // produces the contiguous voxel surface instead of scattered stipple.
-  test("every particle sits on a regular lattice", () => {
-    const { cellSize } = head;
-    expect(cellSize).toBeGreaterThan(0);
+describe("human anatomy", () => {
+  test("the neutral surface has adult head proportions and a projecting nose", () => {
+    const full = generateHeadLevel({ resolution: 136 });
+    expect(full.bounds.y / full.bounds.x).toBeGreaterThan(1.35);
+    expect(full.bounds.y / full.bounds.x).toBeLessThan(1.55);
 
-    // Cell centres are offset by half a cell from the domain edge, so position/cellSize should
-    // land on a half-integer everywhere, on all three axes.
-    for (let i = 0; i < head.count; i++) {
-      for (let axis = 0; axis < 3; axis++) {
-        const coord = head.positions[i * 3 + axis];
-        const cells = coord / cellSize;
-        const frac = Math.abs(cells - Math.round(cells));
-        expect(Math.abs(frac - 0.5)).toBeLessThan(1e-3);
+    let nasalTip = Number.NEGATIVE_INFINITY;
+    let cheekPlane = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < full.count; i++) {
+      const x = full.positions[i * 3];
+      const y = full.positions[i * 3 + 1];
+      const z = full.positions[i * 3 + 2];
+      if (Math.abs(x) < 0.07 && y > -0.08 && y < 0.15) nasalTip = Math.max(nasalTip, z);
+      if (Math.abs(x) > 0.24 && Math.abs(x) < 0.4 && y > -0.08 && y < 0.16) {
+        cheekPlane = Math.max(cheekPlane, z);
       }
     }
+    expect(nasalTip - cheekPlane).toBeGreaterThan(0.18);
   });
 
-  test("no two particles occupy the same cell", () => {
-    const seen = new Set<string>();
-    const { cellSize } = head;
-    for (let i = 0; i < head.count; i++) {
-      // Keyed in half-cell units. Cell centres sit exactly on half-cell boundaries, so dividing
-      // by cellSize alone lands on .5 where rounding is ambiguous and distinct cells can collide.
-      const key = [0, 1, 2]
-        .map((a) => Math.round((2 * head.positions[i * 3 + a]) / cellSize))
-        .join(",");
-      expect(seen.has(key)).toBe(false);
-      seen.add(key);
+  test("the surface includes paired ears and a neck rather than an isolated mask", () => {
+    const full = generateHeadLevel({ resolution: 136 });
+    let leftEar = 0;
+    let rightEar = 0;
+    let neck = 0;
+    for (let i = 0; i < full.count; i++) {
+      const x = full.positions[i * 3];
+      const y = full.positions[i * 3 + 1];
+      if (x > 0.46 && y > -0.08 && y < 0.22) leftEar++;
+      if (x < -0.46 && y > -0.08 && y < 0.22) rightEar++;
+      if (Math.abs(x) < 0.28 && y < -0.62) neck++;
     }
+    expect(leftEar).toBeGreaterThan(8);
+    expect(rightEar).toBeGreaterThan(8);
+    expect(neck).toBeGreaterThan(20);
   });
 
-  test("every cell is close enough to the surface to contain it", () => {
-    for (let i = 0; i < head.count; i++) {
-      const x = head.positions[i * 3];
-      const y = head.positions[i * 3 + 1];
-      const z = head.positions[i * 3 + 2];
-      const centreDistance = Math.abs(sdHead(x, y, z, P));
-      let minDistance = Number.POSITIVE_INFINITY;
-      let maxDistance = Number.NEGATIVE_INFINITY;
-
-      for (let dx = -0.5; dx <= 0.5; dx++) {
-        for (let dy = -0.5; dy <= 0.5; dy++) {
-          for (let dz = -0.5; dz <= 0.5; dz++) {
-            const distance = sdHead(
-              x + dx * head.cellSize,
-              y + dy * head.cellSize,
-              z + dz * head.cellSize,
-              P,
-            );
-            minDistance = Math.min(minDistance, distance);
-            maxDistance = Math.max(maxDistance, distance);
-          }
-        }
-      }
-
-      // A high-curvature landmark can enter and leave one cell without separating its corners.
-      // The sampler still placed a surface point inside that cell, so proximity within the cell's
-      // half-diagonal is the correct fallback instead of requiring a corner sign change.
-      const halfDiagonal = (head.cellSize * Math.sqrt(3)) / 2;
-      const crossesCorners = minDistance <= 0 && maxDistance >= 0;
-      expect(
-        crossesCorners || centreDistance <= halfDiagonal,
-        `cell ${i} misses the surface; centre distance ${centreDistance}`,
-      ).toBe(true);
-    }
-  });
-
-  test("the lattice forms a hollow shell, not a solid volume", () => {
-    // A solid fill would scale with the cube of resolution and swamp the GPU. Surface-only
-    // voxelisation scales with the square, so the count must sit far below the volume bound.
-    const solid = head.resolution ** 3;
-    expect(head.count).toBeLessThan(solid * 0.05);
+  test("global controls scale one coherent surface", () => {
+    const base = generateHeadLevel({ resolution: 68 });
+    const changed = generateHeadLevel({
+      resolution: 68,
+      head: {
+        ...DEFAULT_HEAD_PARAMS,
+        width: DEFAULT_HEAD_PARAMS.width * 1.12,
+        frontDepth: DEFAULT_HEAD_PARAMS.frontDepth * 0.9,
+      },
+    });
+    expect(changed.bounds.x / base.bounds.x).toBeCloseTo(1.12, 2);
+    expect(changed.bounds.z).toBeLessThan(base.bounds.z);
   });
 });
 
-describe("levels of detail", () => {
-  test("finer levels have smaller cells and more particles", () => {
+describe("progressive levels of detail", () => {
+  test("finer levels have smaller nominal spacing and more particles", () => {
     const coarse = generateHeadLevel({ resolution: 24 });
     const fine = generateHeadLevel({ resolution: 48 });
     expect(fine.cellSize).toBeLessThan(coarse.cellSize);
     expect(fine.count).toBeGreaterThan(coarse.count);
   });
 
-  test("particle count grows with surface area, not volume", () => {
-    // Doubling resolution should roughly quadruple the count (area), not multiply it by eight.
+  test("particle count grows with surface area", () => {
     const coarse = generateHeadLevel({ resolution: 24 });
     const fine = generateHeadLevel({ resolution: 48 });
-    const ratio = fine.count / coarse.count;
-    expect(ratio).toBeGreaterThan(3);
-    expect(ratio).toBeLessThan(5.5);
+    expect(fine.count / coarse.count).toBeCloseTo(4, 1);
   });
 
-  test("cell size matches the domain divided by resolution", () => {
-    const b = headBounds(P);
-    const expected = (2 * Math.max(b.x, b.y, b.z)) / 48;
-    expect(head.cellSize).toBeCloseTo(expected, 6);
+  test("nominal spacing matches the measured diameter divided by resolution", () => {
+    expect(head.cellSize).toBeCloseTo((2 * head.radius) / head.resolution, 6);
+  });
+
+  test("the same identity is preserved by progressive prefixes", () => {
+    const coarse = generateHeadLevel({ resolution: 24 });
+    const fine = generateHeadLevel({ resolution: 48 });
+    expect(Array.from(fine.positions.slice(0, coarse.positions.length))).toEqual(
+      Array.from(coarse.positions),
+    );
   });
 
   test("the model caches levels rather than rebuilding them", () => {
@@ -150,22 +122,18 @@ describe("levels of detail", () => {
     expect(model.builtLevels).toEqual([24]);
   });
 
-  test("level selection tracks rendered size and only builds what is shown", () => {
+  test("level selection tracks rendered size and builds only what is shown", () => {
     const model = new HeadModel();
     const small = model.levelForSize(40);
     const large = model.levelForSize(320);
     expect(large.resolution).toBeGreaterThan(small.resolution);
-    // Lazy: a page showing two sizes must not have built all eight levels.
     expect(model.builtLevels.length).toBeLessThan(LEVEL_RESOLUTIONS.length);
   });
 
   test("level selection honours a visual tier's landmark floor", () => {
     const model = new HeadModel();
-    // At DPR 1, pure density selects resolution 12 for a 16px head. The glyph tier floors that
-    // above 12 because the coarsest lattice contains eyes but no mouth.
     const glyph = model.levelForSize(16, 1.6, 14);
     const present = new Set<number>(glyph.regionId);
-
     expect(glyph.resolution).toBeGreaterThanOrEqual(14);
     expect(present).toContain(REGION.eyeL);
     expect(present).toContain(REGION.eyeR);
@@ -173,36 +141,31 @@ describe("levels of detail", () => {
   });
 });
 
-describe("determinism", () => {
+describe("determinism and facial regions", () => {
   test("the same parameters reproduce byte-identical geometry", () => {
-    const a = generateHeadLevel({ resolution: 24 });
-    const b = generateHeadLevel({ resolution: 24 });
-    expect(a.count).toBe(b.count);
+    const a = generateHeadLevel({ resolution: 48 });
+    const b = generateHeadLevel({ resolution: 48 });
     expect(Array.from(a.positions)).toEqual(Array.from(b.positions));
+    expect(Array.from(a.normals)).toEqual(Array.from(b.normals));
     expect(Array.from(a.regionId)).toEqual(Array.from(b.regionId));
   });
-});
 
-describe("facial features", () => {
-  test("every expressive region is present on the lattice", () => {
-    const present = new Set<number>();
-    for (let i = 0; i < head.count; i++) present.add(head.regionId[i]);
+  test("every expressive region is present on the sampled anatomy", () => {
+    const present = new Set<number>(head.regionId);
     for (const name of FEATURE_REGIONS) {
-      expect(present, `expected ${name} cells`).toContain(REGION[name]);
+      expect(present, `expected ${name} points`).toContain(REGION[name]);
     }
   });
 
-  test("features survive down to the coarsest usable level", () => {
-    // A glyph-sized head still has to show two eyes and a mouth.
+  test("facial landmarks survive at glyph density", () => {
     const coarse = generateHeadLevel({ resolution: 16 });
-    const present = new Set<number>();
-    for (let i = 0; i < coarse.count; i++) present.add(coarse.regionId[i]);
+    const present = new Set<number>(coarse.regionId);
     expect(present).toContain(REGION.eyeL);
     expect(present).toContain(REGION.eyeR);
     expect(present).toContain(REGION.mouth);
   });
 
-  test("eye cells sit on the front of the head and are left/right symmetric in count", () => {
+  test("eye points sit on the face with balanced left and right populations", () => {
     let left = 0;
     let right = 0;
     for (let i = 0; i < head.count; i++) {
@@ -215,8 +178,8 @@ describe("facial features", () => {
         expect(head.positions[i * 3]).toBeLessThan(0);
       }
     }
-    expect(left).toBeGreaterThan(4);
-    // The lattice is symmetric about x, so the two eyes should populate near-equally.
+    expect(left).toBeGreaterThan(20);
+    expect(right).toBeGreaterThan(20);
     expect(Math.abs(left - right) / Math.max(left, right)).toBeLessThan(0.25);
   });
 });

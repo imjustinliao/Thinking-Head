@@ -48,7 +48,7 @@ describe("shading derivation", () => {
   });
 
   test("every particle is the same size by default, at every size", () => {
-    // The governing rule: a bigger head is a finer lattice, never bigger particles.
+    // The governing rule: a bigger head is a denser surface, never bigger particles.
     for (const px of [20, 32, 64, 128, 256]) {
       expect(deriveShading(px, px, 0.05, DEFAULT_STYLE, 1).featureEmphasis).toBe(1);
     }
@@ -63,7 +63,7 @@ describe("shading derivation", () => {
   });
 
   test("particle size holds constant on screen as the head grows", () => {
-    // The lattice gets finer in proportion to the head, so a cell keeps the same pixel size.
+    // Surface spacing gets finer in proportion to the head, keeping pixel size stable.
     // This is the regression guard for the two failed models: radius-from-spacing (which made
     // sparse heads grow fat blobs) and a fixed CSS radius (which left the grid non-contiguous).
     const small = deriveShading(64, 64, 2 / 40, DEFAULT_STYLE, 1).baseRadius;
@@ -80,13 +80,13 @@ describe("shading derivation", () => {
     expect(shading.baseRadius * 2).toBeLessThan(cellPx);
   });
 
-  test("particle size tracks device pixel ratio for the same lattice", () => {
+  test("particle size tracks device pixel ratio for the same surface level", () => {
     const dpr1 = deriveShading(64, 64, 0.05, DEFAULT_STYLE, 1).baseRadius;
     const dpr2 = deriveShading(64, 128, 0.05, DEFAULT_STYLE, 1).baseRadius;
     expect(dpr2).toBeCloseTo(dpr1 * 2, 5);
   });
 
-  test("lattice resolution scales linearly with rendered size", () => {
+  test("surface resolution scales linearly with rendered size", () => {
     // Linear in size means quadratic in particle count, which is surface area — the right law.
     const at64 = resolutionForSize(64, 2);
     const at128 = resolutionForSize(128, 2);

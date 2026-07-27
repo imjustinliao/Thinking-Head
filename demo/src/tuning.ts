@@ -16,7 +16,7 @@ import {
  * rather than hand-written per control.
  */
 export interface SamplingConfig {
-  /** On-screen size one lattice cell should occupy, in CSS px. Lower is finer. */
+  /** On-screen particle spacing in CSS px. Lower is finer. */
   targetCellCss: number;
 }
 
@@ -73,7 +73,6 @@ export const HEAD_FIELDS: Field<HeadParams>[] = [
   { key: "height", label: "head height", min: 0.6, max: 1, step: 0.005 },
   { key: "frontDepth", label: "facial depth", min: 0.35, max: 0.75, step: 0.005 },
   { key: "backDepth", label: "cranial depth", min: 0.45, max: 0.9, step: 0.005 },
-  { key: "relief", label: "anatomical relief", min: 0, max: 1.5, step: 0.02 },
 ];
 
 export const FEATURE_FIELDS: Field<FeatureParams>[] = [
@@ -92,7 +91,7 @@ export const FEATURE_FIELDS: Field<FeatureParams>[] = [
 ];
 
 export const SAMPLING_FIELDS: Field<SamplingConfig>[] = [
-  { key: "targetCellCss", label: "cell size (px)", min: 1, max: 5, step: 0.1 },
+  { key: "targetCellCss", label: "particle spacing (px)", min: 1, max: 5, step: 0.1 },
 ];
 
 export const CAMERA_FIELDS: Field<Camera>[] = [

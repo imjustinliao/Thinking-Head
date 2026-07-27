@@ -15,8 +15,8 @@ import type { ThinkingHeadState } from "./states.js";
  * ripples as a body. Seeding phase from a per-particle random value instead would give every
  * particle an independent wobble, which reads as noise no matter how small the amplitude.
  *
- * Amplitudes are in **lattice cell units**, so motion is the same visual magnitude at every
- * level of detail. In world units a one-unit wobble would be invisible on a fine lattice and
+ * Amplitudes are in **nominal particle-spacing units**, so motion is the same visual magnitude
+ * at every level of detail. In world units a one-unit wobble would be invisible on a fine sample and
  * violent on a coarse one.
  */
 export interface MotionParams {
@@ -45,7 +45,7 @@ export interface MotionParams {
    * means the lit/dim swing is up to ±22%).
    *
    * This carries "alive" perception at small and mid sizes, where positional displacement
-   * cannot: amplitude there is in lattice-cell units, and the LOD system holds a cell to
+   * cannot: amplitude there is in particle-spacing units, and the LOD system holds spacing to
    * roughly a constant on-screen size (~1.6px), so even a generous positional amplitude is a
    * sub-pixel wobble — invisible regardless of tuning, short of moving particles out of their
    * tiled cells and breaking the voxel grid. A brightness ripple has no such floor: it reads at
@@ -411,7 +411,7 @@ export const SEARCHING_MOTION: MotionParams = {
  * pulse, but the sum remains analytic and continuous — mechanical character without a keyframe
  * tick or a discontinuity.
  *
- * Fine, fast positional texture gives the lattice a controlled machine-like vibration at display
+ * Fine, fast positional texture gives the surface a controlled machine-like vibration at display
  * sizes. Its amplitude stays well below one cell so the voxel surface never tears apart.
  */
 export const EXECUTING_MOTION: MotionParams = {

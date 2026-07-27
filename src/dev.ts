@@ -36,6 +36,10 @@ export {
   LEVEL_RESOLUTIONS,
 } from "./core/geometry.js";
 export {
+  DEFAULT_HEAD_PARAMS,
+  type HeadParams,
+} from "./core/head.js";
+export {
   DEFAULT_FEATURE_PARAMS,
   type FeatureParams,
 } from "./core/landmarks.js";
@@ -90,8 +94,3 @@ export {
   type RenderFrame,
   type RenderStyle,
 } from "./core/render/types.js";
-export {
-  DEFAULT_HEAD_PARAMS,
-  type HeadParams,
-} from "./core/sdf.js";
-export { type VoxelLattice, voxelizeSurface } from "./core/voxel.js";

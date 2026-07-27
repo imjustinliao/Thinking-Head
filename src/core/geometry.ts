@@ -1,3 +1,5 @@
+import { CANONICAL_HEAD } from "./canonicalHead.js";
+import { DEFAULT_HEAD_PARAMS, type HeadParams } from "./head.js";
 import {
   DEFAULT_FEATURE_PARAMS,
   type FeatureParams,
@@ -6,36 +8,31 @@ import {
 } from "./landmarks.js";
 import type { HeadPointSet } from "./pointset.js";
 import { measureExtents, validatePointSet } from "./pointset.js";
-import { DEFAULT_HEAD_PARAMS, type HeadParams, sdHead } from "./sdf.js";
-import { voxelizeSurface } from "./voxel.js";
 
 /**
- * Head geometry as a set of level-of-detail lattices.
+ * The baked human surface as progressive levels of detail.
  *
- * One resolution cannot serve the whole size range. A lattice fine enough to sculpt a 320px head
- * is sub-pixel noise at 24px, and a lattice coarse enough to read at 24px is a handful of blocks
- * at 320px. So the head is generated at several resolutions and the renderer picks the one whose
- * cells land at the target on-screen size — the standard "resolution where it counts" answer,
- * and what keeps particle size constant on screen while the head's pixel size varies.
+ * One density cannot serve the whole size range. A point set dense enough to sculpt a 320px head
+ * is sub-pixel noise at 24px, while a sparse inline face lacks real anatomy at display size. The
+ * canonical data is ordered progressively, so each level is a prefix of the same human identity.
  *
- * Levels are generated lazily and cached: a page showing only inline heads never pays to build
- * the display-tier lattice.
+ * Levels are decoded, scaled and tagged lazily: a page showing only inline heads never allocates
+ * the full display surface.
  */
 export interface GenerateOptions {
   head: HeadParams;
   features: FeatureParams;
-  /** Lattice cells across the domain. Higher is finer. */
+  /** Nominal particles across the head. Higher is finer. */
   resolution: number;
 }
 
 /**
- * Available lattice resolutions, spaced by roughly 1.4×.
+ * Available surface resolutions, spaced by roughly 1.4×.
  *
- * Close spacing matters: the renderer sizes particles to tile their cell, so the gap between
- * neighbouring levels is the most a particle's on-screen size can drift. Wide steps would make
- * the grain visibly change as the head is resized.
+ * Close spacing limits how much the visible particle grain changes as the head is resized.
  */
 export const LEVEL_RESOLUTIONS = [12, 17, 24, 34, 48, 68, 96, 136] as const;
+const MAX_RESOLUTION = LEVEL_RESOLUTIONS[LEVEL_RESOLUTIONS.length - 1];
 
 export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
   head: DEFAULT_HEAD_PARAMS,
@@ -44,40 +41,54 @@ export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
 };
 
 /**
- * Builds one lattice level: voxelise, tag regions, bake occlusion.
+ * Builds one level by taking a progressive prefix, applying global proportions and tagging the
+ * expression regions. Occlusion was baked against the complete human surface offline.
  */
 export function generateHeadLevel(options: Partial<GenerateOptions> = {}): HeadPointSet {
   const opts: GenerateOptions = { ...DEFAULT_GENERATE_OPTIONS, ...options };
-  const lattice = voxelizeSurface(opts.head, opts.resolution);
-  const { positions, normals, count, cellSize } = lattice;
-
+  const resolution = Math.max(1, Math.round(opts.resolution));
+  const count = Math.max(
+    16,
+    Math.min(
+      CANONICAL_HEAD.count,
+      Math.round(CANONICAL_HEAD.count * (resolution / MAX_RESOLUTION) ** 2),
+    ),
+  );
+  const positions = new Float32Array(count * 3);
+  const normals = new Float32Array(count * 3);
   const regionId = new Uint8Array(count);
   const weight = new Float32Array(count);
-  const occlusion = new Float32Array(count);
-
-  // Occlusion probes scale with the cell so the shading reads the same at every resolution.
-  // Fixed world-space radii would make a fine lattice look flat and a coarse one look sooty.
-  const near = cellSize * 1.4;
-  const far = cellSize * 3.6;
+  const occlusion = CANONICAL_HEAD.occlusion.slice(0, count);
+  const scaleX = opts.head.width / DEFAULT_HEAD_PARAMS.width;
+  const scaleY = opts.head.height / DEFAULT_HEAD_PARAMS.height;
+  const scaleFront = opts.head.frontDepth / DEFAULT_HEAD_PARAMS.frontDepth;
+  const scaleBack = opts.head.backDepth / DEFAULT_HEAD_PARAMS.backDepth;
 
   for (let i = 0; i < count; i++) {
-    const x = positions[i * 3];
-    const y = positions[i * 3 + 1];
-    const z = positions[i * 3 + 2];
+    const offset = i * 3;
+    const sourceZ = CANONICAL_HEAD.positions[offset + 2];
+    const scaleZ = sourceZ >= 0 ? scaleFront : scaleBack;
+    const x = CANONICAL_HEAD.positions[offset] * scaleX;
+    const y = CANONICAL_HEAD.positions[offset + 1] * scaleY;
+    const z = sourceZ * scaleZ;
+    positions[offset] = x;
+    positions[offset + 1] = y;
+    positions[offset + 2] = z;
+
+    const nx = CANONICAL_HEAD.normals[offset] / scaleX;
+    const ny = CANONICAL_HEAD.normals[offset + 1] / scaleY;
+    const nz = CANONICAL_HEAD.normals[offset + 2] / scaleZ;
+    const normalLength = Math.hypot(nx, ny, nz) || 1;
+    normals[offset] = nx / normalLength;
+    normals[offset + 1] = ny / normalLength;
+    normals[offset + 2] = nz / normalLength;
+
     const region = regionOfCell(x, y, z, opts.head, opts.features);
     regionId[i] = region;
     weight[i] = weightOfCell(x, y, region, opts.features);
-
-    const nx = normals[i * 3];
-    const ny = normals[i * 3 + 1];
-    const nz = normals[i * 3 + 2];
-    // Two probes out along the normal. On open surface the distance grows with the step; inside
-    // a concavity, nearby geometry folds over and the probe reads short.
-    const dNear = sdHead(x + nx * near, y + ny * near, z + nz * near, opts.head) / near;
-    const dFar = sdHead(x + nx * far, y + ny * far, z + nz * far, opts.head) / far;
-    occlusion[i] = Math.max(0, Math.min(1, dNear)) * 0.55 + Math.max(0, Math.min(1, dFar)) * 0.45;
   }
 
+  const extents = measureExtents(positions, count);
   const set: HeadPointSet = {
     positions,
     normals,
@@ -85,9 +96,9 @@ export function generateHeadLevel(options: Partial<GenerateOptions> = {}): HeadP
     weight,
     occlusion,
     count,
-    cellSize,
-    resolution: opts.resolution,
-    ...measureExtents(positions, count),
+    cellSize: (2 * extents.radius) / resolution,
+    resolution,
+    ...extents,
   };
   validatePointSet(set);
   return set;
@@ -120,14 +131,13 @@ export class HeadModel {
   /**
    * Picks the level whose cells land closest to `targetCellPx` on screen, then builds it.
    *
-   * `headPx` is the rendered size in device pixels. A lattice spans the head's full domain, so
-   * a cell projects to roughly `headPx / resolution` pixels. `minResolution` lets a visual tier
-   * preserve the landmarks it needs even when pure pixel density would choose a coarser level.
+   * `headPx` is the rendered size in device pixels. `minResolution` lets a visual tier preserve
+   * the landmarks it needs even when pure pixel density would choose a coarser level.
    */
   levelForSize(headPx: number, targetCellPx = 3, minResolution = 0): HeadPointSet {
-    // If a future tier asks for more than the baked ladder provides, generate that exact floor
-    // instead of silently returning a level below the caller's legibility requirement.
-    let best: number = Math.max(LEVEL_RESOLUTIONS[LEVEL_RESOLUTIONS.length - 1], minResolution);
+    // A future tier may ask for more than the standard ladder. Generation clamps safely to the
+    // full baked surface while retaining the requested nominal spacing.
+    let best: number = Math.max(MAX_RESOLUTION, minResolution);
     let bestError = Number.POSITIVE_INFINITY;
     for (const resolution of LEVEL_RESOLUTIONS) {
       if (resolution < minResolution) continue;

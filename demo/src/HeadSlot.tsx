@@ -95,7 +95,7 @@ export function HeadSlot({
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     renderer.resize(size, dpr);
     // The LOD is chosen against *device* pixels: a high-DPR screen genuinely has room for a
-    // finer lattice, and choosing against CSS pixels would throw that resolution away. The
+    // finer surface sample, and choosing against CSS pixels would throw that detail away. The
     // CSS-size tier still supplies a floor so glyph heads never lose their eyes or mouth.
     const pointSet = model.levelForSize(size * dpr, targetCellCss, resolveTier(size).minResolution);
 

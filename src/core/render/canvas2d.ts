@@ -205,7 +205,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         }
         if (square) {
           // fillRect rather than a path: no per-particle path construction, and axis-aligned
-          // edges keep neighbouring cells meeting cleanly instead of leaving lattice seams.
+          // Square edges produce the tiled particle medium without per-point path construction.
           const s2 = sr[i] * 2;
           ctx.fillRect(sx[i] - sr[i], sy[i] - sr[i], s2, s2);
         } else {
