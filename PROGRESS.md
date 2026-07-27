@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Reading retuned against the new anatomy and ready for visual review.** Website redesign remains queued for later |
-| **Last implementation commit** | `2480cc9` — v8.6 - Retune Reading with anatomical downward gaze |
+| **Step** | **Thinking retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
+| **Last implementation commit** | `0f14e2a` — v8.8 - Retune Thinking with lifted contemplative gaze |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of Reading before the isolated Thinking retuning pass |
+| **Blocked on** | Nothing — Justin approved continuing through every remaining emotion before review |
 
 ---
 
@@ -582,6 +582,23 @@ The second state-specific pass on the baked human anatomy is complete.
 This is **ready for Justin's visual review, not yet visually approved**. Thinking is next after
 this isolated checkpoint is reviewed.
 
+### Anatomical Thinking retune (v8.8)
+
+The third state-specific pass on the baked human anatomy is complete.
+
+- Lifted the gaze above and slightly off-centre while keeping both lids softly narrowed, producing
+  unfocused internal attention rather than alert surprise.
+- Split the brow lift asymmetrically and raised the medial ends only slightly, so the expression
+  remains contemplative instead of drifting into Searching's active scan.
+- Added a restrained lip purse with one subtly lowered corner. The mouth stays closed and relaxed
+  enough to preserve the neutral adult anatomy.
+- Compared Thinking against Idle at 256px and verified its silhouette at 48px in the live WebGL
+  renderer. The final page defaults remain 48px Thinking; browser logs contain no runtime error.
+- All 124 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's later visual review, not yet visually approved**. Justin explicitly
+approved completing all remaining named expressions first; Searching is next.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -662,11 +679,11 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v8.6 Reading checkpoint at `http://localhost:5173`.** Select Reading and
-   compare its lowered lids, relaxed mouth and chin dip against Listening and Idle at compact and
-   large sizes.
-2. **Retune Thinking as the next isolated named-expression pass.** Validate lifted, unfocused
-   gaze and contemplative facial asymmetry without drifting into Searching or surprise.
+1. **Complete the remaining isolated expression passes before Justin's review.** Searching is
+   next, followed by Executing, Generating, Reviewing, Error and Done. Each remains its own commit
+   and browser-verified checkpoint.
+2. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each
+   state against Idle at compact and large sizes after the sequence is complete.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 4. The React wrapper and the `./react` subpath export — currently `package.json` exports
