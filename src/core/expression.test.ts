@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import {
   createExpressionRigMetrics,
   deformExpressionPoint,
+  ERROR_EXPRESSION,
   EXECUTING_EXPRESSION,
   EXPRESSION_KEYS,
   type ExpressionKey,
@@ -139,7 +140,8 @@ describe("reading expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
@@ -172,7 +174,8 @@ describe("thinking expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
@@ -205,7 +208,8 @@ describe("searching expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
@@ -239,7 +243,8 @@ describe("executing expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
@@ -272,7 +277,8 @@ describe("generating expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
@@ -305,12 +311,33 @@ describe("reviewing expression", () => {
         state === "searching" ||
         state === "executing" ||
         state === "generating" ||
-        state === "reviewing"
+        state === "reviewing" ||
+        state === "error"
       ) {
         continue;
       }
       expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
     }
+  });
+});
+
+describe("error expression", () => {
+  test("combines worried brows, open eyes and a parted frown without colour", () => {
+    expect(ERROR_EXPRESSION.brow_innerUp).toBeGreaterThan(0);
+    expect(ERROR_EXPRESSION.brow_furrow).toBeGreaterThan(0);
+    expect(ERROR_EXPRESSION.eye_openL).toBeGreaterThan(IDLE_EXPRESSION.eye_openL);
+    expect(ERROR_EXPRESSION.eye_openR).toBeGreaterThan(IDLE_EXPRESSION.eye_openR);
+    expect(ERROR_EXPRESSION.nose_scrunch).toBeGreaterThan(0);
+    expect(ERROR_EXPRESSION.mouth_cornerUpL).toBeLessThan(0);
+    expect(ERROR_EXPRESSION.mouth_cornerUpR).toBeLessThan(0);
+    expect(ERROR_EXPRESSION.mouth_open).toBeGreaterThan(0);
+    expect(ERROR_EXPRESSION.jaw_open).toBeGreaterThan(0);
+  });
+
+  test("is immutable and registered without changing Done", () => {
+    expect(Object.isFrozen(ERROR_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.error).toBe(ERROR_EXPRESSION);
+    expect(STATE_EXPRESSION.done).toBe(NEUTRAL_EXPRESSION);
   });
 });
 

@@ -230,6 +230,26 @@ export const REVIEWING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `error` — a clearly blocked, worried interruption.
+ *
+ * Raised inner brows oppose a medial furrow while the eyes open and the lower face drops into a
+ * small parted frown. A restrained nose scrunch adds tension, ensuring the state remains legible
+ * from deformation and rejection motion even when colour is unavailable.
+ */
+export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_innerUp: 0.34,
+  brow_furrow: 0.26,
+  eye_openL: 0.22,
+  eye_openR: 0.22,
+  nose_scrunch: 0.1,
+  mouth_cornerUpL: -0.28,
+  mouth_cornerUpR: -0.28,
+  mouth_open: 0.28,
+  jaw_open: 0.1,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -242,7 +262,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   executing: EXECUTING_EXPRESSION,
   generating: GENERATING_EXPRESSION,
   reviewing: REVIEWING_EXPRESSION,
-  error: NEUTRAL_EXPRESSION,
+  error: ERROR_EXPRESSION,
   done: NEUTRAL_EXPRESSION,
 };
 
