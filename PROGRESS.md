@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Thinking retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
-| **Last implementation commit** | `0f14e2a` — v8.8 - Retune Thinking with lifted contemplative gaze |
+| **Step** | **Searching retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
+| **Last implementation commit** | `ffb55ee` — v9.0 - Retune Searching with alert lateral scan |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing — Justin approved continuing through every remaining emotion before review |
 
@@ -599,6 +599,22 @@ The third state-specific pass on the baked human anatomy is complete.
 This is **ready for Justin's later visual review, not yet visually approved**. Justin explicitly
 approved completing all remaining named expressions first; Searching is next.
 
+### Anatomical Searching retune (v9.0)
+
+The fourth state-specific pass on the baked human anatomy is complete.
+
+- Opened both lids and moved the gaze decisively sideways, creating an externally directed scan
+  that is structurally distinct from Thinking's lifted inward gaze and Reading's lowered gaze.
+- Raised the brows unequally around a very light medial furrow, preserving alertness without
+  becoming worried or surprised.
+- Added a small closed-mouth brace. The two-speed searching yaw changes the apparent target while
+  the face itself remains precise and controlled.
+- Compared Searching at 256px and 48px in the live WebGL renderer. The final page defaults remain
+  48px Thinking; browser logs contain no runtime error.
+- All 126 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's later visual review, not yet visually approved**. Executing is next.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -679,9 +695,9 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Complete the remaining isolated expression passes before Justin's review.** Searching is
-   next, followed by Executing, Generating, Reviewing, Error and Done. Each remains its own commit
-   and browser-verified checkpoint.
+1. **Complete the remaining isolated expression passes before Justin's review.** Executing is
+   next, followed by Generating, Reviewing, Error and Done. Each remains its own commit and
+   browser-verified checkpoint.
 2. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each
    state against Idle at compact and large sizes after the sequence is complete.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
