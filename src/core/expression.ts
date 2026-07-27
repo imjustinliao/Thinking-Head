@@ -155,6 +155,24 @@ export const THINKING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `searching` — alert external scan with an intentionally lateral gaze.
+ *
+ * The eyes open and look decisively to one side while the brows lift unequally around a very
+ * light medial furrow. A closed, lightly pressed mouth keeps the active scan precise rather than
+ * anxious; Searching's two-speed yaw changes the apparent target continuously.
+ */
+export const SEARCHING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: 0.08,
+  brow_raiseR: 0.16,
+  brow_furrow: 0.1,
+  eye_openL: 0.12,
+  eye_openR: 0.18,
+  eye_gazeX: 0.34,
+  mouth_press: 0.06,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -163,7 +181,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   listening: LISTENING_EXPRESSION,
   reading: READING_EXPRESSION,
   thinking: THINKING_EXPRESSION,
-  searching: NEUTRAL_EXPRESSION,
+  searching: SEARCHING_EXPRESSION,
   executing: NEUTRAL_EXPRESSION,
   generating: NEUTRAL_EXPRESSION,
   reviewing: NEUTRAL_EXPRESSION,

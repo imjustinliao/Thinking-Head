@@ -11,6 +11,7 @@ import {
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
   READING_EXPRESSION,
+  SEARCHING_EXPRESSION,
   STATE_EXPRESSION,
   THINKING_EXPRESSION,
 } from "./expression.js";
@@ -131,7 +132,8 @@ describe("reading expression", () => {
         state === "idle" ||
         state === "listening" ||
         state === "reading" ||
-        state === "thinking"
+        state === "thinking" ||
+        state === "searching"
       ) {
         continue;
       }
@@ -160,7 +162,38 @@ describe("thinking expression", () => {
         state === "idle" ||
         state === "listening" ||
         state === "reading" ||
-        state === "thinking"
+        state === "thinking" ||
+        state === "searching"
+      ) {
+        continue;
+      }
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
+  });
+});
+
+describe("searching expression", () => {
+  test("opens and diverts the gaze for an active external scan", () => {
+    expect(SEARCHING_EXPRESSION.eye_gazeX).toBeGreaterThan(THINKING_EXPRESSION.eye_gazeX);
+    expect(SEARCHING_EXPRESSION.eye_gazeY).toBe(0);
+    expect(SEARCHING_EXPRESSION.eye_openL).toBeGreaterThan(IDLE_EXPRESSION.eye_openL);
+    expect(SEARCHING_EXPRESSION.eye_openR).toBeGreaterThan(IDLE_EXPRESSION.eye_openR);
+    expect(SEARCHING_EXPRESSION.brow_raiseL).not.toBe(SEARCHING_EXPRESSION.brow_raiseR);
+    expect(SEARCHING_EXPRESSION.brow_furrow).toBeGreaterThan(0);
+    expect(SEARCHING_EXPRESSION.mouth_press).toBeGreaterThan(0);
+    expect(SEARCHING_EXPRESSION.mouth_open).toBe(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(SEARCHING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.searching).toBe(SEARCHING_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking" ||
+        state === "searching"
       ) {
         continue;
       }
