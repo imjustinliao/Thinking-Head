@@ -173,6 +173,24 @@ export const SEARCHING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `executing` — precise forward focus with a firmly stabilised lower face.
+ *
+ * Symmetrically lowered brows and narrowed lids reduce exploratory movement to a task-facing
+ * aperture. A compressed mouth and slight jaw projection brace the face without the stronger
+ * inward scrutiny reserved for Reviewing.
+ */
+export const EXECUTING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: -0.12,
+  brow_raiseR: -0.12,
+  brow_furrow: 0.18,
+  eye_openL: -0.18,
+  eye_openR: -0.18,
+  mouth_press: 0.2,
+  jaw_forward: 0.04,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -182,7 +200,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   reading: READING_EXPRESSION,
   thinking: THINKING_EXPRESSION,
   searching: SEARCHING_EXPRESSION,
-  executing: NEUTRAL_EXPRESSION,
+  executing: EXECUTING_EXPRESSION,
   generating: NEUTRAL_EXPRESSION,
   reviewing: NEUTRAL_EXPRESSION,
   error: NEUTRAL_EXPRESSION,

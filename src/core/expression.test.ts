@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import {
   createExpressionRigMetrics,
   deformExpressionPoint,
+  EXECUTING_EXPRESSION,
   EXPRESSION_KEYS,
   type ExpressionKey,
   type ExpressionParams,
@@ -133,7 +134,8 @@ describe("reading expression", () => {
         state === "listening" ||
         state === "reading" ||
         state === "thinking" ||
-        state === "searching"
+        state === "searching" ||
+        state === "executing"
       ) {
         continue;
       }
@@ -163,7 +165,8 @@ describe("thinking expression", () => {
         state === "listening" ||
         state === "reading" ||
         state === "thinking" ||
-        state === "searching"
+        state === "searching" ||
+        state === "executing"
       ) {
         continue;
       }
@@ -193,7 +196,40 @@ describe("searching expression", () => {
         state === "listening" ||
         state === "reading" ||
         state === "thinking" ||
-        state === "searching"
+        state === "searching" ||
+        state === "executing"
+      ) {
+        continue;
+      }
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
+  });
+});
+
+describe("executing expression", () => {
+  test("stabilises a symmetrical forward focus with a braced lower face", () => {
+    expect(EXECUTING_EXPRESSION.brow_raiseL).toBeLessThan(IDLE_EXPRESSION.brow_raiseL);
+    expect(EXECUTING_EXPRESSION.brow_raiseR).toBe(EXECUTING_EXPRESSION.brow_raiseL);
+    expect(EXECUTING_EXPRESSION.brow_furrow).toBeGreaterThan(0);
+    expect(EXECUTING_EXPRESSION.eye_openL).toBeLessThan(IDLE_EXPRESSION.eye_openL);
+    expect(EXECUTING_EXPRESSION.eye_openR).toBe(EXECUTING_EXPRESSION.eye_openL);
+    expect(EXECUTING_EXPRESSION.eye_gazeX).toBe(0);
+    expect(EXECUTING_EXPRESSION.eye_gazeY).toBe(0);
+    expect(EXECUTING_EXPRESSION.mouth_press).toBeGreaterThan(SEARCHING_EXPRESSION.mouth_press);
+    expect(EXECUTING_EXPRESSION.jaw_forward).toBeGreaterThan(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(EXECUTING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.executing).toBe(EXECUTING_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking" ||
+        state === "searching" ||
+        state === "executing"
       ) {
         continue;
       }
