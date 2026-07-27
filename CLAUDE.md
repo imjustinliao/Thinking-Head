@@ -141,13 +141,12 @@ human base:
 - Review the neutral head at front, three-quarter and profile views while retuning each named
   expression in a separate, reviewable checkpoint.
 
-The denser, ocular-complete surface and key-plus-fill material are live. Listening received the
-first isolated retuning pass at v8.4: a true shoulderward roll replaces the old yaw-only
-"tilt", while asymmetric lids, brows and a receptive lower face keep both eyes readable.
-Reading followed at v8.6 with an anatomical upper-lid response to downward gaze, a stronger chin
-dip and a relaxed lower face. The head is not visually approved until Justin reviews it. The
-public marketing/demo website remains deferred. Facial review and state-by-state expression
-tuning are the active Phase 1 work.
+The denser, ocular-complete surface and all ten expression presets are live. At v10.2 the
+portrait material moved to a raking upper-side key, weaker frontal fill, lifted shadow floor and
+correct front-to-back depth normalisation. The nearest facial plane now stays fully bright while
+the nose, orbital and cheek planes separate through directional light. The head is not visually
+approved until Justin reviews it. The public marketing/demo website remains deferred. Facial
+review is the active Phase 1 work.
 
 ---
 

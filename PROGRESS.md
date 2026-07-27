@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **All ten expressions are tuned against the baked anatomy and ready for Justin's evaluation.** Website redesign remains queued for later |
-| **Last implementation commit** | `f2d397b` — v10.0 - Retune Done with settled completion smile |
+| **Step** | **Facial depth lighting is corrected and ready for visual review.** Cursor-drag orbit is the next isolated checkpoint |
+| **Last implementation commit** | `4cf9f68` — v10.2 - Strengthen sculptural facial depth lighting |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's all-state expression evaluation before state-transition work |
+| **Blocked on** | Justin's lighting review before the separate cursor-drag orbit checkpoint |
 
 ---
 
@@ -697,6 +697,28 @@ The ninth active state-specific pass is complete; Idle remains the neutral basel
 The complete expression sequence is **ready for Justin's visual evaluation, not yet visually
 approved**. Any correction should remain an isolated state-specific pass.
 
+### Sculptural facial-depth lighting correction (v10.2)
+
+Justin confirmed that the underlying facial structure is present but still too vague to read
+because the bright and dark planes do not describe enough depth.
+
+- Corrected the depth attenuation model. The previous perspective-distance ratio began the
+  fade halfway through the head, so even the nearest face plane lost roughly one fifth of its
+  brightness before material lighting. Depth now maps the actual surface span: front `0`, centre
+  `0.5`, back `1`.
+- Moved the portrait key to a stronger upper-side angle so the nose, orbital rims and cheekbones
+  break into separate planes. Reduced the near-frontal fill so it preserves the shadow side
+  without washing those planes together.
+- Lifted ambient and occlusion floors enough that shadowed particles remain visible rather than
+  becoming false holes, while increasing back-depth attenuation to keep the volume distinct.
+- Matched the equations in Canvas 2D and WebGL, added depth-mapping regression tests, and compared
+  Thinking and neutral Idle live at the 320px orbit size. One WebGL2 context remains active with
+  no warnings or errors.
+- All 138 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Cursor-drag 360° orbit is
+the next isolated checkpoint after this review.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -777,20 +799,23 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each state
-   against Idle at compact and large sizes; every active state now owns distinct facial controls.
-2. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+1. **Justin reviews the v10.2 facial-depth lighting at `http://localhost:5173`.** Compare the
+   brighter front plane and stronger nose/socket/cheek separation against the supplied screenshot.
+2. **Implement cursor-drag 360° orbit as the next isolated checkpoint.** Use direct Pointer Events,
+   capture, immediate one-to-one tracking and bounded pitch while preserving continuous state
+   motion.
+3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
    as its own browser-verified commit.
-3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+4. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-4. The React wrapper and the `./react` subpath export — currently `package.json` exports
+5. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-6. Return to the local black/white showcase redesign when Justin supplies the next website
+7. Return to the local black/white showcase redesign when Justin supplies the next website
    direction. Resolve the liquidGL context rule before its material milestone.
-7. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+8. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
