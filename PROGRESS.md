@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Facial depth lighting is corrected and ready for visual review.** Cursor-drag orbit is the next isolated checkpoint |
-| **Last implementation commit** | `4cf9f68` — v10.2 - Strengthen sculptural facial depth lighting |
+| **Step** | **Facial surface coverage is densified and ready for visual review.** Cursor-drag orbit remains the next isolated checkpoint |
+| **Last implementation commit** | `1d32a9e` — v10.4 - Densify sculptural facial surface |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's lighting review before the separate cursor-drag orbit checkpoint |
+| **Blocked on** | Justin's surface-legibility review before the separate cursor-drag orbit checkpoint |
 
 ---
 
@@ -719,6 +719,31 @@ because the bright and dark planes do not describe enough depth.
 This is **ready for Justin's visual review, not yet visually approved**. Cursor-drag 360° orbit is
 the next isolated checkpoint after this review.
 
+### Dense sculptural surface correction (v10.4)
+
+Justin's exact orbit screenshot showed that the v10.2 light direction was no longer the main
+failure: the sampled anatomy was broken into visibly disconnected rows across the eyes, nose,
+lips and cheeks.
+
+- Compared the supplied screenshot against a matching live Searching-state orbit view, then
+  tested particle size and camera proximity independently through the tuning panel.
+- Increased square-tile coverage from `0.9` to `1.15` times nominal spacing. The slight overlap
+  closes projection gaps across curved facial planes while the tile edges preserve the particle
+  medium.
+- Rebalanced ambient, occlusion and frontal fill downward after closing those gaps. Increasing
+  size alone filled holes but flattened the face; the retained combination restores dark orbital
+  sockets and nasal separation without deleting the shadow-side surface.
+- Repeated the live browser comparison after hot reload. The brow ridge, both sockets, nose
+  bridge and tip, philtrum, lips, chin, jaw and ears now read as one continuous adult face in the
+  same Searching orbit pose. Browser logs contain no runtime warnings or errors.
+- Updated the renderer regression test to require controlled cell overlap and cap it below `1.2`
+  so future tuning cannot silently return to either disconnected rows or a fused solid mask.
+- All 138 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. The 320px orbit canvas
+still leaves substantial stage space unused; change its presentation scale only as a separate
+reviewed step rather than conflating geometry coverage with showcase framing.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -799,23 +824,26 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v10.2 facial-depth lighting at `http://localhost:5173`.** Compare the
-   brighter front plane and stronger nose/socket/cheek separation against the supplied screenshot.
-2. **Implement cursor-drag 360° orbit as the next isolated checkpoint.** Use direct Pointer Events,
+1. **Justin reviews the v10.4 dense sculptural surface at `http://localhost:5173`.** Compare the
+   connected eyes/nose/lips/cheeks against the supplied Searching-state screenshot.
+2. **If the anatomy is clear but still presented too small, enlarge the orbit review framing as
+   one isolated demo-only checkpoint.** Do not change the package geometry for a showcase-scale
+   problem.
+3. **Implement cursor-drag 360° orbit as the next interaction checkpoint.** Use direct Pointer Events,
    capture, immediate one-to-one tracking and bounded pitch while preserving continuous state
    motion.
-3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+4. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
    as its own browser-verified commit.
-4. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+5. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-5. The React wrapper and the `./react` subpath export — currently `package.json` exports
+6. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+7. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-7. Return to the local black/white showcase redesign when Justin supplies the next website
+8. Return to the local black/white showcase redesign when Justin supplies the next website
    direction. Resolve the liquidGL context rule before its material milestone.
-8. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+9. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
