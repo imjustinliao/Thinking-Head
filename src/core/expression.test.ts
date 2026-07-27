@@ -7,6 +7,7 @@ import {
   type ExpressionKey,
   type ExpressionParams,
   expressionRigOf,
+  GENERATING_EXPRESSION,
   IDLE_EXPRESSION,
   LISTENING_EXPRESSION,
   measureExpressionRig,
@@ -135,7 +136,8 @@ describe("reading expression", () => {
         state === "reading" ||
         state === "thinking" ||
         state === "searching" ||
-        state === "executing"
+        state === "executing" ||
+        state === "generating"
       ) {
         continue;
       }
@@ -166,7 +168,8 @@ describe("thinking expression", () => {
         state === "reading" ||
         state === "thinking" ||
         state === "searching" ||
-        state === "executing"
+        state === "executing" ||
+        state === "generating"
       ) {
         continue;
       }
@@ -197,7 +200,8 @@ describe("searching expression", () => {
         state === "reading" ||
         state === "thinking" ||
         state === "searching" ||
-        state === "executing"
+        state === "executing" ||
+        state === "generating"
       ) {
         continue;
       }
@@ -229,7 +233,40 @@ describe("executing expression", () => {
         state === "reading" ||
         state === "thinking" ||
         state === "searching" ||
-        state === "executing"
+        state === "executing" ||
+        state === "generating"
+      ) {
+        continue;
+      }
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
+  });
+});
+
+describe("generating expression", () => {
+  test("opens the mouth and jaw with an outward, lively upper face", () => {
+    expect(GENERATING_EXPRESSION.mouth_open).toBeGreaterThan(0);
+    expect(GENERATING_EXPRESSION.jaw_open).toBeGreaterThan(0);
+    expect(GENERATING_EXPRESSION.cheek_raise).toBeGreaterThan(0);
+    expect(GENERATING_EXPRESSION.eye_openL).toBeGreaterThan(IDLE_EXPRESSION.eye_openL);
+    expect(GENERATING_EXPRESSION.eye_openR).toBeGreaterThan(IDLE_EXPRESSION.eye_openR);
+    expect(GENERATING_EXPRESSION.mouth_cornerUpL).toBeGreaterThan(0);
+    expect(GENERATING_EXPRESSION.mouth_cornerUpR).toBeGreaterThan(0);
+    expect(GENERATING_EXPRESSION.mouth_press).toBe(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(GENERATING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.generating).toBe(GENERATING_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking" ||
+        state === "searching" ||
+        state === "executing" ||
+        state === "generating"
       ) {
         continue;
       }

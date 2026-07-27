@@ -191,6 +191,26 @@ export const EXECUTING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `generating` — an open, outward-producing face.
+ *
+ * Lifted cheeks and gently alert eyes support a visibly parted mouth and small jaw opening. The
+ * resulting articulation resembles active speech or release, matching the outward particle pulse
+ * without becoming a broad completion smile.
+ */
+export const GENERATING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: 0.12,
+  brow_raiseR: 0.12,
+  eye_openL: 0.08,
+  eye_openR: 0.08,
+  cheek_raise: 0.12,
+  mouth_cornerUpL: 0.1,
+  mouth_cornerUpR: 0.1,
+  mouth_open: 0.45,
+  jaw_open: 0.18,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -201,7 +221,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   thinking: THINKING_EXPRESSION,
   searching: SEARCHING_EXPRESSION,
   executing: EXECUTING_EXPRESSION,
-  generating: NEUTRAL_EXPRESSION,
+  generating: GENERATING_EXPRESSION,
   reviewing: NEUTRAL_EXPRESSION,
   error: NEUTRAL_EXPRESSION,
   done: NEUTRAL_EXPRESSION,
