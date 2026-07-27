@@ -143,9 +143,11 @@ human base:
 
 The denser, ocular-complete surface and key-plus-fill material are live. Listening received the
 first isolated retuning pass at v8.4: a true shoulderward roll replaces the old yaw-only
-"tilt", while asymmetric lids, brows and a receptive lower face keep both eyes readable. The
-head is not visually approved until Justin reviews it. The public marketing/demo website remains
-deferred. Facial review and state-by-state expression tuning are the active Phase 1 work.
+"tilt", while asymmetric lids, brows and a receptive lower face keep both eyes readable.
+Reading followed at v8.6 with an anatomical upper-lid response to downward gaze, a stronger chin
+dip and a relaxed lower face. The head is not visually approved until Justin reviews it. The
+public marketing/demo website remains deferred. Facial review and state-by-state expression
+tuning are the active Phase 1 work.
 
 ---
 

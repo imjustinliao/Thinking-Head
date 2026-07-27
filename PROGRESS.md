@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Listening retuned against the new anatomy and ready for visual review.** Website redesign remains queued for later |
-| **Last implementation commit** | `f4ed76b` — v8.4 - Retune Listening with anatomical head tilt |
+| **Step** | **Reading retuned against the new anatomy and ready for visual review.** Website redesign remains queued for later |
+| **Last implementation commit** | `2480cc9` — v8.6 - Retune Reading with anatomical downward gaze |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of Listening before the isolated Reading retuning pass |
+| **Blocked on** | Justin's review of Reading before the isolated Thinking retuning pass |
 
 ---
 
@@ -562,6 +562,26 @@ The first state-specific pass on the baked human anatomy is complete.
 This is **ready for Justin's visual review, not yet visually approved**. Reading is next after
 this isolated checkpoint is reviewed.
 
+### Anatomical Reading retune (v8.6)
+
+The second state-specific pass on the baked human anatomy is complete.
+
+- Replaced the old uniform downward shift of both eyelids with an anatomical response: the upper
+  lid follows a lowered gaze farther while the lower lid moves less. The ocular sphere remains
+  fixed behind the lids.
+- Narrowed both apertures, settled the brows only slightly and reduced mouth compression from
+  `0.1` to `0.03`, preserving concentration without making the face angry, sleepy or tense.
+- Increased the persistent chin dip from `0.16` to `0.19` radians. Reading remains laterally
+  level with zero roll, clearly separating it from Listening's shoulderward cock.
+- Matched the lid equation in the allocation-free CPU deformation kernel and WebGL vertex shader.
+- Compared Reading against Listening and Idle at 256px, then verified its silhouette at the
+  default 48px. The final page defaults remain 48px Thinking; browser logs contain no warnings
+  or errors.
+- All 122 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Thinking is next after
+this isolated checkpoint is reviewed.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -642,11 +662,11 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v8.4 Listening checkpoint at `http://localhost:5173`.** Select Listening
-   and compare its shoulderward tilt, asymmetric alert eyes and receptive mouth against Idle at
-   compact and large sizes.
-2. **Retune Reading as the next isolated named-expression pass.** Validate lowered gaze, lid
-   narrowing, brow focus and chin dip without drifting into Reviewing or frustration.
+1. **Justin reviews the v8.6 Reading checkpoint at `http://localhost:5173`.** Select Reading and
+   compare its lowered lids, relaxed mouth and chin dip against Listening and Idle at compact and
+   large sizes.
+2. **Retune Thinking as the next isolated named-expression pass.** Validate lifted, unfocused
+   gaze and contemplative facial asymmetry without drifting into Searching or surprise.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 4. The React wrapper and the `./react` subpath export — currently `package.json` exports
