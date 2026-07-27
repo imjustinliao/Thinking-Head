@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Reviewing retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
-| **Last implementation commit** | `4895a0c` — v9.6 - Retune Reviewing with inward evaluative focus |
+| **Step** | **Error retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
+| **Last implementation commit** | `938eb54` — v9.8 - Retune Error with worried blocked expression |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing — Justin approved continuing through every remaining emotion before review |
 
@@ -663,6 +663,22 @@ The seventh state-specific pass on the baked human anatomy is complete.
 
 This is **ready for Justin's later visual review, not yet visually approved**. Error is next.
 
+### Anatomical Error retune (v9.8)
+
+The eighth state-specific pass on the baked human anatomy is complete.
+
+- Raised the medial brows against a furrow, widened both eyes and added a restrained nose scrunch,
+  producing a recognisable worried interruption rather than another focused work face.
+- Lowered both mouth corners, parted the lips and opened the jaw slightly. Error now carries its
+  meaning in facial geometry alongside its rejection shake, not in the red accent alone.
+- Kept the expression bilaterally coherent so the fast lateral motion does not make the face read
+  as a one-sided tracking state.
+- Compared Error at 256px and 48px in the live WebGL renderer. The final page defaults remain 48px
+  Thinking; browser logs contain no runtime error.
+- All 134 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's later visual review, not yet visually approved**. Done is next.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -743,8 +759,8 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Complete the remaining isolated expression passes before Justin's review.** Error is next,
-   followed by Done. Each remains its own commit and browser-verified checkpoint.
+1. **Complete the final isolated Done expression pass before Justin's review.** It remains its own
+   commit and browser-verified checkpoint.
 2. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each
    state against Idle at compact and large sizes after the sequence is complete.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
