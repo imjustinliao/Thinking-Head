@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Dense facial-definition checkpoint ready for visual review; expression tuning has begun.** Website redesign remains queued for later |
-| **Last implementation commit** | `dcbaaa0` — v8.2 - Clarify facial features with dense sculptural rendering |
+| **Step** | **Listening retuned against the new anatomy and ready for visual review.** Website redesign remains queued for later |
+| **Last implementation commit** | `f4ed76b` — v8.4 - Retune Listening with anatomical head tilt |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of v8.2 before the next one-state expression tuning pass |
+| **Blocked on** | Justin's review of Listening before the isolated Reading retuning pass |
 
 ---
 
@@ -542,6 +542,26 @@ approved beginning the tuning process.
 This is **ready for Justin's visual review, not yet visually approved**. The next tuning step is
 one named expression at a time, beginning with Listening, after review of this checkpoint.
 
+### Anatomical Listening retune (v8.4)
+
+The first state-specific pass on the baked human anatomy is complete.
+
+- Corrected the old conceptual error where a yaw turn was labelled a listening "tilt". Motion
+  now carries a state-driven view-axis roll; Listening uses a persistent 6.9° ear-to-shoulder
+  cock plus a smaller source-facing yaw that keeps both eyes visible.
+- Retuned the face away from the previous symmetric wide-eyed preset. The source-facing lid and
+  brow open slightly more, both cheeks and mouth corners lift gently, and mouth compression is
+  nearly neutral. The result reads receptive rather than surprised or tense.
+- Roll is evaluated once per frame and applied identically in Canvas 2D and WebGL. All other
+  states explicitly keep zero roll, so their existing motion is unchanged.
+- Compared Listening against Idle at 256px and verified the Listening silhouette at the default
+  48px in the live WebGL renderer. The final page defaults remain 48px Thinking; browser logs
+  contain no warnings or errors.
+- All 121 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Reading is next after
+this isolated checkpoint is reviewed.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -622,10 +642,11 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v8.2 facial-definition checkpoint at `http://localhost:5173`.** Check the
-   large head's eyes, nasal bridge/tip, lips and jaw plus the default 48px Thinking sample.
-2. **Tune Listening as the first isolated named-expression pass.** Validate eye opening, alert
-   focus and head tilt at compact and large sizes before moving to Reading.
+1. **Justin reviews the v8.4 Listening checkpoint at `http://localhost:5173`.** Select Listening
+   and compare its shoulderward tilt, asymmetric alert eyes and receptive mouth against Idle at
+   compact and large sizes.
+2. **Retune Reading as the next isolated named-expression pass.** Validate lowered gaze, lid
+   narrowing, brow focus and chin dip without drifting into Reviewing or frustration.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 4. The React wrapper and the `./react` subpath export — currently `package.json` exports
