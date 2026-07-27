@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Error retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
-| **Last implementation commit** | `938eb54` — v9.8 - Retune Error with worried blocked expression |
+| **Step** | **All ten expressions are tuned against the baked anatomy and ready for Justin's evaluation.** Website redesign remains queued for later |
+| **Last implementation commit** | `f2d397b` — v10.0 - Retune Done with settled completion smile |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Nothing — Justin approved continuing through every remaining emotion before review |
+| **Blocked on** | Justin's all-state expression evaluation before state-transition work |
 
 ---
 
@@ -679,6 +679,24 @@ The eighth state-specific pass on the baked human anatomy is complete.
 
 This is **ready for Justin's later visual review, not yet visually approved**. Done is next.
 
+### Anatomical Done retune and completed expression set (v10.0)
+
+The ninth active state-specific pass is complete; Idle remains the neutral baseline.
+
+- Softened both lids and lifted the cheeks and mouth corners into a broad closed completion smile.
+  Done is now structurally distinct from Generating's parted active articulation.
+- Increased the smile after the first 256px browser comparison so its mouth shape survives the
+  particle medium without becoming a cartoon exaggeration.
+- Removed obsolete "later states remain neutral" test scaffolding. Every active state now owns a
+  frozen expression vector, and a regression test locks Idle as the sole neutral registry entry.
+- Exercised all ten gallery buttons in sequence, verified Done at 256px and 48px, then restored
+  the live page to its 48px Thinking default. One WebGL2 context remains active with no warnings
+  or errors.
+- All 136 tests, typecheck, lint and build pass.
+
+The complete expression sequence is **ready for Justin's visual evaluation, not yet visually
+approved**. Any correction should remain an isolated state-specific pass.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -759,10 +777,10 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Complete the final isolated Done expression pass before Justin's review.** It remains its own
-   commit and browser-verified checkpoint.
-2. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each
-   state against Idle at compact and large sizes after the sequence is complete.
+1. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each state
+   against Idle at compact and large sizes; every active state now owns distinct facial controls.
+2. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+   as its own browser-verified commit.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 4. The React wrapper and the `./react` subpath export — currently `package.json` exports
