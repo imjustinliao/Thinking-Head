@@ -291,7 +291,7 @@ export const READING_MOTION: MotionParams = {
   // Chin tucked toward the text. No yaw bias — the reader is looking straight down at the
   // page, not off to one side.
   poseYawBias: 0,
-  posePitchBias: 0.16,
+  posePitchBias: 0.19,
   poseRollBias: 0,
 };
 

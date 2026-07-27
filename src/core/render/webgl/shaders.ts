@@ -141,11 +141,13 @@ void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
         ? u_expression[${expressionIndex("eye_openL")}]
         : u_expression[${expressionIndex("eye_openR")}]
     );
+    float upperLid = clampUnit(regionLocal.y * 0.5 + 0.5);
+    float gazeY = clampSigned(u_expression[${expressionIndex("eye_gazeY")}]);
     p.x += scale * 0.025 * clampSigned(u_expression[${expressionIndex("eye_gazeX")}]) * influence;
     p.y +=
       scale *
       (0.028 * open * regionLocal.y +
-       0.022 * clampSigned(u_expression[${expressionIndex("eye_gazeY")}])) *
+       (0.016 + 0.01 * upperLid) * gazeY) *
       influence;
     return;
   }

@@ -112,13 +112,14 @@ describe("listening expression", () => {
 });
 
 describe("reading expression", () => {
-  test("lowers and narrows the gaze without adding a negative furrow", () => {
+  test("lowers and narrows the gaze without adding a negative furrow or tense mouth", () => {
     expect(READING_EXPRESSION.eye_gazeY).toBeLessThan(IDLE_EXPRESSION.eye_gazeY);
     expect(READING_EXPRESSION.eye_openL).toBeLessThan(IDLE_EXPRESSION.eye_openL);
     expect(READING_EXPRESSION.eye_openR).toBeLessThan(IDLE_EXPRESSION.eye_openR);
     expect(READING_EXPRESSION.brow_raiseL).toBeLessThan(IDLE_EXPRESSION.brow_raiseL);
     expect(READING_EXPRESSION.brow_raiseR).toBeLessThan(IDLE_EXPRESSION.brow_raiseR);
     expect(READING_EXPRESSION.brow_furrow).toBe(0);
+    expect(READING_EXPRESSION.mouth_press).toBeLessThan(0.05);
   });
 
   test("is immutable and registered without changing later untuned states", () => {
@@ -172,6 +173,25 @@ describe("derived rig metrics", () => {
 });
 
 describe("analytic point deformation", () => {
+  test("downward gaze makes the upper lid follow farther than the lower lid", () => {
+    const rig = createExpressionRigMetrics();
+    const eye = REGION.eyeL * 3;
+    rig.regionHalfExtent[eye] = 1;
+    rig.regionHalfExtent[eye + 1] = 1;
+    rig.regionHalfExtent[eye + 2] = 1;
+    const expression = { ...NEUTRAL_EXPRESSION, eye_gazeY: -1 };
+    const upper = new Float32Array(6);
+    const lower = new Float32Array(6);
+
+    deformExpressionPoint(upper, 0, 0.5, 0, 0, 1, 0, REGION.eyeL, 1, 1, rig, expression);
+    deformExpressionPoint(lower, 0, -0.5, 0, 0, 1, 0, REGION.eyeL, 1, 1, rig, expression);
+
+    const upperTravel = upper[1] - 0.5;
+    const lowerTravel = lower[1] + 0.5;
+    expect(upperTravel).toBeLessThan(lowerTravel);
+    expect(lowerTravel).toBeLessThan(0);
+  });
+
   test("neutral preserves every rest position and normal", () => {
     const rig = expressionRigOf(head);
     const out = new Float32Array(6);

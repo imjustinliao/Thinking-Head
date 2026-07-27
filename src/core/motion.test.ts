@@ -217,8 +217,8 @@ describe("reading state", () => {
   });
 
   test("head sits straight ahead, no lateral tilt — reading is not listening", () => {
-    // Distinct from listening (which has a strong yaw bias). The tilt-vs-drop distinction is
-    // what tells the two apart from a single glance at the pose.
+    // Listening carries a persistent shoulderward roll. Reading instead stays level and lets its
+    // yaw cross centre while the pitch bias supplies the downward posture.
     let minYaw = Number.POSITIVE_INFINITY;
     let maxYaw = Number.NEGATIVE_INFINITY;
     for (let t = 0; t < 30; t += 0.35) {
@@ -229,6 +229,7 @@ describe("reading state", () => {
     // Sway crosses zero rather than sitting off to one side.
     expect(minYaw).toBeLessThan(0);
     expect(maxYaw).toBeGreaterThan(0);
+    expect(READING_MOTION.poseRollBias).toBe(0);
   });
 
   test("shimmer sweeps horizontally — the visual cue that matches an eye tracking a line", () => {

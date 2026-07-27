@@ -118,18 +118,19 @@ export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 /**
  * `reading` — gaze lowered onto existing material with quiet concentration.
  *
- * Both eyes shift down and narrow slightly under lowered brows. The mouth press keeps the lower
- * face still while the state's horizontal shimmer and lateral head motion carry the active scan.
- * Furrow stays neutral so focused reading cannot be mistaken for reviewing or frustration.
+ * Both upper lids follow a lowered gaze while the lower lids move less, narrowing the aperture
+ * without creating a sleepy symmetric squint. The brows settle only slightly and the mouth stays
+ * nearly relaxed; the horizontal shimmer and lateral head motion carry the active scan.
  */
 export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: -0.1,
-  brow_raiseR: -0.1,
-  eye_openL: -0.15,
-  eye_openR: -0.15,
-  eye_gazeY: -0.3,
-  mouth_press: 0.1,
+  brow_raiseL: -0.06,
+  brow_raiseR: -0.06,
+  brow_innerUp: -0.04,
+  eye_openL: -0.24,
+  eye_openR: -0.24,
+  eye_gazeY: -0.38,
+  mouth_press: 0.03,
 });
 
 /**
@@ -304,9 +305,10 @@ export function deformExpressionPoint(
     // the surrounding lid particles while the globe remains anatomically spherical behind them.
     if (nz > 0.35) return;
     const open = clampSigned(region === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
+    const upperLid = clampUnit(ly * 0.5 + 0.5);
+    const gazeY = clampSigned(expression.eye_gazeY);
     out[0] = px + scale * 0.025 * clampSigned(expression.eye_gazeX) * influence;
-    out[1] =
-      py + scale * (0.028 * open * ly + 0.022 * clampSigned(expression.eye_gazeY)) * influence;
+    out[1] = py + scale * (0.028 * open * ly + (0.016 + 0.01 * upperLid) * gazeY) * influence;
     return;
   }
 
