@@ -85,13 +85,15 @@ describe("shading derivation", () => {
     expect(large / small).toBeCloseTo(1, 1);
   });
 
-  test("particles tile their cell rather than overlapping or leaving gaps", () => {
-    // Cell projects to 4 device px, so a particle should be just under 2px in radius.
+  test("particles overlap their cell slightly to close curved-surface projection gaps", () => {
+    // Cell projects to 4 device px. A small overlap prevents holes between projected facial
+    // planes while the square silhouette still exposes the particle structure.
     const cellsAcross = 40;
     const shading = deriveShading(160, 160, 2 / cellsAcross, DEFAULT_STYLE, 1);
     const cellPx = 160 / cellsAcross;
     expect(shading.baseRadius).toBeCloseTo(cellPx * 0.5 * CELL_FILL, 4);
-    expect(shading.baseRadius * 2).toBeLessThan(cellPx);
+    expect(shading.baseRadius * 2).toBeGreaterThan(cellPx);
+    expect(shading.baseRadius * 2).toBeLessThan(cellPx * 1.2);
   });
 
   test("particle size tracks device pixel ratio for the same surface level", () => {

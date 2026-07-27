@@ -21,18 +21,18 @@ import type { RenderStyle } from "./types.js";
 export const KEY_LIGHT = { x: -0.5, y: 0.36, z: 0.78 } as const;
 /** Near-frontal fill keeps the shadow side present without flattening the key direction. */
 export const FILL_LIGHT = { x: 0.38, y: 0.08, z: 0.92 } as const;
-export const FILL_STRENGTH = 0.16;
+export const FILL_STRENGTH = 0.1;
 
 /**
  * Ambient floor, so unlit particles stay present rather than disappearing.
  *
- * A moderate fill preserves points on planes turned away from the key. The earlier 0.1 value
- * turned valid mid-face samples into apparent holes rather than readable shadow.
+ * Enough ambient preserves the shadow-side surface while leaving the orbital and nasal planes
+ * distinctly darker than the key-facing cheek and brow.
  */
-export const AMBIENT = 0.24;
+export const AMBIENT = 0.16;
 
 /** Occlusion floor — fully enclosed particles keep this fraction of their light. */
-export const OCCLUSION_FLOOR = 0.34;
+export const OCCLUSION_FLOOR = 0.24;
 
 /**
  * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy. The LOD
@@ -41,10 +41,10 @@ export const OCCLUSION_FLOOR = 0.34;
 export const TARGET_CELL_CSS = 1.6;
 
 /**
- * Fraction of nominal spacing a particle fills. Slightly under 1 keeps the human surface
- * visibly particulate; at 1.0 nearby tiles fuse into a solid mask.
+ * Fraction of nominal spacing a particle fills. Slight overlap closes projection gaps across
+ * curved facial planes while the square tile edges keep the surface visibly particulate.
  */
-export const CELL_FILL = 0.9;
+export const CELL_FILL = 1.15;
 
 /**
  * Three design tiers rather than one continuously scaled design.
