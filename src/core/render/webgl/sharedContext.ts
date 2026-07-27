@@ -390,7 +390,7 @@ class SharedGL implements SharedGLRenderer {
     const { pointSet, style, camera, motion, expression } = frame;
     const expressionRig = expressionRigOf(pointSet);
     const sway = swayOffsets(frame.time, motion);
-    const b = cameraBasis(camera, sway.yaw, sway.pitch);
+    const b = cameraBasis(camera, sway.yaw, sway.pitch, sway.roll);
     const boundRadius = pointSet.radius || 1;
     const shading = deriveShading(cssSize, devicePixels, pointSet.cellSize, style, boundRadius);
 
@@ -398,15 +398,17 @@ class SharedGL implements SharedGLRenderer {
     const sy = b.sinYaw;
     const cp = b.cosPitch;
     const sp = b.sinPitch;
-    // Column-major mat3 for yaw-then-pitch, matching the Canvas 2D path exactly.
-    this.rot[0] = cy;
-    this.rot[1] = sp * sy;
+    const cr = b.cosRoll;
+    const sr = b.sinRoll;
+    // Column-major mat3 for yaw, pitch, then view-axis roll, matching Canvas 2D exactly.
+    this.rot[0] = cr * cy - sr * sp * sy;
+    this.rot[1] = sr * cy + cr * sp * sy;
     this.rot[2] = -cp * sy;
-    this.rot[3] = 0;
-    this.rot[4] = cp;
+    this.rot[3] = -sr * cp;
+    this.rot[4] = cr * cp;
     this.rot[5] = sp;
-    this.rot[6] = sy;
-    this.rot[7] = -sp * cy;
+    this.rot[6] = cr * sy + sr * sp * cy;
+    this.rot[7] = sr * sy - cr * sp * cy;
     this.rot[8] = cp * cy;
 
     this.center[0] = pointSet.center.x;

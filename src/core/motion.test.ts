@@ -75,7 +75,7 @@ describe("continuous motion", () => {
   test("still motion is genuinely still", () => {
     for (const t of [0, 1, 17.5]) {
       expect(normalDisplacement(0.2, 0.1, 0.4, t, STILL_MOTION)).toBe(0);
-      expect(swayOffsets(t, STILL_MOTION)).toEqual({ yaw: 0, pitch: 0 });
+      expect(swayOffsets(t, STILL_MOTION)).toEqual({ yaw: 0, pitch: 0, roll: 0 });
     }
   });
 
@@ -144,20 +144,19 @@ describe("brightness shimmer", () => {
 });
 
 describe("listening state", () => {
-  test("holds a persistent head tilt — the primary visual cue for listening", () => {
+  test("holds a true shoulderward head tilt — the primary visual cue for listening", () => {
     // The tilt must survive across the whole oscillation, not merely at one instant. Testing
     // over a spread of times catches a bias that gets cancelled by sway on a lucky sample.
-    let minYaw = Number.POSITIVE_INFINITY;
-    let maxYaw = Number.NEGATIVE_INFINITY;
+    let minRoll = Number.POSITIVE_INFINITY;
+    let maxRoll = Number.NEGATIVE_INFINITY;
     for (let t = 0; t < 30; t += 0.35) {
-      const { yaw } = swayOffsets(t, LISTENING_MOTION);
-      minYaw = Math.min(minYaw, yaw);
-      maxYaw = Math.max(maxYaw, yaw);
+      const { roll } = swayOffsets(t, LISTENING_MOTION);
+      minRoll = Math.min(minRoll, roll);
+      maxRoll = Math.max(maxRoll, roll);
     }
-    // Both extremes on the same side of centre: yaw never crosses zero.
-    expect(maxYaw).toBeLessThan(0);
-    // And the tilt is meaningfully large — ≥5° of persistent lean.
-    expect(Math.abs((minYaw + maxYaw) / 2)).toBeGreaterThan(0.08);
+    // Roll, not yaw, is the anatomical ear-to-shoulder listening gesture.
+    expect(maxRoll).toBeLessThan(0);
+    expect(Math.abs((minRoll + maxRoll) / 2)).toBeGreaterThan(0.1);
   });
 
   test("reads as attentive rather than relaxed — reduced breath and jitter versus idle", () => {

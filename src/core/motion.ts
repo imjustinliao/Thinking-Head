@@ -101,14 +101,15 @@ export interface MotionParams {
   swayDartSpeed: number;
 
   /**
-   * Persistent pose offset, in radians. Non-zero values keep the head at a rest tilt — a small
-   * yaw is a head cocked to one side (attentive), a downward pitch is a gaze dropped (reading).
-   * Distinct from `swayYaw`/`swayPitch`, which oscillate around zero.
+   * Persistent pose offset, in radians. Yaw turns toward a source, pitch lifts or drops the
+   * gaze, and roll cocks the head toward one shoulder. Distinct from `swayYaw`/`swayPitch`,
+   * which oscillate around zero.
    *
    * Applied via {@link swayOffsets} so both backends inherit it for free.
    */
   poseYawBias: number;
   posePitchBias: number;
+  poseRollBias: number;
 }
 
 export const STILL_MOTION: MotionParams = {
@@ -139,6 +140,7 @@ export const STILL_MOTION: MotionParams = {
   swayDartSpeed: 0,
   poseYawBias: 0,
   posePitchBias: 0,
+  poseRollBias: 0,
 };
 
 /**
@@ -180,14 +182,15 @@ export const IDLE_MOTION: MotionParams = {
 
   poseYawBias: 0,
   posePitchBias: 0,
+  poseRollBias: 0,
 };
 
 /**
  * `listening` — receiving input. Alert and focused rather than relaxed.
  *
  * The character comes from four tuned differences against `idle`:
- * - **Head tilted to one side** via a persistent `poseYawBias`. This is the single most
- *   readable cue for "listening"; humans do it involuntarily when concentrating on a voice.
+ * - **Head tilted toward one shoulder** via a persistent `poseRollBias`, plus a smaller yaw
+ *   toward the source. A roll is the anatomical listening gesture; yaw alone only turns away.
  * - **Suppressed breath and jitter** — attentive stillness. A relaxed breath reads as waiting,
  *   not attending. Dropping to roughly a quarter of `idle`'s values keeps the head from ever
  *   holding truly still (the 30-second alive requirement) while cutting the wandering feel.
@@ -228,11 +231,10 @@ export const LISTENING_MOTION: MotionParams = {
   swayDartYaw: 0,
   swayDartSpeed: 0,
 
-  // Head cocked ~10° to one side, chin dropped a hair. The bias axis is deliberately opposite
-  // to `idle`'s three-quarter camera yaw so the tilt reads as an *added* posture rather than
-  // deepening the existing turn.
-  poseYawBias: -0.18,
-  posePitchBias: 0.06,
+  // A genuine shoulderward cock with a smaller source-facing turn keeps both eyes readable.
+  poseYawBias: -0.06,
+  posePitchBias: 0.025,
+  poseRollBias: -0.12,
 };
 
 /**
@@ -290,6 +292,7 @@ export const READING_MOTION: MotionParams = {
   // page, not off to one side.
   poseYawBias: 0,
   posePitchBias: 0.16,
+  poseRollBias: 0,
 };
 
 /**
@@ -348,6 +351,7 @@ export const THINKING_MOTION: MotionParams = {
   // Chin lifted, gaze off to one side. Negative pitch is the inverse of reading's +0.16.
   poseYawBias: 0.1,
   posePitchBias: -0.13,
+  poseRollBias: 0,
 };
 
 /**
@@ -400,6 +404,7 @@ export const SEARCHING_MOTION: MotionParams = {
   // Both offsets are deliberately small: the animated scan, not a held pose, is the main cue.
   poseYawBias: -0.045,
   posePitchBias: -0.025,
+  poseRollBias: 0,
 };
 
 /**
@@ -453,6 +458,7 @@ export const EXECUTING_MOTION: MotionParams = {
   // so the posture remains distinguishable in a reduced-motion still.
   poseYawBias: 0.035,
   posePitchBias: 0.045,
+  poseRollBias: 0,
 };
 
 /**
@@ -501,6 +507,7 @@ export const GENERATING_MOTION: MotionParams = {
   // Lifted but centred: energy projects outward rather than tracking a source to either side.
   poseYawBias: 0,
   posePitchBias: -0.06,
+  poseRollBias: 0,
 };
 
 /**
@@ -548,6 +555,7 @@ export const REVIEWING_MOTION: MotionParams = {
   // A slight held turn keeps the reduced-motion silhouette distinct while the chin stays level.
   poseYawBias: -0.03,
   posePitchBias: 0,
+  poseRollBias: 0,
 };
 
 /**
@@ -594,6 +602,7 @@ export const ERROR_MOTION: MotionParams = {
   // Recoiled to the opposite side from reviewing; level pitch keeps the shake axis unambiguous.
   poseYawBias: 0.055,
   posePitchBias: 0,
+  poseRollBias: 0,
 };
 
 /**
@@ -641,6 +650,7 @@ export const DONE_MOTION: MotionParams = {
   // Deliberately neutral: this endpoint is designed to blend directly back into idle.
   poseYawBias: 0,
   posePitchBias: 0,
+  poseRollBias: 0,
 };
 
 /**
@@ -739,7 +749,10 @@ export function shimmerMultiplier(
  * of the same work repeated across thousands of particles, and it actually looks like a head
  * turning. Both backends read this on the CPU, so a per-state tilt propagates for free.
  */
-export function swayOffsets(time: number, m: MotionParams): { yaw: number; pitch: number } {
+export function swayOffsets(
+  time: number,
+  m: MotionParams,
+): { yaw: number; pitch: number; roll: number } {
   return {
     yaw:
       m.poseYawBias +
@@ -747,6 +760,7 @@ export function swayOffsets(time: number, m: MotionParams): { yaw: number; pitch
       m.swayDartYaw * Math.sin(time * m.swayDartSpeed + 0.37),
     // Incommensurate with yaw, so the head traces a slow open path instead of a closed loop.
     pitch: m.posePitchBias + m.swayPitch * Math.sin(time * m.swaySpeed * PHI + 1.1),
+    roll: m.poseRollBias,
   };
 }
 

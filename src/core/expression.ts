@@ -98,18 +98,21 @@ export const IDLE_EXPRESSION = NEUTRAL_EXPRESSION;
 /**
  * `listening` — alert, receptive attention.
  *
- * The whole brows lift just enough to uncover the eyes, while a smaller medial lift avoids the
- * wide-eyed surprise shape. Symmetric eye opening keeps the gaze directed at the speaker; a
- * light mouth press closes the relaxed smile without introducing a negative emotion.
+ * The source-facing brow and lid open slightly more than the far side, matching a head cocked
+ * toward a speaker without becoming a wide-eyed surprise. A small cheek and mouth-corner lift
+ * keeps the attentive face receptive rather than tense.
  */
 export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.4,
-  brow_raiseR: 0.4,
-  brow_innerUp: 0.1,
-  eye_openL: 0.5,
-  eye_openR: 0.5,
-  mouth_press: 0.15,
+  brow_raiseL: 0.22,
+  brow_raiseR: 0.34,
+  brow_innerUp: 0.06,
+  eye_openL: 0.12,
+  eye_openR: 0.2,
+  cheek_raise: 0.1,
+  mouth_cornerUpL: 0.08,
+  mouth_cornerUpR: 0.08,
+  mouth_press: 0.03,
 });
 
 /**

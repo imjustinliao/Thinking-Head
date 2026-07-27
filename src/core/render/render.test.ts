@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { cameraBasis } from "./camera.js";
 import { detectBackend } from "./createRenderer.js";
 import {
   CELL_FILL,
@@ -8,7 +9,7 @@ import {
   resolutionForSize,
   resolveTier,
 } from "./shading.js";
-import { DEFAULT_STYLE } from "./types.js";
+import { DEFAULT_CAMERA, DEFAULT_STYLE } from "./types.js";
 
 /** A canvas stand-in — these tests never need a real rendering context. */
 const fakeCanvas = (): HTMLCanvasElement =>
@@ -25,6 +26,18 @@ describe("backend selection", () => {
   test("falls back when the canvas cannot provide a context at all", () => {
     const broken = {} as unknown as HTMLCanvasElement;
     expect(detectBackend(broken)).toBe("canvas2d");
+  });
+});
+
+describe("camera basis", () => {
+  test("carries state-driven view-axis roll independently of yaw and pitch", () => {
+    const rolled = cameraBasis(DEFAULT_CAMERA, 0, 0, -0.12);
+    expect(rolled.cosRoll).toBeCloseTo(Math.cos(-0.12), 8);
+    expect(rolled.sinRoll).toBeCloseTo(Math.sin(-0.12), 8);
+
+    const neutral = cameraBasis(DEFAULT_CAMERA);
+    expect(neutral.cosRoll).toBe(1);
+    expect(neutral.sinRoll).toBe(0);
   });
 });
 

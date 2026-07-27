@@ -79,7 +79,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       ensureCapacity(count);
 
       const sway = swayOffsets(frame.time, frame.motion);
-      const b = cameraBasis(frame.camera, sway.yaw, sway.pitch);
+      const b = cameraBasis(frame.camera, sway.yaw, sway.pitch, sway.roll);
       const { positions, normals, center, occlusion, weight } = pointSet;
       const expressionRig = expressionRigOf(pointSet);
       // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
@@ -141,11 +141,13 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const py = ey + eny * disp;
         const pz = ez + enz * disp;
 
-        // Yaw about y, then pitch about x.
-        const rx = px * b.cosYaw + pz * b.sinYaw;
+        // Yaw about y, pitch about x, then roll about the view axis.
+        const rxYaw = px * b.cosYaw + pz * b.sinYaw;
         const rzYaw = -px * b.sinYaw + pz * b.cosYaw;
-        const ry = py * b.cosPitch - rzYaw * b.sinPitch;
+        const ryPitch = py * b.cosPitch - rzYaw * b.sinPitch;
         const rz = py * b.sinPitch + rzYaw * b.cosPitch;
+        const rx = rxYaw * b.cosRoll - ryPitch * b.sinRoll;
+        const ry = rxYaw * b.sinRoll + ryPitch * b.cosRoll;
 
         const viewZ = b.distance - rz;
         if (viewZ <= 0.05) continue;
@@ -173,14 +175,16 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         // the surface faces; occlusion models what it sits inside — sockets and creases go dark
         // even where their floor still catches the light. Both scale off the one lighting knob.
         const nxV = enx * b.cosYaw + enz * b.sinYaw;
-        const nyV = eny * b.cosPitch - nzYaw * b.sinPitch;
+        const nyPitch = eny * b.cosPitch - nzYaw * b.sinPitch;
+        const nxRoll = nxV * b.cosRoll - nyPitch * b.sinRoll;
+        const nyV = nxV * b.sinRoll + nyPitch * b.cosRoll;
         const keyDiffuse = Math.max(
           0,
-          nxV * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z,
+          nxRoll * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z,
         );
         const fillDiffuse = Math.max(
           0,
-          nxV * FILL_LIGHT.x + nyV * FILL_LIGHT.y + facing * FILL_LIGHT.z,
+          nxRoll * FILL_LIGHT.x + nyV * FILL_LIGHT.y + facing * FILL_LIGHT.z,
         );
         const diffuse = Math.min(1, keyDiffuse + fillDiffuse * FILL_STRENGTH);
         const ao = occlusion[i];

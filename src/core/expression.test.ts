@@ -90,13 +90,18 @@ describe("expression control contract", () => {
 });
 
 describe("listening expression", () => {
-  test("opens the eyes and lifts both brows without changing the neutral gaze", () => {
+  test("opens the eyes and lifts both brows asymmetrically without diverting gaze", () => {
     expect(LISTENING_EXPRESSION.eye_openL).toBeGreaterThan(IDLE_EXPRESSION.eye_openL);
     expect(LISTENING_EXPRESSION.eye_openR).toBeGreaterThan(IDLE_EXPRESSION.eye_openR);
     expect(LISTENING_EXPRESSION.brow_raiseL).toBeGreaterThan(IDLE_EXPRESSION.brow_raiseL);
     expect(LISTENING_EXPRESSION.brow_raiseR).toBeGreaterThan(IDLE_EXPRESSION.brow_raiseR);
     expect(LISTENING_EXPRESSION.eye_gazeX).toBe(0);
     expect(LISTENING_EXPRESSION.eye_gazeY).toBe(0);
+    expect(LISTENING_EXPRESSION.eye_openL).not.toBe(LISTENING_EXPRESSION.eye_openR);
+    expect(LISTENING_EXPRESSION.brow_raiseL).not.toBe(LISTENING_EXPRESSION.brow_raiseR);
+    expect(LISTENING_EXPRESSION.cheek_raise).toBeGreaterThan(0);
+    expect(LISTENING_EXPRESSION.mouth_cornerUpL).toBeGreaterThan(0);
+    expect(LISTENING_EXPRESSION.mouth_cornerUpR).toBeGreaterThan(0);
   });
 
   test("is immutable and registered", () => {
