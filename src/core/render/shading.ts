@@ -17,20 +17,22 @@ import type { RenderStyle } from "./types.js";
  * unstructured stipple. The current points are sampled from coherent human anatomy.
  */
 
-/** Fixed key light in view space: upper-front-left, the default portrait key. */
-export const KEY_LIGHT = { x: -0.42, y: 0.55, z: 0.72 } as const;
+/** Broad upper-front portrait key. A shallow side angle preserves both eye and nose planes. */
+export const KEY_LIGHT = { x: -0.26, y: 0.42, z: 0.87 } as const;
+/** Opposing frontal fill, weaker than the key so form remains directional rather than flat. */
+export const FILL_LIGHT = { x: 0.46, y: 0.18, z: 0.87 } as const;
+export const FILL_STRENGTH = 0.28;
 
 /**
  * Ambient floor, so unlit particles stay present rather than disappearing.
  *
- * Kept low deliberately. A voxel head reads as sculpted only when recesses go genuinely dark
- * against lit planes; a generous ambient lifts everything toward the same value and the whole
- * head flattens into a uniform bright mass with the form barely legible.
+ * A moderate fill preserves points on planes turned away from the key. The earlier 0.1 value
+ * turned valid mid-face samples into apparent holes rather than readable shadow.
  */
-export const AMBIENT = 0.1;
+export const AMBIENT = 0.2;
 
 /** Occlusion floor — fully enclosed particles keep this fraction of their light. */
-export const OCCLUSION_FLOOR = 0.08;
+export const OCCLUSION_FLOOR = 0.3;
 
 /**
  * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy. The LOD
@@ -42,7 +44,7 @@ export const TARGET_CELL_CSS = 1.6;
  * Fraction of nominal spacing a particle fills. Slightly under 1 keeps the human surface
  * visibly particulate; at 1.0 nearby tiles fuse into a solid mask.
  */
-export const CELL_FILL = 0.82;
+export const CELL_FILL = 0.9;
 
 /**
  * Three design tiers rather than one continuously scaled design.
@@ -66,6 +68,8 @@ export interface SizeTier {
   poseScale: number;
   /** Minimum surface resolution, so the smallest heads still resolve a face. */
   minResolution: number;
+  /** Mixes feature material toward uniform white as real surface anatomy becomes legible. */
+  albedoFlatten: number;
 }
 
 const TIERS: SizeTier[] = [
@@ -77,6 +81,7 @@ const TIERS: SizeTier[] = [
     cullFarSide: true,
     poseScale: 0,
     minResolution: 14,
+    albedoFlatten: 0,
   },
   {
     name: "compact",
@@ -84,6 +89,7 @@ const TIERS: SizeTier[] = [
     cullFarSide: false,
     poseScale: 0.55,
     minResolution: 26,
+    albedoFlatten: 0.45,
   },
   {
     name: "display",
@@ -91,6 +97,7 @@ const TIERS: SizeTier[] = [
     cullFarSide: false,
     poseScale: 1,
     minResolution: 44,
+    albedoFlatten: 0.82,
   },
 ];
 
@@ -123,6 +130,8 @@ export interface DerivedShading {
   glyphSkinAlpha: number;
   /** Lighting strength after the tier's scaling. */
   lighting: number;
+  /** Mix amount from region albedo to one neutral sculptural material. */
+  albedoFlatten: number;
 }
 
 export function deriveShading(
@@ -155,5 +164,6 @@ export function deriveShading(
     glyphSkinRadius: glyphMode ? 0.92 : 1,
     glyphSkinAlpha: glyphMode ? 0.72 : 1,
     lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
+    albedoFlatten: tier.albedoFlatten,
   };
 }

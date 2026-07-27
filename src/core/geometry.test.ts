@@ -37,6 +37,10 @@ describe("point set format", () => {
 });
 
 describe("human anatomy", () => {
+  test("the full display level uses the complete dense surface", () => {
+    expect(generateHeadLevel({ resolution: 136 }).count).toBe(8192);
+  });
+
   test("the neutral surface has adult head proportions and a projecting nose", () => {
     const full = generateHeadLevel({ resolution: 136 });
     expect(full.bounds.y / full.bounds.x).toBeGreaterThan(1.35);
@@ -181,5 +185,22 @@ describe("determinism and facial regions", () => {
     expect(left).toBeGreaterThan(20);
     expect(right).toBeGreaterThan(20);
     expect(Math.abs(left - right) / Math.max(left, right)).toBeLessThan(0.25);
+  });
+
+  test("paired anterior ocular surfaces close the openings behind the eyelids", () => {
+    const full = generateHeadLevel({ resolution: 136 });
+    let left = 0;
+    let right = 0;
+    for (let i = 0; i < full.count; i++) {
+      const region = full.regionId[i];
+      const normalZ = full.normals[i * 3 + 2];
+      const z = full.positions[i * 3 + 2];
+      if (normalZ < 0.7 || z < 0.42) continue;
+      if (region === REGION.eyeL) left++;
+      if (region === REGION.eyeR) right++;
+    }
+    expect(left).toBeGreaterThan(40);
+    expect(right).toBeGreaterThan(40);
+    expect(Math.abs(left - right) / Math.max(left, right)).toBeLessThan(0.1);
   });
 });

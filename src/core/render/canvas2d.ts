@@ -2,7 +2,14 @@ import { deformExpressionPoint, expressionRigOf } from "../expression.js";
 import { normalDisplacement, shimmerMultiplier, swayOffsets } from "../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
-import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "./shading.js";
+import {
+  AMBIENT,
+  deriveShading,
+  FILL_LIGHT,
+  FILL_STRENGTH,
+  KEY_LIGHT,
+  OCCLUSION_FLOOR,
+} from "./shading.js";
 import type { HeadRenderer, RenderFrame } from "./types.js";
 
 /**
@@ -81,8 +88,15 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
 
-      const { baseRadius, featureEmphasis, glyphMode, glyphSkinRadius, glyphSkinAlpha, lighting } =
-        deriveShading(cssSize, device, pointSet.cellSize, style, radius);
+      const {
+        baseRadius,
+        featureEmphasis,
+        glyphMode,
+        glyphSkinRadius,
+        glyphSkinAlpha,
+        lighting,
+        albedoFlatten,
+      } = deriveShading(cssSize, device, pointSet.cellSize, style, radius);
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -160,14 +174,23 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         // even where their floor still catches the light. Both scale off the one lighting knob.
         const nxV = enx * b.cosYaw + enz * b.sinYaw;
         const nyV = eny * b.cosPitch - nzYaw * b.sinPitch;
-        const diffuse = Math.max(0, nxV * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z);
+        const keyDiffuse = Math.max(
+          0,
+          nxV * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z,
+        );
+        const fillDiffuse = Math.max(
+          0,
+          nxV * FILL_LIGHT.x + nyV * FILL_LIGHT.y + facing * FILL_LIGHT.z,
+        );
+        const diffuse = Math.min(1, keyDiffuse + fillDiffuse * FILL_STRENGTH);
         const ao = occlusion[i];
         const lit =
           (AMBIENT + (1 - AMBIENT) * diffuse) * (OCCLUSION_FLOOR + (1 - OCCLUSION_FLOOR) * ao);
         const shade = 1 - lighting * (1 - lit);
 
         // Material albedo for the region; lighting and occlusion do the modelling.
-        const baseAlpha = intensityOf(region);
+        const regionAlpha = intensityOf(region);
+        const baseAlpha = regionAlpha + (1 - regionAlpha) * albedoFlatten;
 
         // Brightness ripple: the primary carrier of "alive" perception at inline sizes, where
         // positional displacement is sub-pixel by construction (see shimmerAmplitude's doc).

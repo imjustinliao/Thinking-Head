@@ -276,6 +276,36 @@ describe("analytic point deformation", () => {
     }
   });
 
+  test("eye opening preserves the spherical ocular surface behind the lids", () => {
+    const rig = expressionRigOf(head);
+    const globeIndex = Array.from(head.regionId).findIndex((region, index) => {
+      const offset = index * 3;
+      return (region === REGION.eyeL || region === REGION.eyeR) && head.normals[offset + 2] > 0.7;
+    });
+    expect(globeIndex).toBeGreaterThanOrEqual(0);
+
+    const offset = globeIndex * 3;
+    const rest = [
+      head.positions[offset] - head.center.x,
+      head.positions[offset + 1] - head.center.y,
+      head.positions[offset + 2] - head.center.z,
+    ] as const;
+    const out = new Float32Array(6);
+    deformExpressionPoint(
+      out,
+      ...rest,
+      head.normals[offset],
+      head.normals[offset + 1],
+      head.normals[offset + 2],
+      head.regionId[globeIndex],
+      head.weight[globeIndex],
+      head.radius,
+      rig,
+      { ...NEUTRAL_EXPRESSION, eye_openL: 1, eye_openR: 1 },
+    );
+    expect(Array.from(out.subarray(0, 3))).toEqual(Array.from(rest));
+  });
+
   test("clamps control values to their documented ranges", () => {
     const rig = expressionRigOf(head);
     const jawIndex = head.regionId.indexOf(REGION.jaw);

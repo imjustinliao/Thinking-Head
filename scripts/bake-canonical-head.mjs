@@ -2,12 +2,18 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const MAX_POINTS = 4096;
+const MAX_POINTS = 8192;
 const HEAD_CROP_Y = 5.24;
 const SOURCE_CENTRE_Y = 6.55;
 const SOURCE_CENTRE_Z = 0.45;
 const SOURCE_SCALE = 0.64;
 const AO_RADIUS = 0.16;
+const EYE_CENTRE_X = 0.194;
+const EYE_CENTRE_Y = 0.18;
+const EYE_BASE_Z = 0.475;
+const EYE_RADIUS_X = 0.082;
+const EYE_RADIUS_Y = 0.052;
+const EYE_DEPTH = 0.07;
 
 const LANDMARK_TARGETS = [
   [0, 0.82, 0],
@@ -118,6 +124,27 @@ function buildCandidates(vertices, faces) {
     const inverse = 1 / face.length;
     const normal = normaliseVector(nx, ny, nz);
     candidates.push([x * inverse, y * inverse, z * inverse, ...normal]);
+  }
+
+  // The neutral body surface ends at the eyelid rims; the original character system supplied
+  // separate eyeballs. Bake only the anterior ocular patches that are visible through those
+  // openings. Without them, the renderer correctly reveals empty sockets, which reads as holes
+  // rather than a neutral sculpted face.
+  for (const side of [-1, 1]) {
+    for (let row = -8; row <= 8; row++) {
+      const v = row / 8;
+      const halfWidth = Math.sqrt(Math.max(0, 1 - v * v));
+      const columns = Math.max(3, Math.round(30 * halfWidth));
+      for (let column = 0; column < columns; column++) {
+        const u = columns === 1 ? 0 : -halfWidth + (2 * halfWidth * column) / (columns - 1);
+        const front = Math.sqrt(Math.max(0, 1 - u * u - v * v));
+        const x = side * EYE_CENTRE_X + u * EYE_RADIUS_X;
+        const y = EYE_CENTRE_Y + v * EYE_RADIUS_Y;
+        const z = EYE_BASE_Z + front * EYE_DEPTH;
+        const normal = normaliseVector(u / EYE_RADIUS_X, v / EYE_RADIUS_Y, front / EYE_DEPTH);
+        candidates.push([x, y, z, ...normal]);
+      }
+    }
   }
 
   return { candidates, headFaceCount: headFaces.length, headVertexCount: used.size };

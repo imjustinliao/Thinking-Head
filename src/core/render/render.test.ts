@@ -108,6 +108,16 @@ describe("shading derivation", () => {
     expect(resolveTier(COMPACT_MAX_SIZE + 1).name).toBe("display");
   });
 
+  test("display anatomy relies on light rather than painted feature holes", () => {
+    const glyph = deriveShading(24, 24, 0.1, DEFAULT_STYLE, 1);
+    const compact = deriveShading(72, 144, 0.05, DEFAULT_STYLE, 1);
+    const display = deriveShading(256, 512, 0.02, DEFAULT_STYLE, 1);
+    expect(glyph.albedoFlatten).toBe(0);
+    expect(compact.albedoFlatten).toBeGreaterThan(glyph.albedoFlatten);
+    expect(display.albedoFlatten).toBeGreaterThan(compact.albedoFlatten);
+    expect(display.albedoFlatten).toBeLessThan(1);
+  });
+
   test("glyph tier suppresses lighting, display tier applies it fully", () => {
     const small = deriveShading(24, 24, 0.1, DEFAULT_STYLE, 1).lighting;
     const large = deriveShading(256, 256, 0.02, DEFAULT_STYLE, 1).lighting;

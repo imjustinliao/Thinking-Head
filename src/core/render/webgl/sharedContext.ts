@@ -2,7 +2,14 @@ import { EXPRESSION_KEYS, expressionRigOf } from "../../expression.js";
 import { swayOffsets } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
-import { AMBIENT, deriveShading, KEY_LIGHT, OCCLUSION_FLOOR } from "../shading.js";
+import {
+  AMBIENT,
+  deriveShading,
+  FILL_LIGHT,
+  FILL_STRENGTH,
+  KEY_LIGHT,
+  OCCLUSION_FLOOR,
+} from "../shading.js";
 import type { RenderFrame } from "../types.js";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shaders.js";
 
@@ -136,9 +143,12 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_glyphSkinRadius",
     "u_glyphSkinAlpha",
     "u_lighting",
+    "u_albedoFlatten",
     "u_backfaceDim",
     "u_depthDim",
     "u_light",
+    "u_fillLight",
+    "u_fillStrength",
     "u_ambient",
     "u_occlusionFloor",
     "u_color",
@@ -206,6 +216,7 @@ class SharedGL implements SharedGLRenderer {
   private readonly rot = new Float32Array(9);
   private readonly center = new Float32Array(3);
   private readonly light = new Float32Array(3);
+  private readonly fillLight = new Float32Array(3);
   private readonly color = new Float32Array(3);
   private readonly expressionValues = new Float32Array(EXPRESSION_KEYS.length);
   /** Grown on demand for the Uint8 -> float region conversion; never reallocated per frame. */
@@ -406,6 +417,10 @@ class SharedGL implements SharedGLRenderer {
     this.light[0] = KEY_LIGHT.x / lightLen;
     this.light[1] = KEY_LIGHT.y / lightLen;
     this.light[2] = KEY_LIGHT.z / lightLen;
+    const fillLightLen = Math.hypot(FILL_LIGHT.x, FILL_LIGHT.y, FILL_LIGHT.z);
+    this.fillLight[0] = FILL_LIGHT.x / fillLightLen;
+    this.fillLight[1] = FILL_LIGHT.y / fillLightLen;
+    this.fillLight[2] = FILL_LIGHT.z / fillLightLen;
 
     parseColor(style.color, this.color);
     for (let i = 0; i < EXPRESSION_KEYS.length; i++) {
@@ -427,9 +442,12 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_glyphSkinRadius, shading.glyphSkinRadius);
     gl.uniform1f(u.u_glyphSkinAlpha, shading.glyphSkinAlpha);
     gl.uniform1f(u.u_lighting, shading.lighting);
+    gl.uniform1f(u.u_albedoFlatten, shading.albedoFlatten);
     gl.uniform1f(u.u_backfaceDim, style.backfaceDim);
     gl.uniform1f(u.u_depthDim, style.depthDim);
     gl.uniform3fv(u.u_light, this.light);
+    gl.uniform3fv(u.u_fillLight, this.fillLight);
+    gl.uniform1f(u.u_fillStrength, FILL_STRENGTH);
     gl.uniform1f(u.u_ambient, AMBIENT);
     gl.uniform1f(u.u_occlusionFloor, OCCLUSION_FLOOR);
     gl.uniform3fv(u.u_color, this.color);

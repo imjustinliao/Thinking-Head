@@ -297,6 +297,9 @@ export function deformExpressionPoint(
   }
 
   if (region === REGION.eyeL || region === REGION.eyeR) {
+    // A front-facing ocular surface belongs to the globe, not the eyelid rig. Eye opening moves
+    // the surrounding lid particles while the globe remains anatomically spherical behind them.
+    if (nz > 0.35) return;
     const open = clampSigned(region === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
     out[0] = px + scale * 0.025 * clampSigned(expression.eye_gazeX) * influence;
     out[1] =

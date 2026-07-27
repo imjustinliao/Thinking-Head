@@ -47,9 +47,12 @@ uniform float u_glyphMode;
 uniform float u_glyphSkinRadius;
 uniform float u_glyphSkinAlpha;
 uniform float u_lighting;
+uniform float u_albedoFlatten;
 uniform float u_backfaceDim;
 uniform float u_depthDim;
 uniform vec3 u_light;
+uniform vec3 u_fillLight;
+uniform float u_fillStrength;
 uniform float u_ambient;
 uniform float u_occlusionFloor;
 
@@ -131,6 +134,8 @@ void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
   }
 
   if (region == ${REGION.eyeL} || region == ${REGION.eyeR}) {
+    // Preserve front-facing ocular-globe points; only the surrounding lid surface opens.
+    if (n.z > 0.35) return;
     float open = clampSigned(
       region == ${REGION.eyeL}
         ? u_expression[${expressionIndex("eye_openL")}]
@@ -289,14 +294,17 @@ void main() {
   // Lambert against the key light, then baked occlusion. Lambert models which way the surface
   // faces; occlusion models what it sits inside, which is what darkens sockets and creases whose
   // floors still catch the light.
-  float diffuse = max(0.0, dot(n, u_light));
+  float keyDiffuse = max(0.0, dot(n, u_light));
+  float fillDiffuse = max(0.0, dot(n, u_fillLight));
+  float diffuse = min(1.0, keyDiffuse + fillDiffuse * u_fillStrength);
   float lit =
     (u_ambient + (1.0 - u_ambient) * diffuse) *
     (u_occlusionFloor + (1.0 - u_occlusionFloor) * a_occlusion);
   float shade = 1.0 - u_lighting * (1.0 - lit);
 
   // Material albedo for the region; lighting and occlusion do the modelling.
-  float baseAlpha = u_regionIntensity[region];
+  float regionAlpha = u_regionIntensity[region];
+  float baseAlpha = mix(regionAlpha, 1.0, u_albedoFlatten);
 
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = (u_distance - p.z) / (u_distance + u_boundRadius);
