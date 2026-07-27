@@ -5,6 +5,7 @@ import {
   HeadModel,
   type RenderBackend,
   type RenderStyle,
+  resolveTier,
   STATE_EXPRESSION,
 } from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
@@ -80,7 +81,11 @@ export function App() {
     const started = performance.now();
     const built = new HeadModel(deferredTuning.head, deferredTuning.features);
     // Warm the level the controls are currently showing so the timing readout is meaningful.
-    built.levelForSize(48 * 2, deferredTuning.sampling.targetCellCss);
+    built.levelForSize(
+      48 * 2,
+      deferredTuning.sampling.targetCellCss,
+      resolveTier(48).minResolution,
+    );
     return { model: built, generateMs: performance.now() - started };
   }, [deferredTuning]);
 
@@ -94,12 +99,13 @@ export function App() {
       depthDim: deferredTuning.style.depthDim,
       featureBoost: deferredTuning.style.featureBoost,
       lighting: deferredTuning.style.lighting,
-      shape: "square",
+      shape: "disc",
     }),
     [modality, deferredTuning.style],
   );
 
   const targetCellCss = deferredTuning.sampling.targetCellCss;
+  const activeLevel = model.levelForSize(size * 2, targetCellCss, resolveTier(size).minResolution);
 
   // Pills keep their row shape at any slider value: the head tracks the size control but stays
   // within icon range, while the inline sample and orbit stage demo the full range.
@@ -107,10 +113,10 @@ export function App() {
 
   const READOUT = [
     {
-      value: String(model.level(model.levelForSize(size * 2, targetCellCss).resolution).count),
+      value: String(activeLevel.count),
       label: `particles at ${size}px`,
     },
-    { value: String(model.levelForSize(size * 2, targetCellCss).resolution), label: "sampling" },
+    { value: String(activeLevel.resolution), label: "sampling" },
     {
       value: backend === "webgl2" ? "WebGL2" : backend === "canvas2d" ? "2D" : "—",
       label: "backend",
@@ -202,7 +208,7 @@ export function App() {
           config={tuning}
           onChange={setTuning}
           generateMs={generateMs}
-          particleCount={model.levelForSize(size * 2, targetCellCss).count}
+          particleCount={activeLevel.count}
           expression={expressionOverride ?? STATE_EXPRESSION[activeState]}
           onExpressionChange={setExpressionOverride}
           onReset={resetTuning}

@@ -52,13 +52,10 @@ describe("shading derivation", () => {
     expect(deriveShading(GLYPH_MAX_SIZE + 1, 33, 0.1, DEFAULT_STYLE, 1).glyphMode).toBe(false);
   });
 
-  test("small tiers close the skin surface while display keeps the particle grain", () => {
-    const glyph = deriveShading(32, 64, 0.1, DEFAULT_STYLE, 1);
-    const compact = deriveShading(96, 192, 0.05, DEFAULT_STYLE, 1);
-    const display = deriveShading(320, 640, 0.02, DEFAULT_STYLE, 1);
-    expect(glyph.skinRadius).toBeGreaterThan(compact.skinRadius);
-    expect(compact.skinRadius).toBeGreaterThan(display.skinRadius);
-    expect(display.skinRadius).toBe(1);
+  test("every tier preserves the complete anatomical surface", () => {
+    expect(resolveTier(16).minResolution).toBe(136);
+    expect(resolveTier(96).minResolution).toBe(136);
+    expect(resolveTier(320).minResolution).toBe(136);
   });
 
   test("feature footprint steps down as real facial anatomy gains enough pixels", () => {
@@ -68,6 +65,24 @@ describe("shading derivation", () => {
     expect(glyph.featureEmphasis).toBeGreaterThan(compact.featureEmphasis);
     expect(compact.featureEmphasis).toBeGreaterThan(display.featureEmphasis);
     expect(display.featureEmphasis).toBe(1);
+  });
+
+  test("framing allocates more of a tiny canvas to the face", () => {
+    const at16 = deriveShading(16, 32, 0.02, DEFAULT_STYLE, 1).framingScale;
+    const at48 = deriveShading(48, 96, 0.02, DEFAULT_STYLE, 1).framingScale;
+    const display = deriveShading(320, 640, 0.02, DEFAULT_STYLE, 1).framingScale;
+    expect(at16).toBeGreaterThan(at48);
+    expect(at48).toBeGreaterThan(1);
+    expect(display).toBeGreaterThan(1);
+  });
+
+  test("glyph landmarks retain stronger contrast only where the pixel budget needs it", () => {
+    const at16 = deriveShading(16, 32, 0.02, DEFAULT_STYLE, 1).featureAlbedoScale;
+    const at48 = deriveShading(48, 96, 0.02, DEFAULT_STYLE, 1).featureAlbedoScale;
+    const display = deriveShading(320, 640, 0.02, DEFAULT_STYLE, 1).featureAlbedoScale;
+    expect(at16).toBeLessThan(at48);
+    expect(at48).toBeLessThan(display);
+    expect(display).toBe(1);
   });
 
   test("feature emphasis still responds to the knob when a caller opts in", () => {
@@ -90,7 +105,7 @@ describe("shading derivation", () => {
 
   test("particles overlap their cell slightly to close curved-surface projection gaps", () => {
     // Cell projects to 4 device px. A small overlap prevents holes between projected facial
-    // planes while the square silhouette still exposes the particle structure.
+    // planes while the circular silhouettes still expose the particle structure.
     const cellsAcross = 40;
     const shading = deriveShading(160, 160, 2 / cellsAcross, DEFAULT_STYLE, 1);
     const cellPx = 160 / cellsAcross;
@@ -105,18 +120,22 @@ describe("shading derivation", () => {
     expect(dpr2).toBeCloseTo(dpr1 * 2, 5);
   });
 
-  test("surface resolution scales linearly with rendered size", () => {
-    // Linear in size means quadratic in particle count, which is surface area — the right law.
+  test("surface resolution stays complete until a larger surface can add information", () => {
     const at64 = resolutionForSize(64, 2);
     const at128 = resolutionForSize(128, 2);
     const at256 = resolutionForSize(256, 2);
-    expect(at128 / at64).toBeCloseTo(2, 1);
-    expect(at256 / at128).toBeCloseTo(2, 1);
+    expect(at64).toBe(136);
+    expect(at128).toBe(136);
+    expect(at256).toBe(136);
   });
 
   test("resolution respects the tier floor so tiny heads still resolve a face", () => {
     expect(resolutionForSize(12)).toBeGreaterThanOrEqual(resolveTier(12).minResolution);
-    expect(resolutionForSize(300)).toBeGreaterThan(resolveTier(300).minResolution);
+    expect(resolutionForSize(300)).toBeGreaterThanOrEqual(resolveTier(300).minResolution);
+  });
+
+  test("the default medium is made from circular particles", () => {
+    expect(DEFAULT_STYLE.shape).toBe("disc");
   });
 
   test("tiers partition the size range", () => {

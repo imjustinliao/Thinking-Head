@@ -6,10 +6,9 @@ import type { RenderStyle } from "./types.js";
  * Both renderer backends read this, so the Canvas 2D fallback cannot silently look different
  * from the GPU path.
  *
- * The governing principle (Justin's direction, 2026-07-24): **a particle is always the same
- * size**. A bigger head is not bigger particles — it is *more* particles. The LOD chooser keeps
- * nominal surface spacing near a fixed on-screen size, so growing the head selects a denser
- * prefix rather than inflating what is already there.
+ * The governing principle is signal preservation: every tier keeps the complete anatomical
+ * surface and lets anti-aliased particle footprints filter it to the available pixels. Removing
+ * samples before projection erased the eye, nose and mouth configuration at small sizes.
  *
  * Two earlier models failed this. Deriving radius from particle *spacing* inverted it outright —
  * fewer particles meant fatter ones, so a 32px head rendered as a handful of blobs. A fixed CSS
@@ -35,14 +34,14 @@ export const AMBIENT = 0.16;
 export const OCCLUSION_FLOOR = 0.24;
 
 /**
- * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy. The LOD
- * level is chosen to land near this, which holds particle size stable while the head grows.
+ * Reference on-screen spacing used by callers that explicitly request a progressive LOD.
+ * The built-in tiers floor the runtime at the complete canonical surface.
  */
 export const TARGET_CELL_CSS = 1.6;
 
 /**
  * Fraction of nominal spacing a particle fills. Slight overlap closes projection gaps across
- * curved facial planes while the square tile edges keep the surface visibly particulate.
+ * curved facial planes while each anti-aliased circle remains individually legible.
  */
 export const CELL_FILL = 1.15;
 
@@ -53,9 +52,9 @@ export const CELL_FILL = 1.15;
  * first continuous attempt proved it. Tiers keep the number of configurations that must actually
  * look good down to three, and each one is tuned on its own terms.
  *
- * The sampled density stays tied to rendered size. Surface coverage and feature scale are tier
- * properties because the head occupies only part of its square canvas: below roughly 36 visible
- * face pixels, equal-size separated tiles read as holes rather than skin.
+ * All tiers retain the full canonical sample set. Lighting, pose and feature footprint remain
+ * tier properties because low-resolution face perception depends on broad feature configuration,
+ * while large views can support the complete sculptural signal.
  */
 export type TierName = "glyph" | "compact" | "display";
 
@@ -67,45 +66,45 @@ export interface SizeTier {
   cullFarSide: boolean;
   /** How much of the camera's yaw/pitch to apply; a small head reads best near face-on. */
   poseScale: number;
-  /** Minimum surface resolution, so the smallest heads still resolve a face. */
+  /** Minimum surface resolution. Built-in tiers retain the complete canonical surface. */
   minResolution: number;
   /** Mixes feature material toward uniform white as real surface anatomy becomes legible. */
   albedoFlatten: number;
-  /** Skin-tile coverage multiplier. Small projected faces need a closed surface. */
+  /** Skin-particle coverage multiplier. */
   skinRadius: number;
-  /** Feature-tile scale. Eye and mouth landmarks need a glyph-sized footprint. */
+  /** Feature-particle scale. Eye and mouth landmarks need a glyph-sized footprint. */
   featureScale: number;
 }
 
 const TIERS: SizeTier[] = [
-  // Under ~40px there is no room for modelling: lighting and occlusion read as damage rather
-  // than form, so the head is drawn nearly flat and legibility comes from dot placement alone.
+  // The canonical surface resolution is 136. Keeping it at every tier prevents the renderer from
+  // deleting the landmarks it is trying to communicate before rasterisation can integrate them.
   {
     name: "glyph",
-    lightingScale: 0.22,
+    lightingScale: 0.42,
     cullFarSide: true,
     poseScale: 0,
-    minResolution: 14,
+    minResolution: 136,
     albedoFlatten: 0,
-    skinRadius: 1.35,
-    featureScale: 1.35,
+    skinRadius: 1,
+    featureScale: 1.12,
   },
   {
     name: "compact",
     lightingScale: 0.62,
     cullFarSide: false,
     poseScale: 0.55,
-    minResolution: 26,
+    minResolution: 136,
     albedoFlatten: 0.25,
-    skinRadius: 1.18,
-    featureScale: 1.12,
+    skinRadius: 1,
+    featureScale: 1.05,
   },
   {
     name: "display",
     lightingScale: 1,
     cullFarSide: false,
     poseScale: 1,
-    minResolution: 44,
+    minResolution: 136,
     albedoFlatten: 0.55,
     skinRadius: 1,
     featureScale: 1,
@@ -122,8 +121,8 @@ export function resolveTier(cssSize: number): SizeTier {
 }
 
 /**
- * Surface resolution for a rendered size: enough points that spacing lands near TARGET_CELL_CSS,
- * floored by the tier so a tiny head still resolves eyes and a mouth.
+ * Surface resolution for a rendered size. Built-in tiers floor this at the complete canonical
+ * sample set; the size calculation remains useful for future higher-resolution surfaces.
  */
 export function resolutionForSize(cssSize: number, targetCellCss = TARGET_CELL_CSS): number {
   const tier = resolveTier(cssSize);
@@ -134,6 +133,8 @@ export interface DerivedShading {
   tier: SizeTier;
   /** Particle radius in device pixels — constant for a given size and DPR. */
   baseRadius: number;
+  /** Camera-fit multiplier that lets the face use the pixels available to each tier. */
+  framingScale: number;
   /** Draw-size multiplier for feature regions. 1 keeps every dot identical. */
   featureEmphasis: number;
   glyphMode: boolean;
@@ -143,6 +144,8 @@ export interface DerivedShading {
   lighting: number;
   /** Mix amount from region albedo to one neutral sculptural material. */
   albedoFlatten: number;
+  /** Darkens broad facial landmarks only as much as their pixel budget requires. */
+  featureAlbedoScale: number;
 }
 
 export function deriveShading(
@@ -166,15 +169,21 @@ export function deriveShading(
   const featureEmphasis = tier.featureScale + style.featureBoost * (1 - sizeT);
 
   const glyphMode = tier.cullFarSide;
+  const glyphRoom = 1 - Math.min(1, cssSize / GLYPH_MAX_SIZE);
+  const glyphZoom = 1.2 + 4.1 * glyphRoom ** 4;
+  const framingScale = tier.name === "glyph" ? glyphZoom : tier.name === "compact" ? 1.18 : 1.25;
+  const featureAlbedoScale = tier.name === "glyph" ? 0.68 - 0.38 * glyphRoom ** 2 : 1;
 
   return {
     tier,
     baseRadius,
+    framingScale,
     featureEmphasis,
     glyphMode,
     skinRadius: tier.skinRadius,
     lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
     albedoFlatten: tier.albedoFlatten,
+    featureAlbedoScale,
   };
 }
 

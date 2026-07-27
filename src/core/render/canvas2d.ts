@@ -28,6 +28,7 @@ import type { HeadRenderer, RenderFrame } from "./types.js";
 export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
+  const context = ctx;
 
   let cssSize = 0;
   let ratio = 1;
@@ -38,9 +39,51 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
   let sy = new Float32Array(0);
   let sr = new Float32Array(0);
   let sa = new Float32Array(0);
+  let sb = new Uint8Array(0);
   let depth = new Float32Array(0);
   let order = new Int32Array(0);
   const expressionPoint = new Float32Array(6);
+  const colorPalette = new Array<string>(256);
+  let paletteSource = "";
+
+  function rebuildColorPalette(color: string): void {
+    if (color === paletteSource) return;
+    paletteSource = color;
+
+    // Let Canvas normalise any valid CSS colour, then parse its canonical hex/rgb form. Palette
+    // strings are allocated only when the style changes, never inside the animation loop.
+    context.fillStyle = "#ffffff";
+    context.fillStyle = color;
+    const normalized = String(context.fillStyle);
+    let red = 255;
+    let green = 255;
+    let blue = 255;
+
+    if (normalized[0] === "#") {
+      if (normalized.length === 4) {
+        red = Number.parseInt(normalized[1] + normalized[1], 16);
+        green = Number.parseInt(normalized[2] + normalized[2], 16);
+        blue = Number.parseInt(normalized[3] + normalized[3], 16);
+      } else if (normalized.length >= 7) {
+        red = Number.parseInt(normalized.slice(1, 3), 16);
+        green = Number.parseInt(normalized.slice(3, 5), 16);
+        blue = Number.parseInt(normalized.slice(5, 7), 16);
+      }
+    } else {
+      const channels = normalized.match(/\d+(?:\.\d+)?/g);
+      if (channels && channels.length >= 3) {
+        red = Number(channels[0]);
+        green = Number(channels[1]);
+        blue = Number(channels[2]);
+      }
+    }
+
+    for (let i = 0; i < colorPalette.length; i++) {
+      const light = i / 255;
+      colorPalette[i] =
+        `rgb(${Math.round(red * light)} ${Math.round(green * light)} ${Math.round(blue * light)})`;
+    }
+  }
 
   function ensureCapacity(n: number): void {
     if (n <= capacity) return;
@@ -49,6 +92,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
     sy = new Float32Array(capacity);
     sr = new Float32Array(capacity);
     sa = new Float32Array(capacity);
+    sb = new Uint8Array(capacity);
     depth = new Float32Array(capacity);
     order = new Int32Array(capacity);
   }
@@ -87,11 +131,19 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
       const cell = pointSet.cellSize;
       const radius = pointSet.radius || 1;
-      const scale = fitScale(radius, frame.camera) * (device / 2);
       const half = device / 2;
 
-      const { baseRadius, featureEmphasis, glyphMode, skinRadius, lighting, albedoFlatten } =
-        deriveShading(cssSize, device, pointSet.cellSize, style, radius);
+      const {
+        baseRadius,
+        featureEmphasis,
+        framingScale,
+        glyphMode,
+        skinRadius,
+        lighting,
+        albedoFlatten,
+        featureAlbedoScale,
+      } = deriveShading(cssSize, device, pointSet.cellSize, style, radius);
+      const scale = fitScale(radius, frame.camera) * framingScale * (device / 2);
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -190,20 +242,21 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
         // Material albedo for the region; lighting and occlusion do the modelling.
         const regionAlpha = intensityOf(region);
-        const baseAlpha = regionAlpha + (1 - regionAlpha) * albedoFlatten;
+        let baseAlpha = regionAlpha + (1 - regionAlpha) * albedoFlatten;
+        if (feature) baseAlpha *= featureAlbedoScale;
 
         // Brightness ripple: the primary carrier of "alive" perception at inline sizes, where
         // positional displacement is sub-pixel by construction (see shimmerAmplitude's doc).
         const shimmer = shimmerMultiplier(rx0, ry0, rz0, frame.time, frame.motion);
 
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
-        const alpha =
-          baseAlpha *
-          shade *
-          shimmer *
-          (1 - backness * style.backfaceDim) *
-          depthFadeOf(rz, radius, style.depthDim);
-        sa[visible] = Math.max(0, Math.min(1, alpha));
+        // Darkness belongs in particle colour, not opacity. Keeping shadowed particles opaque
+        // prevents sockets, the nose sidewall and the jaw from opening into holes.
+        const radiance = Math.max(0, Math.min(1, baseAlpha * shade * shimmer));
+        const opacity =
+          (1 - backness * style.backfaceDim) * depthFadeOf(rz, radius, style.depthDim);
+        sa[visible] = Math.max(0, Math.min(1, opacity));
+        sb[visible] = Math.round(radiance * 255);
         order[visible] = visible;
         visible++;
       }
@@ -213,9 +266,10 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const slice = order.subarray(0, visible);
       slice.sort(byDepthDescending);
 
-      ctx.fillStyle = style.color;
+      rebuildColorPalette(style.color);
       const square = style.shape === "square";
       let lastAlpha = -1;
+      let lastBrightness = -1;
       for (let k = 0; k < visible; k++) {
         const i = slice[k];
         const a = sa[i];
@@ -224,9 +278,13 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           ctx.globalAlpha = a;
           lastAlpha = a;
         }
+        const brightness = sb[i];
+        if (brightness !== lastBrightness) {
+          ctx.fillStyle = colorPalette[brightness];
+          lastBrightness = brightness;
+        }
         if (square) {
-          // fillRect rather than a path: no per-particle path construction, and axis-aligned
-          // Square edges produce the tiled particle medium without per-point path construction.
+          // fillRect avoids path construction for the optional square style.
           const s2 = sr[i] * 2;
           ctx.fillRect(sx[i] - sr[i], sy[i] - sr[i], s2, s2);
         } else {

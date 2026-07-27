@@ -143,6 +143,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_skinRadius",
     "u_lighting",
     "u_albedoFlatten",
+    "u_featureAlbedoScale",
     "u_backfaceDim",
     "u_depthDim",
     "u_light",
@@ -434,7 +435,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniformMatrix3fv(u.u_rot, false, this.rot);
     gl.uniform3fv(u.u_center, this.center);
     gl.uniform1f(u.u_distance, camera.distance);
-    gl.uniform1f(u.u_fitScale, fitScale(boundRadius, camera));
+    gl.uniform1f(u.u_fitScale, fitScale(boundRadius, camera) * shading.framingScale);
     gl.uniform1f(u.u_boundRadius, boundRadius);
     gl.uniform2f(u.u_viewportPx, devicePixels, devicePixels);
     gl.uniform1f(u.u_baseRadius, shading.baseRadius);
@@ -443,6 +444,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_skinRadius, shading.skinRadius);
     gl.uniform1f(u.u_lighting, shading.lighting);
     gl.uniform1f(u.u_albedoFlatten, shading.albedoFlatten);
+    gl.uniform1f(u.u_featureAlbedoScale, shading.featureAlbedoScale);
     gl.uniform1f(u.u_backfaceDim, style.backfaceDim);
     gl.uniform1f(u.u_depthDim, style.depthDim);
     gl.uniform3fv(u.u_light, this.light);

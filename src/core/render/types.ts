@@ -25,10 +25,7 @@ export const DEFAULT_CAMERA: Camera = {
   fov: 0.62,
 };
 
-/**
- * Square produces the compact voxel/tile medium in the reference direction; disc produces a
- * softer point-cloud treatment over the same anatomy.
- */
+/** Disc is the particle-bot default; square remains available as an explicit style choice. */
 export type ParticleShape = "square" | "disc";
 
 export interface RenderStyle {
@@ -61,7 +58,7 @@ export interface RenderStyle {
 
 export const DEFAULT_STYLE: RenderStyle = {
   color: "#ffffff",
-  shape: "square",
+  shape: "disc",
   particleScale: 1,
   // High: particles on the far side of the head must not paint over the face.
   backfaceDim: 0.88,

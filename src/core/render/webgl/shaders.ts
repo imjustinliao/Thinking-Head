@@ -47,6 +47,7 @@ uniform float u_glyphMode;
 uniform float u_skinRadius;
 uniform float u_lighting;
 uniform float u_albedoFlatten;
+uniform float u_featureAlbedoScale;
 uniform float u_backfaceDim;
 uniform float u_depthDim;
 uniform vec3 u_light;
@@ -88,7 +89,8 @@ uniform float u_regionDrawScale[${REGION_COUNT}];
 uniform float u_regionFeature[${REGION_COUNT}];
 
 out vec2 v_corner;
-out float v_brightness;
+out float v_radiance;
+out float v_opacity;
 out float v_radiusPx;
 
 const float PHI = 1.6180339887;
@@ -279,7 +281,8 @@ void main() {
   if (culled) {
     // No discard in a vertex shader; push the vertex outside the clip volume instead.
     gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-    v_brightness = 0.0;
+    v_radiance = 0.0;
+    v_opacity = 0.0;
     v_radiusPx = 1.0;
     return;
   }
@@ -307,14 +310,19 @@ void main() {
   // Material albedo for the region; lighting and occlusion do the modelling.
   float regionAlpha = u_regionIntensity[region];
   float baseAlpha = mix(regionAlpha, 1.0, u_albedoFlatten);
+  // At glyph scale broad dark landmarks carry the face configuration after thousands of surface
+  // samples resolve into only a few pixels. The complete 3D surface still defines their shape.
+  baseAlpha *= mix(1.0, u_featureAlbedoScale, isFeature);
 
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = clamp((u_boundRadius - p.z) / (2.0 * u_boundRadius), 0.0, 1.0);
 
   float shimmer = shimmerMultiplier(rest, u_time);
 
-  v_brightness =
-    baseAlpha * shade * shimmer *
+  // Light and material control radiance, never coverage. Folding them into alpha made the dark
+  // eye sockets, nasal planes and jaw physically disappear, leaving a perforated face.
+  v_radiance = clamp(baseAlpha * shade * shimmer, 0.0, 1.0);
+  v_opacity =
     (1.0 - backness * u_backfaceDim) *
     (1.0 - depthT * clamp(u_depthDim, 0.0, 1.0));
 
@@ -335,7 +343,8 @@ export const FRAGMENT_SHADER = glsl`#version 300 es
 precision highp float;
 
 in vec2 v_corner;
-in float v_brightness;
+in float v_radiance;
+in float v_opacity;
 in float v_radiusPx;
 
 uniform vec3 u_color;
@@ -353,12 +362,10 @@ void main() {
   float distPx = norm * quadPx;
   float edge = clamp(v_radiusPx - distPx + 0.5, 0.0, 1.0);
 
-  // Brightness rides on alpha so a shadowed particle recedes into the background exactly as it
-  // does in the Canvas 2D path.
-  float alpha = v_brightness * edge;
+  float alpha = v_opacity * edge;
   if (alpha < 0.004) discard;
 
-  // Premultiplied: the drawing buffer and blend equation both expect it.
-  fragColor = vec4(u_color * alpha, alpha);
+  // Premultiplied output. Shadowed particles remain opaque but dark, preserving the skin surface.
+  fragColor = vec4(u_color * v_radiance * alpha, alpha);
 }
 `;
