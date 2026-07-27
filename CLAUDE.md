@@ -134,21 +134,24 @@ human base:
   candidates, preserves sixteen anatomical landmarks, progressively farthest-point samples the
   surface with extra facial density, adds separate anterior ocular surfaces behind the eyelids,
   bakes local occlusion and quantises the result.
-- Runtime LODs are prefixes of that progressive order. The renderer, motion system, expression
-  rig and tagged point-set contract remain intact; global tuning scales one coherent identity.
+- The progressive order remains available to explicit callers, but built-in size tiers retain
+  the complete surface and filter its projected particle footprints. Prefix-thinning erased
+  facial landmarks before rasterisation at the sizes where their configuration matters most.
+  The renderer, motion system, expression rig and tagged point-set contract remain intact.
 - The source asset explicitly declares CC0 in its header. No source mesh, binary model, runtime
   dependency, attribution requirement or network call ships. Provenance is recorded in
   `docs/research-notes.md`.
 - Review the neutral head at front, three-quarter and profile views while retuning each named
   expression in a separate, reviewable checkpoint.
 
-The denser, ocular-complete surface and all ten expression presets are live. At v10.6 the
-portrait material uses a raking upper-side key, correct front-to-back depth normalisation,
-slightly overlapping display tiles, and a size-tiered skin treatment. Glyph and compact faces
-close their projected surface and preserve larger eye/mouth landmarks; display faces retain the
-particle grain and use a nonlinear shade curve to separate orbital, nasal, lip and jaw planes.
-The head is not visually approved until Justin reviews it. The public marketing/demo website
-remains deferred. Facial review is the active Phase 1 work.
+The denser, ocular-complete surface and all ten expression presets are live. At v10.8 the
+rejected sparse square-tile treatment was replaced by filtered circular particle splats over the
+complete 8,192-point surface at every built-in size tier. Lighting now controls particle
+radiance separately from coverage, so dark orbital, nasal, lip and jaw planes remain solid
+surface rather than becoming transparent holes. Size-dependent framing and landmark contrast
+preserve a face glyph at 16px while the display tier keeps full sculptural shading. The head is
+not visually approved until Justin reviews it. The public marketing/demo website remains
+deferred. Facial review is the active Phase 1 work.
 
 ---
 

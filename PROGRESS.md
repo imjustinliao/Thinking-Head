@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Dense skin now adapts across glyph, compact and display sizes.** Cursor-drag orbit remains the next isolated checkpoint |
-| **Last implementation commit** | `97819b0` — v10.6 - Define dense skin across size tiers |
+| **Step** | **Sparse square tiles are replaced by complete-surface circular splats.** Awaiting Justin's multi-size visual review |
+| **Last implementation commit** | `a92883e` — v10.8 - Replace tiles with filtered particle splats |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's multi-size skin-legibility review before the separate cursor-drag orbit checkpoint |
+| **Blocked on** | Justin's review of the 16px glyph, 48px gallery and 320px sculpt before the separate cursor-drag orbit checkpoint |
 
 ---
 
@@ -769,6 +769,31 @@ even though the projected portrait occupies only about 55–60% of it.
 This is **ready for Justin's visual review, not yet visually approved**. Further facial changes
 must continue to be checked across all three size tiers rather than only in the orbit view.
 
+### Complete-surface circular splat rewrite (v10.8)
+
+Justin rejected v10.6 because the small faces still collapsed toward bright masks and the
+underlying anatomy remained too difficult to read. External primary research and the supplied
+screenshot pointed to a sampling/filtering failure rather than another anatomy-parameter tweak.
+
+- Replaced built-in prefix-thinned LODs with the complete 8,192-point anatomical surface at every
+  size tier. Rasterisation now integrates the full eye, nose, mouth and jaw signal instead of
+  deleting most of it before projection.
+- Replaced the square-tile default with anti-aliased circular particles, matching the requested
+  small particle-bot medium. Square remains an explicit public style option.
+- Separated radiance from opacity in both WebGL and Canvas 2D. Lighting, occlusion, material and
+  shimmer alter particle colour; only geometric coverage, back-facing attenuation and depth alter
+  opacity. Shadowed skin therefore stays present rather than opening false holes.
+- Added size-dependent face framing and landmark contrast. A 16px render is intentionally a
+  low-frequency face glyph; 48px exposes the paired sockets, nose axis, mouth and jaw; 320px
+  retains the complete shaded sculpt and individual circular particles.
+- Updated the demo readout and warm-up path to report the level the runtime actually renders.
+- Repeated live browser comparisons at 16px, 48px and 320px. One WebGL2 context remains active,
+  and the 48px gallery now reads as faces instead of the rejected checkerboard masks.
+- All 142 tests, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Cursor-drag orbit remains
+the next isolated interaction checkpoint only after this renderer direction is accepted.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -849,26 +874,23 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v10.6 size-tiered dense skin at `http://localhost:5173`.** Check the
-   inline and gallery faces at 24/32/48px as well as the 320px orbit head.
-2. **If the anatomy is clear but still presented too small, enlarge the orbit review framing as
-   one isolated demo-only checkpoint.** Do not change the package geometry for a showcase-scale
-   problem.
-3. **Implement cursor-drag 360° orbit as the next interaction checkpoint.** Use direct Pointer Events,
+1. **Justin reviews the v10.8 complete-surface circular splats at `http://localhost:5173`.**
+   Check the 16px inline glyph, 48px gallery and enlarged 320px orbit sculpt.
+2. **Implement cursor-drag 360° orbit as the next interaction checkpoint after approval.** Use direct Pointer Events,
    capture, immediate one-to-one tracking and bounded pitch while preserving continuous state
    motion.
-4. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
    as its own browser-verified commit.
-5. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
+4. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
-6. The React wrapper and the `./react` subpath export — currently `package.json` exports
+5. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-7. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-8. Return to the local black/white showcase redesign when Justin supplies the next website
+7. Return to the local black/white showcase redesign when Justin supplies the next website
    direction. Resolve the liquidGL context rule before its material milestone.
-9. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+8. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
