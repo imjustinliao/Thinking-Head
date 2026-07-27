@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import {
   createExpressionRigMetrics,
+  DONE_EXPRESSION,
   deformExpressionPoint,
   ERROR_EXPRESSION,
   EXECUTING_EXPRESSION,
@@ -128,25 +129,9 @@ describe("reading expression", () => {
     expect(READING_EXPRESSION.mouth_press).toBeLessThan(0.05);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(READING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.reading).toBe(READING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -162,25 +147,9 @@ describe("thinking expression", () => {
     expect(THINKING_EXPRESSION.mouth_open).toBe(0);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(THINKING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.thinking).toBe(THINKING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -196,25 +165,9 @@ describe("searching expression", () => {
     expect(SEARCHING_EXPRESSION.mouth_open).toBe(0);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(SEARCHING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.searching).toBe(SEARCHING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -231,25 +184,9 @@ describe("executing expression", () => {
     expect(EXECUTING_EXPRESSION.jaw_forward).toBeGreaterThan(0);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(EXECUTING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.executing).toBe(EXECUTING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -265,25 +202,9 @@ describe("generating expression", () => {
     expect(GENERATING_EXPRESSION.mouth_press).toBe(0);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(GENERATING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.generating).toBe(GENERATING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -299,25 +220,9 @@ describe("reviewing expression", () => {
     expect(REVIEWING_EXPRESSION.mouth_open).toBe(0);
   });
 
-  test("is immutable and registered without changing later untuned states", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(REVIEWING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.reviewing).toBe(REVIEWING_EXPRESSION);
-    for (const state of THINKING_HEAD_STATES) {
-      if (
-        state === "idle" ||
-        state === "listening" ||
-        state === "reading" ||
-        state === "thinking" ||
-        state === "searching" ||
-        state === "executing" ||
-        state === "generating" ||
-        state === "reviewing" ||
-        state === "error"
-      ) {
-        continue;
-      }
-      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
-    }
   });
 });
 
@@ -334,10 +239,33 @@ describe("error expression", () => {
     expect(ERROR_EXPRESSION.jaw_open).toBeGreaterThan(0);
   });
 
-  test("is immutable and registered without changing Done", () => {
+  test("is immutable and registered", () => {
     expect(Object.isFrozen(ERROR_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.error).toBe(ERROR_EXPRESSION);
-    expect(STATE_EXPRESSION.done).toBe(NEUTRAL_EXPRESSION);
+  });
+});
+
+describe("done expression", () => {
+  test("settles into a soft-eyed closed smile distinct from Generating", () => {
+    expect(DONE_EXPRESSION.eye_openL).toBeLessThan(IDLE_EXPRESSION.eye_openL);
+    expect(DONE_EXPRESSION.eye_openR).toBeLessThan(IDLE_EXPRESSION.eye_openR);
+    expect(DONE_EXPRESSION.cheek_raise).toBeGreaterThan(GENERATING_EXPRESSION.cheek_raise);
+    expect(DONE_EXPRESSION.mouth_cornerUpL).toBeGreaterThan(GENERATING_EXPRESSION.mouth_cornerUpL);
+    expect(DONE_EXPRESSION.mouth_cornerUpR).toBeGreaterThan(GENERATING_EXPRESSION.mouth_cornerUpR);
+    expect(DONE_EXPRESSION.mouth_open).toBe(0);
+    expect(DONE_EXPRESSION.jaw_open).toBe(0);
+  });
+
+  test("is immutable, registered and leaves Idle as the sole neutral state", () => {
+    expect(Object.isFrozen(DONE_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.done).toBe(DONE_EXPRESSION);
+    expect(STATE_EXPRESSION.idle).toBe(NEUTRAL_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (state === "idle") continue;
+      expect(STATE_EXPRESSION[state], `${state} should own an active expression`).not.toBe(
+        NEUTRAL_EXPRESSION,
+      );
+    }
   });
 });
 

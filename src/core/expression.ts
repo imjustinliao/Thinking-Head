@@ -250,8 +250,26 @@ export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
- * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
- * than speculative placeholders, so each later tuning milestone has an honest before/after.
+ * `done` — a warm, settled completion.
+ *
+ * The lids soften as the cheeks and mouth corners rise into a broad closed smile. Unlike
+ * Generating's parted articulation, this face has finished producing and can hold as a calm,
+ * unmistakable completion before the transition controller returns it to Idle.
+ */
+export const DONE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: 0.05,
+  brow_raiseR: 0.05,
+  eye_openL: -0.14,
+  eye_openR: -0.14,
+  cheek_raise: 0.36,
+  mouth_cornerUpL: 0.62,
+  mouth_cornerUpR: 0.62,
+});
+
+/**
+ * Facial expression per state. Idle remains the neutral anatomical baseline; every active state
+ * owns a distinct facial vector and continuous motion signature.
  */
 export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionParams>> = {
   idle: IDLE_EXPRESSION,
@@ -263,7 +281,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   generating: GENERATING_EXPRESSION,
   reviewing: REVIEWING_EXPRESSION,
   error: ERROR_EXPRESSION,
-  done: NEUTRAL_EXPRESSION,
+  done: DONE_EXPRESSION,
 };
 
 /**
