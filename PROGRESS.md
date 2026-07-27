@@ -13,8 +13,8 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Generating retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
-| **Last implementation commit** | `478d748` — v9.4 - Retune Generating with open outward articulation |
+| **Step** | **Reviewing retuned; completing the remaining expression sequence before Justin's review.** Website redesign remains queued for later |
+| **Last implementation commit** | `4895a0c` — v9.6 - Retune Reviewing with inward evaluative focus |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
 | **Blocked on** | Nothing — Justin approved continuing through every remaining emotion before review |
 
@@ -647,6 +647,22 @@ The sixth state-specific pass on the baked human anatomy is complete.
 
 This is **ready for Justin's later visual review, not yet visually approved**. Reviewing is next.
 
+### Anatomical Reviewing retune (v9.6)
+
+The seventh state-specific pass on the baked human anatomy is complete.
+
+- Lowered and narrowed the gaze under a stronger medial furrow, turning the face inward toward
+  verification rather than outward toward execution.
+- Added slight brow and lid asymmetry plus a closed, compressed mouth. Reviewing now differs from
+  Executing in gaze direction, aperture, furrow strength and facial symmetry.
+- Retained a restrained jaw brace while the existing repeated nod and mirrored inward shimmer
+  carry the ongoing checking action.
+- Compared Reviewing at 256px and 48px in the live WebGL renderer. The final page defaults remain
+  48px Thinking; browser logs contain no runtime error.
+- All 132 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's later visual review, not yet visually approved**. Error is next.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -727,8 +743,8 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Complete the remaining isolated expression passes before Justin's review.** Reviewing is
-   next, followed by Error and Done. Each remains its own commit and browser-verified checkpoint.
+1. **Complete the remaining isolated expression passes before Justin's review.** Error is next,
+   followed by Done. Each remains its own commit and browser-verified checkpoint.
 2. **Justin reviews all ten expressions together at `http://localhost:5173`.** Compare each
    state against Idle at compact and large sizes after the sequence is complete.
 3. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
