@@ -31,7 +31,7 @@ size continuum: glyph face (two eyes + mouth) at ≤32px, feature-emphasised at 
 fully sculpted shading at ≥96px. "Not uncanny" still holds — stylisation via the medium,
 not photorealism.
 
-- Small, dense, precise: dozens (inline) to ~2k (large view) tiny tightly-packed particles
+- Small, dense, precise: dozens (inline) to ~4k (large view) tiny tightly-packed particles
   forming a clean, recognisable head silhouette.
 - Compact by default — ~20–64px, used inline next to text, matching how loading
   indicators are sized in chat UIs.
@@ -114,37 +114,41 @@ the existing renderer. Do not silently instantiate a second context.
 ### Facial-realism pass — brought forward 2026-07-26
 
 **Facial realism is not signed off.** Justin's repeated direction is a genuinely
-photoreal-accurate human facial structure, matching dense voxel-head reference artwork. The
-current head is procedurally sculpted quadrics — correct proportions, real sockets, nose
-line and jaw, lit and occluded — but it does **not** reach scanned-human accuracy, and
-Justin has judged it insufficient four times. After reviewing the first expression presets,
-Justin explicitly brought this dedicated pass forward on 2026-07-26. Pause further preset
-tuning until a replacement neutral head is approved.
+photoreal-accurate human facial structure, matching dense voxel-head reference artwork. Justin
+rejected both the quadric head and the later radial-displacement atlas five times in total:
+neither carried coherent human eyelids, nasal anatomy, lips, jaw and cranial profile. After
+reviewing the first expression presets, Justin explicitly brought this dedicated pass forward
+on 2026-07-26. Pause further preset tuning until the replacement neutral head is approved.
 
-The honest constraint: an accurate human head is a *data* problem, not a tuning problem.
-Smooth-min quadrics cannot converge on real anatomy. The replacement is a compact
-**spherical radial-displacement atlas** over a canonical human-head parameterisation:
+The honest constraint: an accurate human head is a *data* problem, not a tuning problem. The
+fifth rejection superseded the original-atlas decision. The replacement is a compact
+**progressive human-surface point set**, baked offline from an official upstream CC0 neutral
+human base:
 
-- The atlas stores facial and cranial relief as quantised numeric data, not a union of
-  hand-tuned primitives. It is sampled by the existing lattice generator, so the renderer,
-  LOD model, motion system and tagged point-set contract remain intact.
-- The atlas and its parameterisation are original and embedded in TypeScript. No third-party
-  mesh, binary model, runtime dependency, attribution requirement or network call ships.
-- Scan-trained statistical models and recent spherical/UV head representations validate the
-  data-driven architecture, but their model assets are tens of megabytes and may carry
-  separate licence obligations. They are research references only and must not be copied into
-  the package without a new explicit decision from Justin.
-- Approve the neutral head at front, three-quarter and profile views before expanding the
-  region rig or retuning any named expression.
+- The input mesh supplies coherent anatomy once, offline. The runtime contains no mesh, topology
+  or UV data — only 4,096 quantised positions/normals plus ambient occlusion, embedded in
+  TypeScript and decoded once.
+- A committed deterministic baker crops the head/neck, derives normals and face-centroid
+  candidates, preserves sixteen anatomical landmarks, progressively farthest-point samples the
+  surface with extra facial density, bakes local occlusion and quantises the result.
+- Runtime LODs are prefixes of that progressive order. The renderer, motion system, expression
+  rig and tagged point-set contract remain intact; global tuning scales one coherent identity.
+- The source asset explicitly declares CC0 in its header. No source mesh, binary model, runtime
+  dependency, attribution requirement or network call ships. Provenance is recorded in
+  `docs/research-notes.md`.
+- Approve the neutral head at front, three-quarter and profile views before expanding the region
+  rig or retuning any named expression.
 
-The public marketing/demo website remains deferred. This facial pass is now the active Phase 1
-work because expressions cannot be judged honestly on the rejected base anatomy.
+The baked surface is live at the v8.0 checkpoint and reads as human in browser checks, but it is
+not visually approved until Justin reviews it. The public marketing/demo website remains
+deferred. This facial pass is the active Phase 1 work because expressions cannot be judged
+honestly on an unapproved base anatomy.
 
 ---
 
 ## 3. Two-phase roadmap
 
-### Phase 1 — "Thinking Head", hand-authored mascot head (BUILD NOW)
+### Phase 1 — "Thinking Head", designed neutral head (BUILD NOW)
 
 One designed head, not derived from any user photo, fully rigged with the state/emotion
 system in §4, shipped as a real installable package, 100% client-side.
@@ -235,7 +239,7 @@ Approved by Justin 2026-07-24.
 | Particle primitive | **Instanced billboard quads**, single draw call | Point sprites cap at size 64 on Apple silicon (vs 512–2048 elsewhere) and clip on particle centre. Instancing costs 4× vertex invocations — negligible at our counts |
 | Animation | **Parametric deformation** evaluated analytically in the vertex shader | Baked morph targets can't do 10 states × arbitrary blend pairs, and would make custom states impossible without shipping a mesh baker |
 | Continuous motion | 4D simplex noise (position as spatial seed, time as 4th dim) + **incommensurate sinusoids** for deliberate rhythms | Neither has a start or end, so entry/exit at any moment is phase-safe and there is no perceptible loop point |
-| Geometry | **Original spherical radial-displacement atlas** sampled to a surface voxel lattice at build time | Facial anatomy becomes compact data over a regular canonical domain rather than a ceiling-limited union of quadrics; remains deterministic, asset-free at runtime and compatible with the tagged point-set rig |
+| Geometry | **Progressive 4,096-point human surface**, offline-baked from an explicitly CC0 neutral base | Real anatomy replaces ceiling-limited procedural relief; only compact quantised point data ships, with deterministic LOD prefixes and the tagged rig contract unchanged |
 | Language | TypeScript, strict | |
 | Package | Single package `thinking-head`, exports `.` (core) and `./react` (wrapper, React optional peer) | Framework-agnostic core with thin wrappers; keeps core testable in isolation |
 | Build | **Vite library mode**, ESM-only, declarations via `tsc -p tsconfig.build.json` | tsdown was the original choice but cannot be installed by current stable npm (10.9.8) — it trips an arborist peer-resolution bug (`Cannot read properties of null (reading 'edgesOut')`), which would hit every contributor on `npm install`. Vite is already required for the demo, so this removes a dependency rather than adding one |

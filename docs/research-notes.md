@@ -147,6 +147,15 @@ point set with per-point normals and region tags. Topology, UVs and edge flow ar
 irrelevant to us. Dropping the mesh requirement removes the artist bottleneck and
 substantially strengthens route B.
 
+**Decision revision after visual testing (2026-07-26).** Five procedural checkpoints were
+rejected against dense human particle-head references. The result established a stronger
+finding: recognisable anatomy is a data problem before it is a sampling problem. An official
+upstream neutral-human asset explicitly released under CC0 resolves the provenance concern in
+route A without an aggregator or attribution obligation. It is used only as offline bake input.
+The repository and package ship no mesh or topology — only a compact quantised point set derived
+from the head/neck surface, plus a deterministic baker that refuses input without an explicit
+CC0 declaration. Expression regions and weights remain project-authored runtime metadata.
+
 **Legibility at small sizes** is a sampling-density problem, not a geometry-fidelity
 problem. At ~24px the head reads as a silhouette plus three or four landmark clusters
 (eyes, brow line, mouth). Feature-weighted sampling — allocating disproportionate
@@ -277,10 +286,15 @@ to change for Phase 2**, provided we define it as a tagged point set from the st
 
 Note that the licence revision of any parametric head model used matters (see §5C).
 
-## 11. Voxel-lattice rendering and level of detail
+## 11. Voxel-lattice rendering and level of detail — superseded history
 
 Added after the first renders showed that scattered surface points cannot produce the
 dense, grid-aligned particle-head look the project is aiming at.
+
+This route was superseded on 2026-07-26 after the radial field feeding the lattice was rejected.
+The historical findings about constant on-screen grain and lazy LOD remain useful; the claim that
+world-aligned cells are required does not. The references are surface-following particles or
+tiles, and coherent source anatomy matters more than alignment to a Cartesian grid.
 
 **Lattice, not stochastic sampling.** In dense particle-head artwork the particles occupy a
 regular grid and tile the surface contiguously. That alignment is doing the work: rows and
@@ -312,9 +326,29 @@ necessary when there is no geometry behind them, and actively fights a sculpted 
 **Licensed parametric head models.** Re-examined and rejected for this project: obtaining
 them requires registration and licence acceptance, they carry attribution obligations into
 an MIT repo, and they ship as binary assets — all three conflict with the zero-asset,
-no-registration constraints. Procedural geometry remains the route.
+no-registration constraints. They remain rejected; the selected CC0 source has none of those
+conditions and is converted to topology-free numeric data before runtime.
 
-## 12. Open questions carried into the architecture proposal
+## 12. Baked canonical human surface
+
+The selected architecture separates anatomy authoring from runtime rendering:
+
+1. Parse an explicitly CC0 neutral human OBJ offline and crop to the head and neck.
+2. Compute surface normals from the cropped faces and add face centroids to increase candidate
+   density without retaining topology.
+3. Seed crown, chin, nose, paired eyes, mouth, brows, ears, jaw and neck landmarks.
+4. Build a progressive farthest-point order, weighting the front of the face so eyelid, nose and
+   lip structure receives more density.
+5. Bake local ambient occlusion, quantise positions to signed 16-bit, normals to signed 8-bit and
+   occlusion to unsigned 8-bit, then embed the encoded bytes in TypeScript.
+6. At runtime, decode once and construct each LOD from a prefix. Region tags and rig weights are
+   derived after global proportion scaling, so the Phase 2 point-set contract is unchanged.
+
+The maximum level is 4,096 particles. Lower levels preserve the same identity because they are
+prefixes rather than independently resampled surfaces. The source mesh, its topology and the
+baking toolchain are absent from consumer execution; rendering remains completely client-side.
+
+## 13. Open questions carried into the architecture proposal
 
 1. Package/scope name for npm publication.
 2. Default inline size and default particle budget per device tier — tuning, resolved
@@ -340,3 +374,7 @@ the scope note; §10 academic references are listed inline above.
 - caniuse / GPUWeb implementation status — WebGPU availability
 - Poisson-disk and blue-noise surface sampling literature — sample elimination, sphere
   marching on implicit surfaces
+- [MakeHuman Community official asset repository](https://github.com/makehumancommunity/makehuman-assets/tree/master/base/proxymeshes/female_generic)
+  — the source OBJ header explicitly records the September 2020 CC0 release
+- [MakeHuman Community licensing FAQ](https://static.makehumancommunity.org/makehuman/faq/are_makehuman_files_free.html)
+  — confirms exported human models and core assets are CC0

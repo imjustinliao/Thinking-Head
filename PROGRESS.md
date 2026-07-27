@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Neutral anatomy revision ready for visual review.** Website redesign remains queued for later |
-| **Last completed commit** | `0c0dfc2` — v7.5 - Resculpt adult facial anatomy |
+| **Step** | **Baked human-surface replacement ready for visual review.** Website redesign remains queued for later |
+| **Last implementation commit** | `13d3a15` — v8.0 - Replace procedural atlas with baked human surface |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's browser review of the revised neutral head |
+| **Blocked on** | Justin's browser review of the new neutral human surface |
 
 ---
 
@@ -218,7 +218,7 @@ it is a tuning-time cost only, `useDeferredValue` keeps the sliders responsive, 
 package will consume a **baked** point set with zero generation at runtime. The `candidates`
 slider trades cloud quality for speed if it becomes annoying.
 
-### Voxel-lattice rewrite (v3.5–v3.7) — the current render model
+### Voxel-lattice rewrite (v3.5–v3.7) — superseded geometry history
 
 Justin's reference imagery (dense voxel/cube heads, I, Robot-style) made the problem clear:
 in all of it the particles sit on a **regular lattice**, tiling the surface contiguously.
@@ -493,6 +493,32 @@ against the supplied dense particle-face references. The first correction checkp
   horizontal eye opening and allows a high-curvature landmark to cross a lattice cell without
   requiring opposite signs at the cell's eight corners.
 
+### Baked human-surface replacement (v8.0)
+
+Justin rejected v7.5 as still non-human and requested a complete first-principles redo. The
+radial atlas and Cartesian voxel pipeline are now removed rather than tuned again.
+
+- Replaced all procedural anatomy with 4,096 topology-free points baked offline from an official
+  upstream neutral-human asset whose OBJ header explicitly declares CC0.
+- The source mesh does not ship. `scripts/bake-canonical-head.mjs` validates the CC0 declaration,
+  crops the head/neck, derives normals and face-centroid candidates, seeds sixteen anatomical
+  landmarks, builds a face-weighted progressive farthest-point order, bakes local ambient
+  occlusion and emits quantised TypeScript data.
+- Runtime LODs are prefixes of one canonical human identity: about 32 particles at resolution 12
+  through 4,096 at resolution 136. Crown, chin, nose, paired eyes, mouth, brows, ears, jaw and
+  neck are deliberately seeded before progressive fill.
+- The live head now has genuine eyelids, a continuous nasal bridge/tip/alar profile, lips,
+  cheek planes, mandibular contour, ears, rear cranium and neck. Browser comparison was performed
+  at front, three-quarter and profile views in the actual WebGL renderer.
+- Existing motion, shared renderer, one-context rule, expression vector and tagged point-set
+  contract remain intact. Region anchors were moved onto the real eye, brow and mouth anatomy;
+  global shape controls now scale one coherent surface.
+- The offline bake reproduced byte-identical output. Browser logs contain no warning or error;
+  116 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Named-expression work
+remains paused until the neutral human surface is accepted.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -555,10 +581,11 @@ the local showcase redesign brief above supersedes it.
 
 ### Decisions locked in this session
 
-1. Geometry: **original quantised spherical relief atlas**, rasterised directly to a regular
-   surface voxel lattice — chosen over both ceiling-limited quadric composition and licensed
-   third-party head assets. It preserves zero runtime dependencies, deterministic generation and
-   the tagged point-set rig contract.
+1. Geometry: **progressive 4,096-point human surface**, offline-baked from an explicitly CC0
+   neutral base. The source mesh and topology do not ship; the runtime decodes compact quantised
+   point data and derives LODs from deterministic prefixes. This supersedes the rejected quadric,
+   radial-atlas and Cartesian-voxel routes while preserving zero runtime dependencies and the
+   tagged point-set rig contract.
 2. Renderer: **purpose-built WebGL2, zero runtime dependencies** — chosen over a
    general-purpose 3D engine on bundle size (~10–15 KB vs ~155 KB gzipped) and because
    the required shared-context architecture isn't provided by such an engine anyway.
@@ -572,16 +599,16 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v7.5 neutral at `http://localhost:5173`.** Continue browser-led anatomy
-   correction from the supplied references; do not resume named expressions until the neutral base
-   is approved.
+1. **Justin reviews the v8.0 neutral at `http://localhost:5173`.** It is a complete anatomy-source
+   replacement, not another procedural correction. Do not resume named expressions until the
+   neutral base is approved.
 2. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
    triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 3. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-4. Bake the tuned point set into a committed artifact once the shape is locked, and drop
-   the generator from the runtime path entirely.
+4. If v8.0 is approved, lock the baked neutral data and resume expression-region validation on
+   the new anatomy. The source mesh is already absent from the runtime path.
 5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
 6. Return to the local black/white showcase redesign when Justin supplies the next website
