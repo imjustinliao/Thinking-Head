@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Facial surface coverage is densified and ready for visual review.** Cursor-drag orbit remains the next isolated checkpoint |
-| **Last implementation commit** | `1d32a9e` — v10.4 - Densify sculptural facial surface |
+| **Step** | **Dense skin now adapts across glyph, compact and display sizes.** Cursor-drag orbit remains the next isolated checkpoint |
+| **Last implementation commit** | `97819b0` — v10.6 - Define dense skin across size tiers |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's surface-legibility review before the separate cursor-drag orbit checkpoint |
+| **Blocked on** | Justin's multi-size skin-legibility review before the separate cursor-drag orbit checkpoint |
 
 ---
 
@@ -744,6 +744,31 @@ This is **ready for Justin's visual review, not yet visually approved**. The 320
 still leaves substantial stage space unused; change its presentation scale only as a separate
 reviewed step rather than conflating geometry coverage with showcase framing.
 
+### Size-tiered dense skin correction (v10.6)
+
+Justin rejected v10.4 because the orbit face remained vague and the smaller heads were still
+visibly hollow. The root cause was not point count alone: the old glyph tier deliberately shrank
+skin tiles to `0.92` and faded them to `0.72`, while the tier decision used the square canvas size
+even though the projected portrait occupies only about 55–60% of it.
+
+- Replaced the faded glyph shell with an opaque, closed front surface. Skin tiles overlap by
+  `1.35×` at glyph size and `1.18×` at compact size, then return to `1×` at display size.
+- Enlarged eye, brow and mouth landmark footprints only where the projected face lacks enough
+  pixels to carry full anatomy. They step from `1.35×` glyph to `1.12×` compact to `1×` display.
+- Moved the component thresholds to 64px and 160px so tiering follows the actual projected face:
+  a 48px canvas contains only about a 28px-wide face and therefore needs the glyph treatment.
+- Restored feature-material separation at compact and display sizes instead of flattening nearly
+  every region to white.
+- Added a matched nonlinear shade curve in Canvas 2D and WebGL. Highlights remain fixed while
+  midtones and recesses deepen, clarifying the sockets, nose, lips and jaw without deleting skin.
+- Compared the actual live renderer at 24px, 32px, 48px and 320px. Small heads now read as closed
+  face glyphs; the orbit head retains individual tiles with stronger facial depth. The default
+  remains 48px, one WebGL2 context is active and browser logs contain no warning or error.
+- All 139 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review, not yet visually approved**. Further facial changes
+must continue to be checked across all three size tiers rather than only in the orbit view.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -824,8 +849,8 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v10.4 dense sculptural surface at `http://localhost:5173`.** Compare the
-   connected eyes/nose/lips/cheeks against the supplied Searching-state screenshot.
+1. **Justin reviews the v10.6 size-tiered dense skin at `http://localhost:5173`.** Check the
+   inline and gallery faces at 24/32/48px as well as the 320px orbit head.
 2. **If the anatomy is clear but still presented too small, enlarge the orbit review framing as
    one isolated demo-only checkpoint.** Do not change the package geometry for a showcase-scale
    problem.

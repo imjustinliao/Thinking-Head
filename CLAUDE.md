@@ -27,9 +27,10 @@ mascot" default):** the head is a **defined, sculpted adult human head** — rea
 masses, carved eye sockets, a real nose line — modelled by a key light plus baked
 per-particle ambient occlusion, in the spirit of dense particle-head 3D artwork. Charm
 comes from the particle medium and (later) motion, not infant proportions. Legibility is a
-size continuum: glyph face (two eyes + mouth) at ≤32px, feature-emphasised at mid sizes,
-fully sculpted shading at ≥96px. "Not uncanny" still holds — stylisation via the medium,
-not photorealism.
+size continuum: glyph face (two eyes + mouth) when the **projected face** is ≤36px (typically
+a component size up to 64px because portrait framing occupies only part of the square canvas),
+feature-emphasised at mid sizes, fully sculpted shading at larger display sizes. "Not uncanny"
+still holds — stylisation via the medium, not photorealism.
 
 - Small, dense, precise: dozens (inline) to ~8k (large view) tiny tightly-packed particles
   forming a clean, recognisable head silhouette.
@@ -141,12 +142,13 @@ human base:
 - Review the neutral head at front, three-quarter and profile views while retuning each named
   expression in a separate, reviewable checkpoint.
 
-The denser, ocular-complete surface and all ten expression presets are live. At v10.2 the
-portrait material moved to a raking upper-side key, weaker frontal fill, lifted shadow floor and
-correct front-to-back depth normalisation. The nearest facial plane now stays fully bright while
-the nose, orbital and cheek planes separate through directional light. The head is not visually
-approved until Justin reviews it. The public marketing/demo website remains deferred. Facial
-review is the active Phase 1 work.
+The denser, ocular-complete surface and all ten expression presets are live. At v10.6 the
+portrait material uses a raking upper-side key, correct front-to-back depth normalisation,
+slightly overlapping display tiles, and a size-tiered skin treatment. Glyph and compact faces
+close their projected surface and preserve larger eye/mouth landmarks; display faces retain the
+particle grain and use a nonlinear shade curve to separate orbital, nasal, lip and jaw planes.
+The head is not visually approved until Justin reviews it. The public marketing/demo website
+remains deferred. Facial review is the active Phase 1 work.
 
 ---
 
