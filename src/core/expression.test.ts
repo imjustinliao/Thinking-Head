@@ -12,6 +12,7 @@ import {
   NEUTRAL_EXPRESSION,
   READING_EXPRESSION,
   STATE_EXPRESSION,
+  THINKING_EXPRESSION,
 } from "./expression.js";
 import { generateHeadLevel } from "./geometry.js";
 import type { HeadPointSet } from "./pointset.js";
@@ -126,7 +127,43 @@ describe("reading expression", () => {
     expect(Object.isFrozen(READING_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.reading).toBe(READING_EXPRESSION);
     for (const state of THINKING_HEAD_STATES) {
-      if (state === "idle" || state === "listening" || state === "reading") continue;
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking"
+      ) {
+        continue;
+      }
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
+  });
+});
+
+describe("thinking expression", () => {
+  test("lifts and diverts a soft gaze with restrained contemplative asymmetry", () => {
+    expect(THINKING_EXPRESSION.eye_gazeY).toBeGreaterThan(IDLE_EXPRESSION.eye_gazeY);
+    expect(THINKING_EXPRESSION.eye_gazeX).not.toBe(IDLE_EXPRESSION.eye_gazeX);
+    expect(THINKING_EXPRESSION.eye_openL).toBeLessThan(IDLE_EXPRESSION.eye_openL);
+    expect(THINKING_EXPRESSION.eye_openR).toBeLessThanOrEqual(IDLE_EXPRESSION.eye_openR);
+    expect(THINKING_EXPRESSION.brow_raiseL).toBeGreaterThan(THINKING_EXPRESSION.brow_raiseR);
+    expect(THINKING_EXPRESSION.brow_furrow).toBe(0);
+    expect(THINKING_EXPRESSION.mouth_pucker).toBeGreaterThan(0);
+    expect(THINKING_EXPRESSION.mouth_open).toBe(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(THINKING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.thinking).toBe(THINKING_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking"
+      ) {
+        continue;
+      }
       expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
     }
   });

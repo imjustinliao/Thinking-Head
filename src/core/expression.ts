@@ -134,6 +134,27 @@ export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `thinking` — lifted, unfocused attention with restrained facial asymmetry.
+ *
+ * The gaze rests above and slightly off-centre while one brow carries more lift than the other.
+ * Softly narrowed lids and a small lip purse keep the upward look contemplative rather than
+ * surprised; the slow wandering posture supplies the larger searching-within quality.
+ */
+export const THINKING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: 0.14,
+  brow_raiseR: 0.06,
+  brow_innerUp: 0.08,
+  eye_openL: -0.06,
+  eye_openR: -0.02,
+  eye_gazeX: 0.12,
+  eye_gazeY: 0.28,
+  mouth_cornerUpL: -0.02,
+  mouth_pucker: 0.08,
+  mouth_press: 0.02,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -141,7 +162,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   idle: IDLE_EXPRESSION,
   listening: LISTENING_EXPRESSION,
   reading: READING_EXPRESSION,
-  thinking: NEUTRAL_EXPRESSION,
+  thinking: THINKING_EXPRESSION,
   searching: NEUTRAL_EXPRESSION,
   executing: NEUTRAL_EXPRESSION,
   generating: NEUTRAL_EXPRESSION,
