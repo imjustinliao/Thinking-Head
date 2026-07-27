@@ -17,11 +17,11 @@ import type { RenderStyle } from "./types.js";
  * unstructured stipple. The current points are sampled from coherent human anatomy.
  */
 
-/** Broad upper-front portrait key. A shallow side angle preserves both eye and nose planes. */
-export const KEY_LIGHT = { x: -0.26, y: 0.42, z: 0.87 } as const;
-/** Opposing frontal fill, weaker than the key so form remains directional rather than flat. */
-export const FILL_LIGHT = { x: 0.46, y: 0.18, z: 0.87 } as const;
-export const FILL_STRENGTH = 0.28;
+/** Upper-side portrait key. The raking angle separates the nose, orbital and cheek planes. */
+export const KEY_LIGHT = { x: -0.5, y: 0.36, z: 0.78 } as const;
+/** Near-frontal fill keeps the shadow side present without flattening the key direction. */
+export const FILL_LIGHT = { x: 0.38, y: 0.08, z: 0.92 } as const;
+export const FILL_STRENGTH = 0.16;
 
 /**
  * Ambient floor, so unlit particles stay present rather than disappearing.
@@ -29,10 +29,10 @@ export const FILL_STRENGTH = 0.28;
  * A moderate fill preserves points on planes turned away from the key. The earlier 0.1 value
  * turned valid mid-face samples into apparent holes rather than readable shadow.
  */
-export const AMBIENT = 0.2;
+export const AMBIENT = 0.24;
 
 /** Occlusion floor — fully enclosed particles keep this fraction of their light. */
-export const OCCLUSION_FLOOR = 0.3;
+export const OCCLUSION_FLOOR = 0.34;
 
 /**
  * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy. The LOD
@@ -166,4 +166,17 @@ export function deriveShading(
     lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
     albedoFlatten: tier.albedoFlatten,
   };
+}
+
+/**
+ * Depth attenuation across the head's actual front-to-back span.
+ *
+ * The nearest surface must remain fully bright. The previous perspective-distance ratio started
+ * the front plane halfway through the fade, dimming the face before its light and occlusion were
+ * evaluated. Normalising against the bound radius maps front → 0, centre → 0.5 and back → 1.
+ */
+export function depthFadeOf(viewZ: number, radius: number, depthDim: number): number {
+  if (radius <= 0) return 1;
+  const depthT = Math.max(0, Math.min(1, (radius - viewZ) / (2 * radius)));
+  return 1 - Math.max(0, Math.min(1, depthDim)) * depthT;
 }

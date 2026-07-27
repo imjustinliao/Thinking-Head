@@ -4,6 +4,7 @@ import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
 import {
   AMBIENT,
+  depthFadeOf,
   deriveShading,
   FILL_LIGHT,
   FILL_STRENGTH,
@@ -201,14 +202,13 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const shimmer = shimmerMultiplier(rx0, ry0, rz0, frame.time, frame.motion);
 
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
-        const depthT = (b.distance - rz) / (b.distance + radius);
         const alpha =
           baseAlpha *
           shade *
           shimmer *
           (feature ? 1 : glyphSkinAlpha) *
           (1 - backness * style.backfaceDim) *
-          (1 - Math.min(1, depthT) * style.depthDim);
+          depthFadeOf(rz, radius, style.depthDim);
         sa[visible] = Math.max(0, Math.min(1, alpha));
         order[visible] = visible;
         visible++;

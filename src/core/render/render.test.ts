@@ -4,6 +4,7 @@ import { detectBackend } from "./createRenderer.js";
 import {
   CELL_FILL,
   COMPACT_MAX_SIZE,
+  depthFadeOf,
   deriveShading,
   GLYPH_MAX_SIZE,
   resolutionForSize,
@@ -147,5 +148,18 @@ describe("shading derivation", () => {
       1,
     ).baseRadius;
     expect(extreme).toBeGreaterThanOrEqual(0.35);
+  });
+
+  test("depth attenuation preserves the face and spans the complete head depth", () => {
+    const dim = 0.52;
+    expect(depthFadeOf(1, 1, dim)).toBe(1);
+    expect(depthFadeOf(0, 1, dim)).toBeCloseTo(1 - dim * 0.5, 6);
+    expect(depthFadeOf(-1, 1, dim)).toBeCloseTo(1 - dim, 6);
+  });
+
+  test("depth attenuation clamps malformed caller values safely", () => {
+    expect(depthFadeOf(2, 1, 2)).toBe(1);
+    expect(depthFadeOf(-2, 1, 2)).toBe(0);
+    expect(depthFadeOf(0, 0, 0.5)).toBe(1);
   });
 });

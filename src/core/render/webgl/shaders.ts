@@ -309,7 +309,7 @@ void main() {
   float baseAlpha = mix(regionAlpha, 1.0, u_albedoFlatten);
 
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
-  float depthT = (u_distance - p.z) / (u_distance + u_boundRadius);
+  float depthT = clamp((u_boundRadius - p.z) / (2.0 * u_boundRadius), 0.0, 1.0);
 
   float shimmer = shimmerMultiplier(rest, u_time);
 
@@ -317,7 +317,7 @@ void main() {
     baseAlpha * shade * shimmer *
     mix(u_glyphSkinAlpha, 1.0, isFeature) *
     (1.0 - backness * u_backfaceDim) *
-    (1.0 - min(1.0, depthT) * u_depthDim);
+    (1.0 - depthT * clamp(u_depthDim, 0.0, 1.0));
 
   // Linear depth into NDC so the depth buffer resolves occlusion without any CPU sorting.
   float near = 0.05;
