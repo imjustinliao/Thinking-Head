@@ -13,6 +13,7 @@ import {
   measureExpressionRig,
   NEUTRAL_EXPRESSION,
   READING_EXPRESSION,
+  REVIEWING_EXPRESSION,
   SEARCHING_EXPRESSION,
   STATE_EXPRESSION,
   THINKING_EXPRESSION,
@@ -137,7 +138,8 @@ describe("reading expression", () => {
         state === "thinking" ||
         state === "searching" ||
         state === "executing" ||
-        state === "generating"
+        state === "generating" ||
+        state === "reviewing"
       ) {
         continue;
       }
@@ -169,7 +171,8 @@ describe("thinking expression", () => {
         state === "thinking" ||
         state === "searching" ||
         state === "executing" ||
-        state === "generating"
+        state === "generating" ||
+        state === "reviewing"
       ) {
         continue;
       }
@@ -201,7 +204,8 @@ describe("searching expression", () => {
         state === "thinking" ||
         state === "searching" ||
         state === "executing" ||
-        state === "generating"
+        state === "generating" ||
+        state === "reviewing"
       ) {
         continue;
       }
@@ -234,7 +238,8 @@ describe("executing expression", () => {
         state === "thinking" ||
         state === "searching" ||
         state === "executing" ||
-        state === "generating"
+        state === "generating" ||
+        state === "reviewing"
       ) {
         continue;
       }
@@ -266,7 +271,41 @@ describe("generating expression", () => {
         state === "thinking" ||
         state === "searching" ||
         state === "executing" ||
-        state === "generating"
+        state === "generating" ||
+        state === "reviewing"
+      ) {
+        continue;
+      }
+      expect(STATE_EXPRESSION[state], `${state} should still be neutral`).toBe(NEUTRAL_EXPRESSION);
+    }
+  });
+});
+
+describe("reviewing expression", () => {
+  test("narrows and lowers an asymmetrical gaze beneath a strong evaluative furrow", () => {
+    expect(REVIEWING_EXPRESSION.brow_furrow).toBeGreaterThan(EXECUTING_EXPRESSION.brow_furrow);
+    expect(REVIEWING_EXPRESSION.brow_raiseL).not.toBe(REVIEWING_EXPRESSION.brow_raiseR);
+    expect(REVIEWING_EXPRESSION.eye_openL).toBeLessThan(EXECUTING_EXPRESSION.eye_openL);
+    expect(REVIEWING_EXPRESSION.eye_openR).toBeLessThan(EXECUTING_EXPRESSION.eye_openR);
+    expect(REVIEWING_EXPRESSION.eye_gazeY).toBeLessThan(0);
+    expect(REVIEWING_EXPRESSION.eye_gazeX).toBe(0);
+    expect(REVIEWING_EXPRESSION.mouth_press).toBeGreaterThan(0);
+    expect(REVIEWING_EXPRESSION.mouth_open).toBe(0);
+  });
+
+  test("is immutable and registered without changing later untuned states", () => {
+    expect(Object.isFrozen(REVIEWING_EXPRESSION)).toBe(true);
+    expect(STATE_EXPRESSION.reviewing).toBe(REVIEWING_EXPRESSION);
+    for (const state of THINKING_HEAD_STATES) {
+      if (
+        state === "idle" ||
+        state === "listening" ||
+        state === "reading" ||
+        state === "thinking" ||
+        state === "searching" ||
+        state === "executing" ||
+        state === "generating" ||
+        state === "reviewing"
       ) {
         continue;
       }

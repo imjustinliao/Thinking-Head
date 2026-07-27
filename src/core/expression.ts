@@ -211,6 +211,25 @@ export const GENERATING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
 });
 
 /**
+ * `reviewing` — narrowed, inward scrutiny during verification.
+ *
+ * The gaze drops slightly beneath an asymmetric lowered brow and stronger medial furrow. The
+ * mouth remains closed and compressed, making the expression evaluative rather than action-ready;
+ * the state's repeated nod carries the ongoing comparison.
+ */
+export const REVIEWING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  brow_raiseL: -0.12,
+  brow_raiseR: -0.16,
+  brow_furrow: 0.32,
+  eye_openL: -0.26,
+  eye_openR: -0.28,
+  eye_gazeY: -0.14,
+  mouth_press: 0.13,
+  jaw_forward: 0.02,
+});
+
+/**
  * Facial expression per state. Untuned states deliberately point at the neutral baseline rather
  * than speculative placeholders, so each later tuning milestone has an honest before/after.
  */
@@ -222,7 +241,7 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   searching: SEARCHING_EXPRESSION,
   executing: EXECUTING_EXPRESSION,
   generating: GENERATING_EXPRESSION,
-  reviewing: NEUTRAL_EXPRESSION,
+  reviewing: REVIEWING_EXPRESSION,
   error: NEUTRAL_EXPRESSION,
   done: NEUTRAL_EXPRESSION,
 };
