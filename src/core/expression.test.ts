@@ -10,6 +10,7 @@ import {
   EXPRESSION_KEYS,
   type ExpressionKey,
   type ExpressionParams,
+  expressionAlbedo,
   expressionRigOf,
   GENERATING_EXPRESSION,
   IDLE_EXPRESSION,
@@ -129,7 +130,7 @@ describe("reading expression", () => {
     expect(READING_EXPRESSION.brow_raiseL).toBeLessThan(IDLE_EXPRESSION.brow_raiseL);
     expect(READING_EXPRESSION.brow_raiseR).toBeLessThan(IDLE_EXPRESSION.brow_raiseR);
     expect(READING_EXPRESSION.brow_furrow).toBe(0);
-    expect(READING_EXPRESSION.mouth_press).toBeLessThan(0.05);
+    expect(READING_EXPRESSION.mouth_press).toBeLessThan(0.1);
   });
 
   test("is immutable and registered", () => {
@@ -218,7 +219,7 @@ describe("reviewing expression", () => {
     expect(REVIEWING_EXPRESSION.eye_openL).toBeLessThan(EXECUTING_EXPRESSION.eye_openL);
     expect(REVIEWING_EXPRESSION.eye_openR).toBeLessThan(EXECUTING_EXPRESSION.eye_openR);
     expect(REVIEWING_EXPRESSION.eye_gazeY).toBeLessThan(0);
-    expect(REVIEWING_EXPRESSION.eye_gazeX).toBe(0);
+    expect(REVIEWING_EXPRESSION.eye_gazeX).toBeLessThan(0);
     expect(REVIEWING_EXPRESSION.mouth_press).toBeGreaterThan(0);
     expect(REVIEWING_EXPRESSION.mouth_open).toBe(0);
   });
@@ -449,6 +450,31 @@ describe("analytic point deformation", () => {
     expect(animated).toEqual(base);
   });
 
+  test("every static endpoint owns a distinct upper-and-lower-face vector", () => {
+    const staticKeys = EXPRESSION_KEYS.slice(0, 18);
+    for (let sourceIndex = 0; sourceIndex < THINKING_HEAD_STATES.length; sourceIndex++) {
+      const sourceState = THINKING_HEAD_STATES[sourceIndex];
+      const source = STATE_EXPRESSION[sourceState];
+      for (
+        let targetIndex = sourceIndex + 1;
+        targetIndex < THINKING_HEAD_STATES.length;
+        targetIndex++
+      ) {
+        const targetState = THINKING_HEAD_STATES[targetIndex];
+        const target = STATE_EXPRESSION[targetState];
+        let squaredDistance = 0;
+        for (const key of staticKeys) {
+          const delta = source[key] - target[key];
+          squaredDistance += delta * delta;
+        }
+        expect(
+          Math.sqrt(squaredDistance),
+          `${sourceState} and ${targetState} need distinct facial endpoints`,
+        ).toBeGreaterThan(0.3);
+      }
+    }
+  });
+
   test("jaw rotation preserves unit normals", () => {
     const rig = expressionRigOf(head);
     const expression = expressionWith("jaw_open");
@@ -538,6 +564,27 @@ describe("analytic point deformation", () => {
       { ...NEUTRAL_EXPRESSION, eye_openL: 1, eye_openR: 1 },
     );
     expect(Array.from(out.subarray(0, 3))).toEqual(Array.from(rest));
+  });
+
+  test("eye material opens the aperture and moves the dark pupil with gaze", () => {
+    const rig = createExpressionRigMetrics();
+    const eye = REGION.eyeL * 3;
+    rig.regionHalfExtent[eye] = 1;
+    rig.regionHalfExtent[eye + 1] = 1;
+    rig.regionHalfExtent[eye + 2] = 1;
+    const open = { ...NEUTRAL_EXPRESSION, eye_openL: 1 };
+    const closed = { ...NEUTRAL_EXPRESSION, eye_openL: -1 };
+    const centredPupil = expressionAlbedo(0.5, 0, 0, 1, REGION.eyeL, rig, open);
+    const openSclera = expressionAlbedo(0.5, 0.7, 0.25, 1, REGION.eyeL, rig, open);
+    const closedSclera = expressionAlbedo(0.5, 0.7, 0.25, 1, REGION.eyeL, rig, closed);
+    const shiftedPupil = expressionAlbedo(0.5, 0.42, 0, 1, REGION.eyeL, rig, {
+      ...open,
+      eye_gazeX: 1,
+    });
+
+    expect(centredPupil).toBeLessThan(openSclera);
+    expect(closedSclera).toBeLessThan(openSclera);
+    expect(shiftedPupil).toBeLessThan(openSclera);
   });
 
   test("clamps control values to their documented ranges", () => {

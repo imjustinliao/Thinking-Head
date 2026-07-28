@@ -130,15 +130,15 @@ export const IDLE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.22,
-  brow_raiseR: 0.34,
-  brow_innerUp: 0.06,
-  eye_openL: 0.12,
-  eye_openR: 0.2,
-  cheek_raise: 0.1,
-  mouth_cornerUpL: 0.08,
-  mouth_cornerUpR: 0.08,
-  mouth_press: 0.03,
+  brow_raiseL: 0.42,
+  brow_raiseR: 0.58,
+  brow_innerUp: 0.12,
+  eye_openL: 0.22,
+  eye_openR: 0.34,
+  cheek_raise: 0.2,
+  mouth_cornerUpL: 0.16,
+  mouth_cornerUpR: 0.18,
+  mouth_press: 0.05,
   eye_blink: 0.32,
   eye_scanX: 0.08,
   eye_scanY: 0.04,
@@ -154,13 +154,15 @@ export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: -0.06,
-  brow_raiseR: -0.06,
-  brow_innerUp: -0.04,
-  eye_openL: -0.24,
-  eye_openR: -0.24,
-  eye_gazeY: -0.38,
-  mouth_press: 0.03,
+  brow_raiseL: -0.16,
+  brow_raiseR: -0.16,
+  brow_innerUp: -0.1,
+  eye_openL: -0.38,
+  eye_openR: -0.38,
+  eye_gazeY: -0.65,
+  mouth_cornerUpL: -0.04,
+  mouth_cornerUpR: -0.04,
+  mouth_press: 0.08,
   eye_blink: 0.24,
   eye_scanX: 0.42,
   eye_scanY: 0.06,
@@ -175,16 +177,16 @@ export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const THINKING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.14,
-  brow_raiseR: 0.06,
-  brow_innerUp: 0.08,
-  eye_openL: -0.06,
+  brow_raiseL: 0.34,
+  brow_raiseR: 0.08,
+  brow_innerUp: 0.16,
+  eye_openL: -0.14,
   eye_openR: -0.02,
-  eye_gazeX: 0.12,
-  eye_gazeY: 0.28,
-  mouth_cornerUpL: -0.02,
-  mouth_pucker: 0.08,
-  mouth_press: 0.02,
+  eye_gazeX: 0.28,
+  eye_gazeY: 0.52,
+  mouth_cornerUpL: -0.08,
+  mouth_pucker: 0.22,
+  mouth_press: 0.05,
   eye_blink: 0.22,
   eye_scanX: 0.16,
   eye_scanY: 0.12,
@@ -201,13 +203,15 @@ export const THINKING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const SEARCHING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.08,
-  brow_raiseR: 0.16,
-  brow_furrow: 0.1,
-  eye_openL: 0.12,
-  eye_openR: 0.18,
-  eye_gazeX: 0.34,
-  mouth_press: 0.06,
+  brow_raiseL: 0.18,
+  brow_raiseR: 0.36,
+  brow_furrow: 0.16,
+  eye_openL: 0.24,
+  eye_openR: 0.34,
+  eye_gazeX: 0.62,
+  mouth_cornerUpL: -0.03,
+  mouth_cornerUpR: -0.03,
+  mouth_press: 0.13,
   eye_blink: 0.16,
   eye_scanX: 0.56,
   eye_scanY: 0.18,
@@ -223,13 +227,15 @@ export const SEARCHING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const EXECUTING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: -0.12,
-  brow_raiseR: -0.12,
-  brow_furrow: 0.18,
-  eye_openL: -0.18,
-  eye_openR: -0.18,
-  mouth_press: 0.2,
-  jaw_forward: 0.04,
+  brow_raiseL: -0.28,
+  brow_raiseR: -0.28,
+  brow_furrow: 0.42,
+  eye_openL: -0.32,
+  eye_openR: -0.32,
+  mouth_cornerUpL: -0.05,
+  mouth_cornerUpR: -0.05,
+  mouth_press: 0.38,
+  jaw_forward: 0.12,
   eye_blink: 0.18,
   eye_scanX: 0.04,
   brow_pulse: 0.08,
@@ -245,21 +251,21 @@ export const EXECUTING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const GENERATING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.12,
-  brow_raiseR: 0.12,
-  eye_openL: 0.08,
-  eye_openR: 0.08,
+  brow_raiseL: 0.2,
+  brow_raiseR: 0.2,
+  eye_openL: 0.16,
+  eye_openR: 0.16,
   cheek_raise: 0.12,
-  mouth_cornerUpL: 0.1,
-  mouth_cornerUpR: 0.1,
-  mouth_open: 0.45,
-  jaw_open: 0.18,
+  mouth_cornerUpL: 0.05,
+  mouth_cornerUpR: 0.05,
+  mouth_open: 0.28,
+  jaw_open: 0.16,
   eye_blink: 0.2,
   eye_scanX: 0.06,
   eye_scanY: 0.04,
   brow_pulse: 0.06,
-  mouth_articulate: 0.48,
-  jaw_articulate: 0.2,
+  mouth_articulate: 0.34,
+  jaw_articulate: 0.14,
 });
 
 /**
@@ -271,14 +277,17 @@ export const GENERATING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const REVIEWING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: -0.12,
-  brow_raiseR: -0.16,
-  brow_furrow: 0.32,
-  eye_openL: -0.26,
-  eye_openR: -0.28,
-  eye_gazeY: -0.14,
-  mouth_press: 0.13,
-  jaw_forward: 0.02,
+  brow_raiseL: -0.2,
+  brow_raiseR: -0.4,
+  brow_furrow: 0.65,
+  eye_openL: -0.42,
+  eye_openR: -0.52,
+  eye_gazeX: -0.1,
+  eye_gazeY: -0.35,
+  mouth_cornerUpL: -0.08,
+  mouth_cornerUpR: -0.12,
+  mouth_press: 0.3,
+  jaw_forward: 0.05,
   eye_blink: 0.2,
   eye_scanX: 0.16,
   eye_scanY: 0.12,
@@ -295,15 +304,15 @@ export const REVIEWING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_innerUp: 0.34,
-  brow_furrow: 0.26,
-  eye_openL: 0.22,
-  eye_openR: 0.22,
-  nose_scrunch: 0.1,
-  mouth_cornerUpL: -0.28,
-  mouth_cornerUpR: -0.28,
-  mouth_open: 0.28,
-  jaw_open: 0.1,
+  brow_innerUp: 0.65,
+  brow_furrow: 0.36,
+  eye_openL: 0.45,
+  eye_openR: 0.45,
+  nose_scrunch: 0.35,
+  mouth_cornerUpL: -0.62,
+  mouth_cornerUpR: -0.62,
+  mouth_open: 0.38,
+  jaw_open: 0.18,
   eye_blink: 0.08,
   eye_scanX: 0.1,
   eye_scanY: 0.06,
@@ -321,13 +330,13 @@ export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
  */
 export const DONE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
-  brow_raiseL: 0.05,
-  brow_raiseR: 0.05,
-  eye_openL: -0.14,
-  eye_openR: -0.14,
-  cheek_raise: 0.36,
-  mouth_cornerUpL: 0.62,
-  mouth_cornerUpR: 0.62,
+  brow_raiseL: 0.1,
+  brow_raiseR: 0.1,
+  eye_openL: -0.32,
+  eye_openR: -0.32,
+  cheek_raise: 0.58,
+  mouth_cornerUpL: 0.85,
+  mouth_cornerUpR: 0.85,
   eye_blink: 0.3,
   brow_pulse: 0.04,
 });
@@ -704,4 +713,41 @@ export function deformExpressionPoint(
   }
 
   normaliseExpressionNormal(out);
+}
+
+/**
+ * Applies the eye aperture and moving iris/pupil pattern to front-facing ocular particles.
+ *
+ * Geometry carries lid and socket deformation; this material cue makes gaze legible when an eye
+ * resolves to only a handful of particles. It remains monochrome and is mirrored in the shader.
+ */
+export function expressionAlbedo(
+  baseAlbedo: number,
+  px: number,
+  py: number,
+  nz: number,
+  region: number,
+  rig: ExpressionRigMetrics,
+  expression: Readonly<ExpressionParams>,
+): number {
+  if ((region !== REGION.eyeL && region !== REGION.eyeR) || nz <= 0.35) return baseAlbedo;
+
+  const offset = region * 3;
+  const cx = rig.regionCenter[offset] ?? 0;
+  const cy = rig.regionCenter[offset + 1] ?? 0;
+  const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
+  const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+  const lx = clampSigned((px - cx) / ex);
+  const ly = clampSigned((py - cy) / ey);
+  const open = clampSigned(region === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
+  const halfAperture = Math.max(0.1, Math.min(0.44, 0.27 + open * 0.17));
+  const aperture = clampUnit((halfAperture - Math.abs(ly)) / 0.09);
+  const irisX = clampSigned(expression.eye_gazeX) * 0.42;
+  const irisY = clampSigned(expression.eye_gazeY) * 0.32;
+  const irisDistance = Math.hypot(lx - irisX, (ly - irisY) * 1.2);
+  const iris = clampUnit((0.36 - irisDistance) / 0.16);
+  const pupil = clampUnit((0.16 - irisDistance) / 0.08);
+  const openEye = 0.74 - iris * 0.26 - pupil * 0.34;
+  const lid = baseAlbedo * 0.78;
+  return lid + (openEye - lid) * aperture;
 }

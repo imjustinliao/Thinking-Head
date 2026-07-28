@@ -3,6 +3,7 @@ import {
   animateExpressionInto,
   createExpressionParams,
   deformExpressionPoint,
+  expressionAlbedo,
   expressionRigOf,
 } from "../expression.js";
 import {
@@ -281,6 +282,15 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const regionAlpha = intensityOf(region);
         let baseAlpha = regionAlpha + (1 - regionAlpha) * albedoFlatten;
         if (feature) baseAlpha *= featureAlbedoScale;
+        baseAlpha = expressionAlbedo(
+          baseAlpha,
+          rx0,
+          ry0,
+          nz,
+          region,
+          expressionRig,
+          animatedExpression,
+        );
 
         // Brightness ripple: the primary carrier of "alive" perception at inline sizes, where
         // positional displacement is sub-pixel by construction (see shimmerAmplitude's doc).

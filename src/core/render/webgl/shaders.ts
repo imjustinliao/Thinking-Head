@@ -311,6 +311,36 @@ float shimmerMultiplier(vec3 p) {
   return 1.0 + u_brightnessBias + u_shimmerAmplitude * band;
 }
 
+float expressionAlbedo(float baseAlbedo, vec3 rest, vec3 restNormal, int region) {
+  if (
+    (region != ${REGION.eyeL} && region != ${REGION.eyeR}) ||
+    restNormal.z <= 0.35
+  ) {
+    return baseAlbedo;
+  }
+
+  vec3 extent = max(u_regionHalfExtent[region], vec3(1e-6));
+  vec3 local = clamp((rest - u_regionCenter[region]) / extent, vec3(-1.0), vec3(1.0));
+  float open = clampSigned(
+    region == ${REGION.eyeL}
+      ? u_expression[${expressionIndex("eye_openL")}]
+      : u_expression[${expressionIndex("eye_openR")}]
+  );
+  float halfAperture = clamp(0.27 + open * 0.17, 0.1, 0.44);
+  float aperture = clampUnit((halfAperture - abs(local.y)) / 0.09);
+  vec2 irisCenter =
+    vec2(
+      clampSigned(u_expression[${expressionIndex("eye_gazeX")}]) * 0.42,
+      clampSigned(u_expression[${expressionIndex("eye_gazeY")}]) * 0.32
+    );
+  float irisDistance = length(vec2(local.x - irisCenter.x, (local.y - irisCenter.y) * 1.2));
+  float iris = clampUnit((0.36 - irisDistance) / 0.16);
+  float pupil = clampUnit((0.16 - irisDistance) / 0.08);
+  float openEye = 0.74 - iris * 0.26 - pupil * 0.34;
+  float lid = baseAlbedo * 0.78;
+  return mix(lid, openEye, aperture);
+}
+
 void main() {
   v_corner = a_corner;
 
@@ -373,6 +403,7 @@ void main() {
   // At glyph scale broad dark landmarks carry the face configuration after thousands of surface
   // samples resolve into only a few pixels. The complete 3D surface still defines their shape.
   baseAlpha *= mix(1.0, u_featureAlbedoScale, isFeature);
+  baseAlpha = expressionAlbedo(baseAlpha, rest, a_normal, region);
 
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = clamp((u_boundRadius - p.z) / (2.0 * u_boundRadius), 0.0, 1.0);
