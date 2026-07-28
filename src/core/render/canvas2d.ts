@@ -124,8 +124,6 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
       ensureCapacity(count);
 
-      const sway = swayOffsets(frame.time, frame.motion);
-      const b = cameraBasis(frame.camera, sway.yaw, sway.pitch, sway.roll);
       const { positions, normals, center, occlusion, weight } = pointSet;
       const expressionRig = expressionRigOf(pointSet);
       // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
@@ -134,6 +132,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
       const half = device / 2;
 
       const {
+        tier,
         baseRadius,
         featureEmphasis,
         framingScale,
@@ -143,6 +142,13 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         albedoFlatten,
         featureAlbedoScale,
       } = deriveShading(cssSize, device, pointSet.cellSize, style, radius);
+      const sway = swayOffsets(frame.time, frame.motion);
+      const b = cameraBasis(
+        frame.camera,
+        sway.yaw * tier.poseScale,
+        sway.pitch * tier.poseScale,
+        sway.roll * tier.poseScale,
+      );
       const scale = fitScale(radius, frame.camera) * framingScale * (device / 2);
 
       let visible = 0;

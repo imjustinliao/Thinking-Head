@@ -389,10 +389,15 @@ class SharedGL implements SharedGLRenderer {
 
     const { pointSet, style, camera, motion, expression } = frame;
     const expressionRig = expressionRigOf(pointSet);
-    const sway = swayOffsets(frame.time, motion);
-    const b = cameraBasis(camera, sway.yaw, sway.pitch, sway.roll);
     const boundRadius = pointSet.radius || 1;
     const shading = deriveShading(cssSize, devicePixels, pointSet.cellSize, style, boundRadius);
+    const sway = swayOffsets(frame.time, motion);
+    const b = cameraBasis(
+      camera,
+      sway.yaw * shading.tier.poseScale,
+      sway.pitch * shading.tier.poseScale,
+      sway.roll * shading.tier.poseScale,
+    );
 
     const cy = b.cosYaw;
     const sy = b.sinYaw;

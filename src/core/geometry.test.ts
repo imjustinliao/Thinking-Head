@@ -155,6 +155,17 @@ describe("progressive levels of detail", () => {
     expect(dpr2.resolution).toBe(dpr1.resolution);
     expect(dpr2.count).toBe(dpr1.count);
   });
+
+  test("small rendered sizes select the deliberate optical master ladder", () => {
+    const model = new HeadModel();
+    const selected = [16, 24, 32, 48, 64, 80, 96].map((cssSize) =>
+      model.levelForSize(cssSize * 2, 1.6 * 2, minimumResolutionForSize(cssSize)),
+    );
+    expect(selected.map((level) => level.resolution)).toEqual([17, 24, 34, 48, 68, 96, 136]);
+    for (let i = 1; i < selected.length; i++) {
+      expect(selected[i].count).toBeGreaterThan(selected[i - 1].count);
+    }
+  });
 });
 
 describe("determinism and facial regions", () => {

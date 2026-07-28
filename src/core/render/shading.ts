@@ -85,8 +85,8 @@ const TIERS: SizeTier[] = [
     poseScale: 0,
     minResolution: 17,
     albedoFlatten: 0,
-    skinRadius: 1,
-    featureScale: 1.12,
+    skinRadius: 1.04,
+    featureScale: 1.2,
   },
   {
     name: "compact",
@@ -112,7 +112,7 @@ const TIERS: SizeTier[] = [
 
 export const GLYPH_MAX_SIZE = 64;
 export const COMPACT_MAX_SIZE = 160;
-export const FULL_SURFACE_SIZE = 48;
+export const FULL_SURFACE_SIZE = 96;
 export const FULL_SURFACE_RESOLUTION = 136;
 
 export function resolveTier(cssSize: number): SizeTier {
@@ -124,15 +124,22 @@ export function resolveTier(cssSize: number): SizeTier {
 /**
  * Optical particle budget rather than one density blindly scaled down.
  *
- * Below 48px the progressive surface behaves like hand-drawn icon variants: fewer circles with
- * heavier visual weight and all key landmarks retained. At and above 48px the complete surface
+ * Below 96px the progressive surface behaves like hand-drawn icon variants: fewer circles with
+ * heavier visual weight and all key landmarks retained. At and above 96px the complete surface
  * preserves the sculpt Justin approved.
+ *
+ * The thresholds deliberately align with HeadModel's baked resolution ladder. A continuous
+ * formula used to cross a ladder boundary early, doubling the particles in a 48px icon while
+ * adding no facial information. Explicit optical masters make every density change intentional.
  */
 export function minimumResolutionForSize(cssSize: number): number {
-  if (cssSize >= FULL_SURFACE_SIZE) return FULL_SURFACE_RESOLUTION;
-  const t = Math.max(0, Math.min(1, (cssSize - 16) / (FULL_SURFACE_SIZE - 16)));
-  const optical = 17 + (FULL_SURFACE_RESOLUTION - 17) * t * t;
-  return Math.max(resolveTier(cssSize).minResolution, Math.round(optical));
+  if (cssSize <= 20) return 17;
+  if (cssSize <= 28) return 24;
+  if (cssSize <= 40) return 34;
+  if (cssSize <= 56) return 48;
+  if (cssSize <= 72) return 68;
+  if (cssSize < FULL_SURFACE_SIZE) return 96;
+  return FULL_SURFACE_RESOLUTION;
 }
 
 /**
@@ -179,13 +186,16 @@ export function deriveShading(
   // Feature footprint changes only at explicit size tiers; the optional public knob layers on
   // top and eases away as the full sculpt becomes large enough to carry itself.
   const sizeT = Math.min(1, cssSize / 256);
-  const featureEmphasis = tier.featureScale + style.featureBoost * (1 - sizeT);
+  const glyphT = Math.max(0, Math.min(1, (cssSize - 16) / (GLYPH_MAX_SIZE - 16)));
+  const opticalFeatureScale = 1.55 - 0.35 * glyphT;
+  const featureEmphasis =
+    (tier.name === "glyph" ? opticalFeatureScale : tier.featureScale) +
+    style.featureBoost * (1 - sizeT);
 
   const glyphMode = tier.cullFarSide;
-  const glyphRoom = 1 - Math.min(1, cssSize / GLYPH_MAX_SIZE);
-  const glyphZoom = 1.2 + 3.1 * glyphRoom ** 4;
-  const framingScale = tier.name === "glyph" ? glyphZoom : tier.name === "compact" ? 1.18 : 1.25;
-  const featureAlbedoScale = tier.name === "glyph" ? 0.68 - 0.38 * glyphRoom ** 2 : 1;
+  const glyphFraming = 1.25 - 0.05 * glyphT;
+  const framingScale = tier.name === "glyph" ? glyphFraming : tier.name === "compact" ? 1.18 : 1.25;
+  const featureAlbedoScale = tier.name === "glyph" ? 0.28 + 0.42 * glyphT : 1;
   // Optical glyph framing magnifies particle positions. Their footprint must follow that zoom or
   // a correct progressive prefix opens into a disconnected constellation.
   const baseRadius = sampledRadius * (cssSize < FULL_SURFACE_SIZE ? framingScale : 1);
