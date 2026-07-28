@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
 import {
+  auditAllStateTransitions,
   HeadModel,
   minimumResolutionForSize,
   type RenderStyle,
@@ -60,6 +61,14 @@ export function TransitionLab() {
   const fps = Math.round(numberFromQuery(query.get("fps"), 60, 12, 60));
   const duration = numberFromQuery(query.get("duration"), 0.8, 0.2, 1.2);
   const times = useMemo(() => frameTimes(duration, fps), [duration, fps]);
+  const audit = useMemo(
+    () => auditAllStateTransitions({ fps, duration: Math.max(duration, 0.8) }),
+    [duration, fps],
+  );
+  const passedCount = audit.filter((result) => result.passed).length;
+  const slowestSettle = Math.max(...audit.map((result) => result.settledAt ?? 0));
+  const largestStep = Math.max(...audit.map((result) => result.maxNormalizedStep));
+  const minimumDirection = Math.min(...audit.map((result) => result.minimumDirectionMagnitude));
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const model = useMemo(() => new HeadModel(DEFAULT_TUNING.head, DEFAULT_TUNING.features), []);
   const selectedPointSet = useMemo(
@@ -202,6 +211,74 @@ export function TransitionLab() {
               );
             }),
           )}
+        </div>
+      </section>
+
+      <section className="transition-lab__section" aria-labelledby="analysis-heading">
+        <div className="transition-lab__section-heading">
+          <span>03</span>
+          <div>
+            <h2 id="analysis-heading">Frame analysis</h2>
+            <p>Scalar and oscillator continuity at {fps} fps across all 90 directed state pairs.</p>
+          </div>
+        </div>
+        <dl className="transition-lab__summary">
+          <div>
+            <dt>Passing</dt>
+            <dd>
+              {passedCount} / {audit.length}
+            </dd>
+          </div>
+          <div>
+            <dt>Start jumps</dt>
+            <dd>{audit.filter((result) => result.startDiscontinuity > 0).length}</dd>
+          </div>
+          <div>
+            <dt>Overshoots</dt>
+            <dd>{audit.reduce((sum, result) => sum + result.overshootCount, 0)}</dd>
+          </div>
+          <div>
+            <dt>Slowest settle</dt>
+            <dd>{Math.round(slowestSettle * 1000)}ms</dd>
+          </div>
+          <div>
+            <dt>Largest frame step</dt>
+            <dd>{(largestStep * 100).toFixed(1)}%</dd>
+          </div>
+          <div>
+            <dt>Min direction length</dt>
+            <dd>{minimumDirection.toFixed(2)}</dd>
+          </div>
+        </dl>
+        <div className="transition-lab__table-wrap">
+          <table className="transition-lab__table">
+            <thead>
+              <tr>
+                <th>Pair</th>
+                <th>Frames</th>
+                <th>Settle</th>
+                <th>Largest step</th>
+                <th>End error</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.map((result) => (
+                <tr key={`${result.from}-${result.to}`}>
+                  <td>
+                    {result.from} → {result.to}
+                  </td>
+                  <td>{result.frameCount}</td>
+                  <td>
+                    {result.settledAt === null ? "—" : `${Math.round(result.settledAt * 1000)}ms`}
+                  </td>
+                  <td>{(result.maxNormalizedStep * 100).toFixed(1)}%</td>
+                  <td>{result.endpointError.toExponential(1)}</td>
+                  <td>{result.passed ? "pass" : "review"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
     </main>

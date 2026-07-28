@@ -110,3 +110,9 @@ export {
   StateTransitionController,
   type StateTransitionSample,
 } from "./core/transition.js";
+export {
+  auditAllStateTransitions,
+  auditStateTransition,
+  type TransitionAuditOptions,
+  type TransitionAuditResult,
+} from "./core/transitionAudit.js";
