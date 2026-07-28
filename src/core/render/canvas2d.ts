@@ -143,7 +143,10 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         featureEmphasis,
         framingScale,
         glyphMode,
+        faceOnly,
         skinRadius,
+        particleCoreContrast,
+        lightSide,
         lighting,
         albedoFlatten,
         featureAlbedoScale,
@@ -156,6 +159,10 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         sway.roll * tier.poseScale,
       );
       const scale = fitScale(radius, frame.camera) * framingScale * (device / 2);
+      const keyX = KEY_LIGHT.x * lightSide;
+      const keyLength = Math.hypot(keyX, KEY_LIGHT.y, KEY_LIGHT.z) || 1;
+      const fillX = FILL_LIGHT.x * lightSide;
+      const fillLength = Math.hypot(fillX, FILL_LIGHT.y, FILL_LIGHT.z) || 1;
 
       let visible = 0;
       for (let i = 0; i < count; i++) {
@@ -222,6 +229,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         // skull still reads as a smudge stuck to the silhouette; skin dots keep drawing dimmed
         // because they carry the head's sense of volume.
         if (feature && facing < 0.03) continue;
+        if (faceOnly && ey < -0.62 * radius) continue;
         if (glyphMode && facing < -0.05) continue;
 
         const persp = b.distance / viewZ;
@@ -240,11 +248,11 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         const nyV = nxV * b.sinRoll + nyPitch * b.cosRoll;
         const keyDiffuse = Math.max(
           0,
-          nxRoll * KEY_LIGHT.x + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z,
+          (nxRoll * keyX + nyV * KEY_LIGHT.y + facing * KEY_LIGHT.z) / keyLength,
         );
         const fillDiffuse = Math.max(
           0,
-          nxRoll * FILL_LIGHT.x + nyV * FILL_LIGHT.y + facing * FILL_LIGHT.z,
+          (nxRoll * fillX + nyV * FILL_LIGHT.y + facing * FILL_LIGHT.z) / fillLength,
         );
         const diffuse = Math.min(1, keyDiffuse + fillDiffuse * FILL_STRENGTH);
         const ao = occlusion[i];
@@ -292,9 +300,10 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           lastAlpha = a;
         }
         const brightness = sb[i];
-        if (brightness !== lastBrightness) {
-          ctx.fillStyle = colorPalette[brightness];
-          lastBrightness = brightness;
+        const supportBrightness = Math.round(brightness * (1 - particleCoreContrast));
+        if (supportBrightness !== lastBrightness) {
+          ctx.fillStyle = colorPalette[supportBrightness];
+          lastBrightness = supportBrightness;
         }
         if (square) {
           // fillRect avoids path construction for the optional square style.
@@ -303,6 +312,21 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         } else {
           ctx.beginPath();
           ctx.arc(sx[i], sy[i], sr[i], 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (particleCoreContrast <= 0) continue;
+        if (brightness !== lastBrightness) {
+          ctx.fillStyle = colorPalette[brightness];
+          lastBrightness = brightness;
+        }
+        const coreRadius = sr[i] * 0.43;
+        if (square) {
+          const coreSize = coreRadius * 2;
+          ctx.fillRect(sx[i] - coreRadius, sy[i] - coreRadius, coreSize, coreSize);
+        } else {
+          ctx.beginPath();
+          ctx.arc(sx[i], sy[i], coreRadius, 0, Math.PI * 2);
           ctx.fill();
         }
       }

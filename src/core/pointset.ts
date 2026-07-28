@@ -7,8 +7,9 @@
  * once against that topology, server-side and offline, and reused for every user. This format
  * therefore does not need to change to support personalised heads.
  *
- * The neutral head uses an even progressive surface sampling. Order is significant: each prefix
- * is a complete lower-density head, so density changes never swap to a different identity.
+ * The canonical neutral head uses one progressive surface sampling. Display levels are prefixes;
+ * tiny optical masters may rebalance that same sampling toward facial landmarks, but never swap
+ * identity or introduce a second geometry format.
  */
 export interface HeadPointSet {
   /** Rest position per particle, xyz interleaved. Length `3 * count`. */

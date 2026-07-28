@@ -3,7 +3,7 @@ import { generateHeadLevel, HeadModel, LEVEL_RESOLUTIONS } from "./geometry.js";
 import { DEFAULT_HEAD_PARAMS } from "./head.js";
 import type { HeadPointSet } from "./pointset.js";
 import { validatePointSet } from "./pointset.js";
-import { FEATURE_REGIONS, REGION, REGION_NAMES } from "./regions.js";
+import { FEATURE_REGIONS, REGION, REGION_COUNT, REGION_NAMES } from "./regions.js";
 import { minimumResolutionForSize } from "./render/shading.js";
 
 let head: HeadPointSet;
@@ -111,12 +111,25 @@ describe("progressive levels of detail", () => {
     expect(head.cellSize).toBeCloseTo((2 * head.radius) / head.resolution, 6);
   });
 
-  test("the same identity is preserved by progressive prefixes", () => {
-    const coarse = generateHeadLevel({ resolution: 24 });
-    const fine = generateHeadLevel({ resolution: 48 });
+  test("the complete sculpt preserves progressive prefixes", () => {
+    const coarse = generateHeadLevel({ resolution: 68 });
+    const fine = generateHeadLevel({ resolution: 96 });
     expect(Array.from(fine.positions.slice(0, coarse.positions.length))).toEqual(
       Array.from(coarse.positions),
     );
+  });
+
+  test("tiny optical masters reserve enough samples for every facial landmark", () => {
+    const glyph = generateHeadLevel({ resolution: 17 });
+    const counts = new Uint16Array(REGION_COUNT);
+    for (let i = 0; i < glyph.count; i++) counts[glyph.regionId[i]]++;
+
+    expect(counts[REGION.eyeL]).toBeGreaterThanOrEqual(6);
+    expect(counts[REGION.eyeR]).toBeGreaterThanOrEqual(6);
+    expect(counts[REGION.browL]).toBeGreaterThanOrEqual(4);
+    expect(counts[REGION.browR]).toBeGreaterThanOrEqual(4);
+    expect(counts[REGION.nose]).toBeGreaterThanOrEqual(10);
+    expect(counts[REGION.mouth]).toBeGreaterThanOrEqual(8);
   });
 
   test("the model caches levels rather than rebuilding them", () => {
@@ -161,9 +174,9 @@ describe("progressive levels of detail", () => {
     const selected = [16, 24, 32, 48, 64, 80, 96].map((cssSize) =>
       model.levelForSize(cssSize * 2, 1.6 * 2, minimumResolutionForSize(cssSize)),
     );
-    expect(selected.map((level) => level.resolution)).toEqual([17, 24, 34, 48, 68, 96, 136]);
+    expect(selected.map((level) => level.resolution)).toEqual([24, 34, 48, 68, 96, 96, 136]);
     for (let i = 1; i < selected.length; i++) {
-      expect(selected[i].count).toBeGreaterThan(selected[i - 1].count);
+      expect(selected[i].count).toBeGreaterThanOrEqual(selected[i - 1].count);
     }
   });
 });

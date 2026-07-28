@@ -6,14 +6,12 @@ import type { RenderStyle } from "./types.js";
  * Both renderer backends read this, so the Canvas 2D fallback cannot silently look different
  * from the GPU path.
  *
- * The governing principle is optical level of detail: the baked surface is progressively ordered
- * with facial landmarks at its front, so small tiers use fewer, larger representative particles
- * and large tiers converge on the complete anatomical surface. Over-sampling a small canvas
- * averages thousands of subpixel particles into a pale mask.
+ * The governing principle is optical level of detail: small tiers use landmark-balanced surfel
+ * masters and large tiers converge on the complete progressively ordered anatomical surface.
  *
  * Earlier spacing-driven attempts failed because their sparse points were not a coherent,
  * landmark-preserving surface and their footprint did not follow optical framing. The current
- * progressive point set preserves facial configuration first, so its spacing can safely drive a
+ * optical masters preserve facial configuration first, so their spacing can safely drive a
  * deliberate hierarchy of visible particle sizes.
  */
 
@@ -77,7 +75,7 @@ export interface SizeTier {
 }
 
 const TIERS: SizeTier[] = [
-  // The progressive prefix preserves both eyes and the mouth from resolution 17 upward.
+  // The optical point set preserves both eyes and the mouth from resolution 17 upward.
   {
     name: "glyph",
     lightingScale: 0.42,
@@ -124,20 +122,20 @@ export function resolveTier(cssSize: number): SizeTier {
 /**
  * Optical particle budget rather than one density blindly scaled down.
  *
- * Below 96px the progressive surface behaves like hand-drawn icon variants: fewer circles with
- * heavier visual weight and all key landmarks retained. At and above 96px the complete surface
- * preserves the sculpt Justin approved.
+ * Below 96px the surface behaves like hand-drawn icon variants: fewer circles with heavier visual
+ * weight and all key landmarks retained. At and above 96px the complete surface preserves the
+ * sculpt Justin approved.
  *
  * The thresholds deliberately align with HeadModel's baked resolution ladder. A continuous
  * formula used to cross a ladder boundary early, doubling the particles in a 48px icon while
  * adding no facial information. Explicit optical masters make every density change intentional.
  */
 export function minimumResolutionForSize(cssSize: number): number {
-  if (cssSize <= 20) return 17;
-  if (cssSize <= 28) return 24;
-  if (cssSize <= 40) return 34;
-  if (cssSize <= 56) return 48;
-  if (cssSize <= 72) return 68;
+  if (cssSize <= 20) return 24;
+  if (cssSize <= 28) return 34;
+  if (cssSize <= 40) return 48;
+  if (cssSize <= 56) return 68;
+  if (cssSize <= 72) return 96;
   if (cssSize < FULL_SURFACE_SIZE) return 96;
   return FULL_SURFACE_RESOLUTION;
 }
@@ -158,8 +156,14 @@ export interface DerivedShading {
   /** Draw-size multiplier for feature regions. 1 keeps every dot identical. */
   featureEmphasis: number;
   glyphMode: boolean;
+  /** Omits neck particles where the pixel budget can only communicate the face itself. */
+  faceOnly: boolean;
   /** Draw-size multiplier for non-feature skin particles. */
   skinRadius: number;
+  /** Darkens the support area around a bright particle core, preserving the circular medium. */
+  particleCoreContrast: number;
+  /** Scales the key light's side angle; tiny faces need a symmetric frontal key. */
+  lightSide: number;
   /** Lighting strength after the tier's scaling. */
   lighting: number;
   /** Mix amount from region albedo to one neutral sculptural material. */
@@ -187,17 +191,22 @@ export function deriveShading(
   // top and eases away as the full sculpt becomes large enough to carry itself.
   const sizeT = Math.min(1, cssSize / 256);
   const glyphT = Math.max(0, Math.min(1, (cssSize - 16) / (GLYPH_MAX_SIZE - 16)));
-  const opticalFeatureScale = 1.55 - 0.35 * glyphT;
+  const opticalFeatureScale = 1.25 - 0.2 * glyphT;
   const featureEmphasis =
     (tier.name === "glyph" ? opticalFeatureScale : tier.featureScale) +
     style.featureBoost * (1 - sizeT);
 
   const glyphMode = tier.cullFarSide;
-  const glyphFraming = 1.25 - 0.05 * glyphT;
+  const glyphFraming = 1.58 - 0.4 * glyphT;
   const framingScale = tier.name === "glyph" ? glyphFraming : tier.name === "compact" ? 1.18 : 1.25;
-  const featureAlbedoScale = tier.name === "glyph" ? 0.28 + 0.42 * glyphT : 1;
+  const featureAlbedoScale = tier.name === "glyph" ? 0.82 + 0.18 * glyphT : 1;
+  const albedoFlatten = tier.name === "glyph" ? 0.45 - 0.2 * glyphT : tier.albedoFlatten;
+  const skinRadius = tier.name === "glyph" ? 1.45 - 0.45 * glyphT : tier.skinRadius;
+  const particleCoreContrast = tier.name === "glyph" ? 0.16 * (1 - glyphT) : 0;
+  const lightSide = tier.name === "glyph" ? Math.max(0, Math.min(1, (glyphT - 1 / 3) * 1.5)) : 1;
+  const lightingScale = tier.name === "glyph" ? 0.42 + 0.2 * glyphT : tier.lightingScale;
   // Optical glyph framing magnifies particle positions. Their footprint must follow that zoom or
-  // a correct progressive prefix opens into a disconnected constellation.
+  // a correct optical master opens into a disconnected constellation.
   const baseRadius = sampledRadius * (cssSize < FULL_SURFACE_SIZE ? framingScale : 1);
 
   return {
@@ -206,9 +215,12 @@ export function deriveShading(
     framingScale,
     featureEmphasis,
     glyphMode,
-    skinRadius: tier.skinRadius,
-    lighting: Math.max(0, Math.min(1, style.lighting)) * tier.lightingScale,
-    albedoFlatten: tier.albedoFlatten,
+    faceOnly: cssSize <= 32,
+    skinRadius,
+    particleCoreContrast,
+    lightSide,
+    lighting: Math.max(0, Math.min(1, style.lighting)) * lightingScale,
+    albedoFlatten,
     featureAlbedoScale,
   };
 }

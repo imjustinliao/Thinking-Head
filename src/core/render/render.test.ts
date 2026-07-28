@@ -54,6 +54,12 @@ describe("shading derivation", () => {
     expect(deriveShading(GLYPH_MAX_SIZE + 1, 33, 0.1, DEFAULT_STYLE, 1).glyphMode).toBe(false);
   });
 
+  test("only the smallest optical masters spend every pixel on the face", () => {
+    expect(deriveShading(16, 32, 0.1, DEFAULT_STYLE, 1).faceOnly).toBe(true);
+    expect(deriveShading(32, 64, 0.1, DEFAULT_STYLE, 1).faceOnly).toBe(true);
+    expect(deriveShading(33, 66, 0.1, DEFAULT_STYLE, 1).faceOnly).toBe(false);
+  });
+
   test("tier floors preserve landmarks without over-sampling small canvases", () => {
     expect(resolveTier(16).minResolution).toBe(17);
     expect(resolveTier(96).minResolution).toBe(48);
@@ -61,11 +67,11 @@ describe("shading derivation", () => {
   });
 
   test("optical LOD grows through dedicated small variants then preserves the full sculpt", () => {
-    expect(minimumResolutionForSize(16)).toBe(17);
-    expect(minimumResolutionForSize(24)).toBe(24);
-    expect(minimumResolutionForSize(32)).toBe(34);
-    expect(minimumResolutionForSize(48)).toBe(48);
-    expect(minimumResolutionForSize(64)).toBe(68);
+    expect(minimumResolutionForSize(16)).toBe(24);
+    expect(minimumResolutionForSize(24)).toBe(34);
+    expect(minimumResolutionForSize(32)).toBe(48);
+    expect(minimumResolutionForSize(48)).toBe(68);
+    expect(minimumResolutionForSize(64)).toBe(96);
     expect(minimumResolutionForSize(80)).toBe(96);
     expect(minimumResolutionForSize(96)).toBe(FULL_SURFACE_RESOLUTION);
     expect(minimumResolutionForSize(320)).toBe(FULL_SURFACE_RESOLUTION);
@@ -154,7 +160,7 @@ describe("shading derivation", () => {
     expect(at24).toBeLessThan(at32);
     expect(at32).toBeLessThan(at48);
     expect(at48).toBeLessThan(at64);
-    expect(at64).toBeLessThan(at80);
+    expect(at64).toBe(at80);
     expect(at80).toBeLessThan(at96);
     expect(resolutionForSize(256, 2)).toBe(FULL_SURFACE_RESOLUTION);
   });
@@ -163,12 +169,31 @@ describe("shading derivation", () => {
     const at16 = deriveShading(16, 32, 2 / 17, DEFAULT_STYLE, 1);
     const at48 = deriveShading(48, 96, 2 / 48, DEFAULT_STYLE, 1);
     const at64 = deriveShading(64, 128, 2 / 68, DEFAULT_STYLE, 1);
-    expect(at16.framingScale).toBeLessThanOrEqual(1.25);
+    expect(at16.framingScale).toBeLessThanOrEqual(1.6);
     expect(at16.framingScale).toBeGreaterThan(at48.framingScale);
     expect(at16.featureEmphasis).toBeGreaterThan(at48.featureEmphasis);
     expect(at48.featureEmphasis).toBeGreaterThan(at64.featureEmphasis);
     expect(at16.featureAlbedoScale).toBeLessThan(at48.featureAlbedoScale);
     expect(at48.featureAlbedoScale).toBeLessThan(at64.featureAlbedoScale);
+  });
+
+  test("tiny surfels fuse into skin while retaining bright particle cores", () => {
+    const at16 = deriveShading(16, 32, 2 / 17, DEFAULT_STYLE, 1);
+    const at48 = deriveShading(48, 96, 2 / 48, DEFAULT_STYLE, 1);
+    const at64 = deriveShading(64, 128, 2 / 68, DEFAULT_STYLE, 1);
+    const compact = deriveShading(65, 130, 2 / 68, DEFAULT_STYLE, 1);
+
+    expect(at16.skinRadius).toBeGreaterThan(at48.skinRadius);
+    expect(at48.skinRadius).toBeGreaterThan(at64.skinRadius);
+    expect(at64.skinRadius).toBeCloseTo(compact.skinRadius, 8);
+    expect(at16.particleCoreContrast).toBeGreaterThan(at48.particleCoreContrast);
+    expect(at48.particleCoreContrast).toBeGreaterThan(at64.particleCoreContrast);
+    expect(at64.particleCoreContrast).toBe(0);
+    expect(compact.particleCoreContrast).toBe(0);
+    expect(at16.lightSide).toBe(0);
+    expect(deriveShading(32, 64, 2 / 48, DEFAULT_STYLE, 1).lightSide).toBe(0);
+    expect(at48.lightSide).toBeGreaterThan(at16.lightSide);
+    expect(at64.lightSide).toBe(compact.lightSide);
   });
 
   test("resolution respects the tier floor so tiny heads still resolve a face", () => {
@@ -191,20 +216,20 @@ describe("shading derivation", () => {
     expect(resolveTier(320).name).toBe("display");
   });
 
-  test("display anatomy relies on light rather than painted feature holes", () => {
+  test("tiny anatomy retains material while larger anatomy relies increasingly on light", () => {
     const glyph = deriveShading(24, 24, 0.1, DEFAULT_STYLE, 1);
     const compact = deriveShading(72, 144, 0.05, DEFAULT_STYLE, 1);
     const display = deriveShading(256, 512, 0.02, DEFAULT_STYLE, 1);
-    expect(glyph.albedoFlatten).toBe(0);
-    expect(compact.albedoFlatten).toBeGreaterThan(glyph.albedoFlatten);
-    expect(display.albedoFlatten).toBeGreaterThan(compact.albedoFlatten);
+    expect(glyph.albedoFlatten).toBeGreaterThan(compact.albedoFlatten);
+    expect(display.albedoFlatten).toBeGreaterThan(glyph.albedoFlatten);
     expect(display.albedoFlatten).toBeLessThan(1);
   });
 
-  test("glyph tier suppresses lighting, display tier applies it fully", () => {
+  test("glyph tier flattens tiny planes before restoring full sculptural light", () => {
     const small = deriveShading(24, 24, 0.1, DEFAULT_STYLE, 1).lighting;
     const large = deriveShading(256, 256, 0.02, DEFAULT_STYLE, 1).lighting;
-    expect(small).toBeLessThan(large * 0.5);
+    expect(small).toBeGreaterThan(large * 0.4);
+    expect(small).toBeLessThan(large * 0.55);
     expect(large).toBeCloseTo(DEFAULT_STYLE.lighting, 5);
   });
 

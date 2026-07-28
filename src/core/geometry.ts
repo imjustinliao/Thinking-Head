@@ -8,13 +8,15 @@ import {
 } from "./landmarks.js";
 import type { HeadPointSet } from "./pointset.js";
 import { measureExtents, validatePointSet } from "./pointset.js";
+import { REGION, REGION_COUNT } from "./regions.js";
 
 /**
- * The baked human surface as progressive levels of detail.
+ * The baked human surface as size-specific levels of detail.
  *
  * One density cannot serve the whole size range. A point set dense enough to sculpt a 320px head
  * is sub-pixel noise at 24px, while a sparse inline face lacks real anatomy at display size. The
- * canonical data is ordered progressively, so each level is a prefix of the same human identity.
+ * canonical data is ordered progressively. Display levels use its prefixes directly; tiny levels
+ * reserve more samples from the same identity for landmarks that would otherwise disappear.
  *
  * Levels are decoded, scaled and tagged lazily: a page showing only inline heads never allocates
  * the full display surface.
@@ -40,9 +42,89 @@ export const DEFAULT_GENERATE_OPTIONS: GenerateOptions = {
   resolution: 48,
 };
 
+interface OpticalFeatureQuota {
+  eye: number;
+  brow: number;
+  nose: number;
+  mouth: number;
+}
+
+/**
+ * Tiny optical masters need deliberate landmark budgets. A raw progressive prefix at resolution
+ * 17 contains only two points per eye, three for the mouth and no brows — valid geometry, but not
+ * enough samples to communicate a human face after rasterisation.
+ */
+function opticalFeatureQuota(resolution: number): OpticalFeatureQuota | null {
+  if (resolution <= 17) return { eye: 6, brow: 4, nose: 10, mouth: 8 };
+  if (resolution <= 24) return { eye: 8, brow: 6, nose: 16, mouth: 12 };
+  if (resolution <= 34) return { eye: 12, brow: 8, nose: 28, mouth: 18 };
+  if (resolution <= 48) return { eye: 16, brow: 10, nose: 48, mouth: 28 };
+  return null;
+}
+
+/**
+ * Selects a landmark-balanced subset from the same canonical human surface.
+ *
+ * Candidate order is already farthest-point progressive, so taking the first candidates inside
+ * each facial region spreads the reserved samples rather than clustering them. Remaining slots
+ * come from the global progressive order, preserving the skull, jaw, ears, cheeks and neck.
+ */
+function selectOpticalIndices(
+  count: number,
+  resolution: number,
+  head: HeadParams,
+  features: FeatureParams,
+): Int32Array | null {
+  const quota = opticalFeatureQuota(resolution);
+  if (!quota) return null;
+
+  const remaining = new Int16Array(REGION_COUNT);
+  remaining[REGION.eyeL] = quota.eye;
+  remaining[REGION.eyeR] = quota.eye;
+  remaining[REGION.browL] = quota.brow;
+  remaining[REGION.browR] = quota.brow;
+  remaining[REGION.nose] = quota.nose;
+  remaining[REGION.mouth] = quota.mouth;
+
+  const indices = new Int32Array(count);
+  const selected = new Uint8Array(CANONICAL_HEAD.count);
+  const scaleX = head.width / DEFAULT_HEAD_PARAMS.width;
+  const scaleY = head.height / DEFAULT_HEAD_PARAMS.height;
+  const scaleFront = head.frontDepth / DEFAULT_HEAD_PARAMS.frontDepth;
+  const scaleBack = head.backDepth / DEFAULT_HEAD_PARAMS.backDepth;
+  let selectedCount = 0;
+
+  for (
+    let sourceIndex = 0;
+    sourceIndex < CANONICAL_HEAD.count && selectedCount < count;
+    sourceIndex++
+  ) {
+    const offset = sourceIndex * 3;
+    const sourceZ = CANONICAL_HEAD.positions[offset + 2];
+    const x = CANONICAL_HEAD.positions[offset] * scaleX;
+    const y = CANONICAL_HEAD.positions[offset + 1] * scaleY;
+    const z = sourceZ * (sourceZ >= 0 ? scaleFront : scaleBack);
+    const region = regionOfCell(x, y, z, head, features);
+    if (remaining[region] <= 0) continue;
+    indices[selectedCount++] = sourceIndex;
+    selected[sourceIndex] = 1;
+    remaining[region]--;
+  }
+
+  for (let sourceIndex = 0; selectedCount < count; sourceIndex++) {
+    if (selected[sourceIndex] === 1) continue;
+    indices[selectedCount++] = sourceIndex;
+  }
+
+  // Geometry uploads and deterministic tests are easier to reason about in canonical order.
+  indices.sort();
+  return indices;
+}
+
 /**
  * Builds one level by taking a progressive prefix, applying global proportions and tagging the
- * expression regions. Occlusion was baked against the complete human surface offline.
+ * expression regions. Tiny levels substitute landmark-balanced optical subsets; every point still
+ * comes from the same canonical human anatomy. Occlusion was baked against the complete surface.
  */
 export function generateHeadLevel(options: Partial<GenerateOptions> = {}): HeadPointSet {
   const opts: GenerateOptions = { ...DEFAULT_GENERATE_OPTIONS, ...options };
@@ -58,26 +140,29 @@ export function generateHeadLevel(options: Partial<GenerateOptions> = {}): HeadP
   const normals = new Float32Array(count * 3);
   const regionId = new Uint8Array(count);
   const weight = new Float32Array(count);
-  const occlusion = CANONICAL_HEAD.occlusion.slice(0, count);
+  const occlusion = new Float32Array(count);
   const scaleX = opts.head.width / DEFAULT_HEAD_PARAMS.width;
   const scaleY = opts.head.height / DEFAULT_HEAD_PARAMS.height;
   const scaleFront = opts.head.frontDepth / DEFAULT_HEAD_PARAMS.frontDepth;
   const scaleBack = opts.head.backDepth / DEFAULT_HEAD_PARAMS.backDepth;
+  const sourceIndices = selectOpticalIndices(count, resolution, opts.head, opts.features);
 
   for (let i = 0; i < count; i++) {
+    const sourceIndex = sourceIndices?.[i] ?? i;
     const offset = i * 3;
-    const sourceZ = CANONICAL_HEAD.positions[offset + 2];
+    const sourceOffset = sourceIndex * 3;
+    const sourceZ = CANONICAL_HEAD.positions[sourceOffset + 2];
     const scaleZ = sourceZ >= 0 ? scaleFront : scaleBack;
-    const x = CANONICAL_HEAD.positions[offset] * scaleX;
-    const y = CANONICAL_HEAD.positions[offset + 1] * scaleY;
+    const x = CANONICAL_HEAD.positions[sourceOffset] * scaleX;
+    const y = CANONICAL_HEAD.positions[sourceOffset + 1] * scaleY;
     const z = sourceZ * scaleZ;
     positions[offset] = x;
     positions[offset + 1] = y;
     positions[offset + 2] = z;
 
-    const nx = CANONICAL_HEAD.normals[offset] / scaleX;
-    const ny = CANONICAL_HEAD.normals[offset + 1] / scaleY;
-    const nz = CANONICAL_HEAD.normals[offset + 2] / scaleZ;
+    const nx = CANONICAL_HEAD.normals[sourceOffset] / scaleX;
+    const ny = CANONICAL_HEAD.normals[sourceOffset + 1] / scaleY;
+    const nz = CANONICAL_HEAD.normals[sourceOffset + 2] / scaleZ;
     const normalLength = Math.hypot(nx, ny, nz) || 1;
     normals[offset] = nx / normalLength;
     normals[offset + 1] = ny / normalLength;
@@ -86,6 +171,7 @@ export function generateHeadLevel(options: Partial<GenerateOptions> = {}): HeadP
     const region = regionOfCell(x, y, z, opts.head, opts.features);
     regionId[i] = region;
     weight[i] = weightOfCell(x, y, region, opts.features);
+    occlusion[i] = CANONICAL_HEAD.occlusion[sourceIndex];
   }
 
   const extents = measureExtents(positions, count);

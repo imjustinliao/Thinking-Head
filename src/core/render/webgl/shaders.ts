@@ -44,7 +44,9 @@ uniform vec2 u_viewportPx;
 uniform float u_baseRadius;
 uniform float u_featureEmphasis;
 uniform float u_glyphMode;
+uniform float u_faceOnly;
 uniform float u_skinRadius;
+uniform float u_particleCoreContrast;
 uniform float u_lighting;
 uniform float u_albedoFlatten;
 uniform float u_featureAlbedoScale;
@@ -276,6 +278,7 @@ void main() {
   bool culled =
     viewZ <= 0.05 ||
     (isFeature > 0.5 && facing < 0.03) ||
+    (u_faceOnly > 0.5 && expressed.y < -0.62 * u_boundRadius) ||
     (u_glyphMode > 0.5 && facing < -0.05);
 
   if (culled) {
@@ -349,6 +352,7 @@ in float v_radiusPx;
 
 uniform vec3 u_color;
 uniform float u_square;
+uniform float u_particleCoreContrast;
 
 out vec4 fragColor;
 
@@ -365,7 +369,15 @@ void main() {
   float alpha = v_opacity * edge;
   if (alpha < 0.004) discard;
 
+  // At tiny sizes, overlapping support discs reconstruct a continuous shaded facial surface.
+  // A brighter centre keeps every support disc visibly rooted in a circular particle rather than
+  // collapsing into an ordinary raster silhouette. The contrast reaches zero at 64px, leaving
+  // the approved larger rendering unchanged.
+  float particleDistance = distPx / max(v_radiusPx, 0.001);
+  float core = 1.0 - smoothstep(0.24, 0.62, particleDistance);
+  float particleRadiance = v_radiance * mix(1.0 - u_particleCoreContrast, 1.0, core);
+
   // Premultiplied output. Shadowed particles remain opaque but dark, preserving the skin surface.
-  fragColor = vec4(u_color * v_radiance * alpha, alpha);
+  fragColor = vec4(u_color * particleRadiance * alpha, alpha);
 }
 `;

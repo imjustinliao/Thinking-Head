@@ -140,7 +140,9 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_baseRadius",
     "u_featureEmphasis",
     "u_glyphMode",
+    "u_faceOnly",
     "u_skinRadius",
+    "u_particleCoreContrast",
     "u_lighting",
     "u_albedoFlatten",
     "u_featureAlbedoScale",
@@ -420,12 +422,14 @@ class SharedGL implements SharedGLRenderer {
     this.center[1] = pointSet.center.y;
     this.center[2] = pointSet.center.z;
 
-    const lightLen = Math.hypot(KEY_LIGHT.x, KEY_LIGHT.y, KEY_LIGHT.z);
-    this.light[0] = KEY_LIGHT.x / lightLen;
+    const lightX = KEY_LIGHT.x * shading.lightSide;
+    const lightLen = Math.hypot(lightX, KEY_LIGHT.y, KEY_LIGHT.z);
+    this.light[0] = lightX / lightLen;
     this.light[1] = KEY_LIGHT.y / lightLen;
     this.light[2] = KEY_LIGHT.z / lightLen;
-    const fillLightLen = Math.hypot(FILL_LIGHT.x, FILL_LIGHT.y, FILL_LIGHT.z);
-    this.fillLight[0] = FILL_LIGHT.x / fillLightLen;
+    const fillLightX = FILL_LIGHT.x * shading.lightSide;
+    const fillLightLen = Math.hypot(fillLightX, FILL_LIGHT.y, FILL_LIGHT.z);
+    this.fillLight[0] = fillLightX / fillLightLen;
     this.fillLight[1] = FILL_LIGHT.y / fillLightLen;
     this.fillLight[2] = FILL_LIGHT.z / fillLightLen;
 
@@ -446,7 +450,9 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_baseRadius, shading.baseRadius);
     gl.uniform1f(u.u_featureEmphasis, shading.featureEmphasis);
     gl.uniform1f(u.u_glyphMode, shading.glyphMode ? 1 : 0);
+    gl.uniform1f(u.u_faceOnly, shading.faceOnly ? 1 : 0);
     gl.uniform1f(u.u_skinRadius, shading.skinRadius);
+    gl.uniform1f(u.u_particleCoreContrast, shading.particleCoreContrast);
     gl.uniform1f(u.u_lighting, shading.lighting);
     gl.uniform1f(u.u_albedoFlatten, shading.albedoFlatten);
     gl.uniform1f(u.u_featureAlbedoScale, shading.featureAlbedoScale);
@@ -483,8 +489,8 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1fv(u["u_regionDrawScale[0]"], REGION_DRAW_SCALE);
     gl.uniform1fv(u["u_regionFeature[0]"], REGION_FEATURE);
 
-    // The progressive ordering means the first `count` instances *are* the correct lower-density
-    // head — one instanced draw call, no index buffer, no per-size geometry.
+    // The selected optical level is already the correct head for this size — one instanced draw
+    // call, no index buffer and no per-frame geometry work.
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
 
     gl.bindVertexArray(null);

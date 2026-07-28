@@ -77,7 +77,7 @@ export interface RenderFrame {
   motion: MotionParams;
   /** Facial deformation parameters for the current state or manual preview. */
   expression: ExpressionParams;
-  /** How many particles of the progressive surface ordering to draw. */
+  /** How many particles from the selected optical level to draw. */
   count: number;
   camera: Camera;
   style: RenderStyle;
