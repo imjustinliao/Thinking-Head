@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Feature-balanced surfel masters now serve every size below 96px.** Independent visual audit approved; awaiting Justin's review |
-| **Last implementation commit** | `28b8622` — v11.6 - Rebuild small faces as feature-balanced surfels |
+| **Step** | **Ten-state transitions are integrated, audited and visually approved.** Sub-96px expression optical gain is awaiting Justin's review |
+| **Last implementation commit** | `173b913` — v12.5 - Amplify facial expression at optical sizes |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review before integrating the already-built transition controller into the demo |
+| **Blocked on** | Justin's visual review of the v12.5 small-size expression gain |
 
 ---
 
@@ -889,6 +889,40 @@ eye, three for the mouth and no brows, while dark feature particles disappeared 
 This is **ready for Justin's visual review**. The 16px tier is intentionally an optical face glyph;
 individual circular particles become physically distinguishable as the available pixels increase.
 
+### Interruptible state transitions and optical expression gain (v11.8–v12.5)
+
+The ten-state controller is now the demo's live source of motion and expression. Every change
+begins from the currently presented value, so a second state can interrupt the first without a
+cut, velocity reset or oscillator phase jump.
+
+- Integrated the allocation-stable critically damped controller into every live `HeadSlot`.
+  Expression, pose, continuous motion, shimmer direction and semantic accents all crossfade
+  through the same presentation frame.
+- Added a deterministic browser recorder at `?transition-lab=1`. It reconstructs exact 60fps
+  frames from an explicit phase and exposes every directed pair as a 10×10 matrix.
+- The numeric audit gates all 90 directed transitions for start jumps, endpoint error,
+  overshoot, non-finite values, direction collapse, settling and largest normalized frame step.
+  Current result: **90/90 pass**, no jumps or overshoots, 20.8% maximum frame step and 767ms
+  slowest exact settle.
+- Error and Done now blend as numeric accent channels in both renderers instead of hard CSS
+  colour switches. Done holds for 900ms, returns the live semantic state to Idle and can be
+  replayed; static gallery studies remain stable.
+- Reduced motion uses one static Canvas 2D frame and a semantic timer rather than an animation
+  loop. Renderer recreation, hidden-instance redraw and context lifecycle bugs found during the
+  audit were corrected.
+- Independent visual review inspected full frame sequences plus all 100 cells of the 48px
+  directed-pair matrix. It approved every transition: no doubled or collapsed face, broken
+  silhouette, hollow midpoint, missing landmark band or hard accent cut.
+- Added a size-aware expression optical master after the matrix audit. Facial displacement is
+  2× at 16px, 1.6× at 48px, 1.4× at 64px and tapers to exactly 1× at 96px. The approved large
+  sculpt is mathematically unchanged. WebGL2 and Canvas 2D share the same curve.
+- Browser-compared exact Reading→Thinking frames at 16, 32, 48, 64 and 96px, plus the 16px
+  reduced-motion fallback. The smallest tier remains the required eyes-and-mouth glyph; 48/64px
+  carry clearer expression while preserving one coherent human face.
+- All **170 tests**, typecheck, lint and production build pass.
+
+This is **ready for Justin's small-size expression review** at `http://localhost:5173`.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -970,24 +1004,21 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v11.6 surfel masters at `http://localhost:5173`.** Check 16px, 24px,
-   32px, 48px and 64px; 96px and 320px intentionally retain the approved complete sculpt.
-2. **Integrate the v11.4 transition controller after small-size approval.** Drive `HeadSlot` from
-   the current presentation value, preserve oscillator phase, and record representative
-   transitions frame by frame.
-3. **Implement cursor-drag 360° orbit as a separate interaction checkpoint.** Use direct Pointer
+1. **Justin reviews the v12.5 optical expression masters at `http://localhost:5173`.** Check
+   16px, 32px, 48px and 64px; 96px and 320px are intentionally unchanged.
+2. **Implement cursor-drag 360° orbit as a separate interaction checkpoint.** Use direct Pointer
    Events, capture, immediate one-to-one tracking and bounded pitch while preserving continuous
    state motion.
-4. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
    as its own browser-verified commit.
-5. The React wrapper and the `./react` subpath export — currently `package.json` exports
+4. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
-6. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
+5. Phase 2 architecture doc (`ROADMAP.md`) — **the data format is now stable**, so this is
    unblocked whenever Justin wants it.
-7. Return to the local black/white showcase redesign when Justin supplies the next website
+6. Return to the local black/white showcase redesign when Justin supplies the next website
    direction. Resolve the liquidGL context rule before its material milestone.
-8. README and LICENSE last, only after Justin confirms Phase 1 is correct.
+7. README and LICENSE last, only after Justin confirms Phase 1 is correct.
 
 ---
 
