@@ -36,6 +36,11 @@ function inlineCopyForState(state: ThinkingHeadState): string {
   return INLINE_COPY[state];
 }
 
+function initialSizeFromLocation(): number {
+  const requested = Number(new URLSearchParams(window.location.search).get("size"));
+  return Number.isFinite(requested) ? Math.max(16, Math.min(256, Math.round(requested))) : 48;
+}
+
 /** Head colour per modality accent. Mirrors the CSS accent so the head matches the page. */
 const MODALITY_COLOR: Record<ModalityOption, string> = {
   none: "#ffffff",
@@ -45,7 +50,7 @@ const MODALITY_COLOR: Record<ModalityOption, string> = {
 };
 
 export function App() {
-  const [size, setSize] = useState(48);
+  const [size, setSize] = useState(initialSizeFromLocation);
   const [speed, setSpeed] = useState(1);
   const [modality, setModality] = useState<ModalityOption>("none");
   const [tuning, setTuning] = useState<TuningConfig>(() => structuredClone(DEFAULT_TUNING));
