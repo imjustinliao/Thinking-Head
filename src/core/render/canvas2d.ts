@@ -1,3 +1,4 @@
+import { DONE_ACCENT_COLOR, ERROR_ACCENT_COLOR } from "../accent.js";
 import { deformExpressionPoint, expressionRigOf } from "../expression.js";
 import {
   normalDisplacement,
@@ -331,6 +332,24 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         }
       }
       ctx.globalAlpha = 1;
+
+      const errorAccent = Math.max(0, Math.min(1, frame.accent?.error ?? 0));
+      const doneAccent = Math.max(0, Math.min(1, frame.accent?.done ?? 0));
+      if (errorAccent > 0 || doneAccent > 0) {
+        ctx.globalCompositeOperation = "source-atop";
+        if (errorAccent > 0) {
+          ctx.globalAlpha = errorAccent;
+          ctx.fillStyle = ERROR_ACCENT_COLOR;
+          ctx.fillRect(0, 0, device, device);
+        }
+        if (doneAccent > 0) {
+          ctx.globalAlpha = doneAccent;
+          ctx.fillStyle = DONE_ACCENT_COLOR;
+          ctx.fillRect(0, 0, device, device);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
     },
 
     dispose(): void {

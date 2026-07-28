@@ -45,12 +45,14 @@ describe("state transition controller", () => {
     const motion = sample.motion;
     const expression = sample.expression;
     const phase = sample.phase;
+    const accent = sample.accent;
     controller.setTargetState("searching", 0);
     for (let frame = 1; frame <= 1000; frame++) {
       expect(controller.advance(frame / 60)).toBe(sample);
       expect(sample.motion).toBe(motion);
       expect(sample.expression).toBe(expression);
       expect(sample.phase).toBe(phase);
+      expect(sample.accent).toBe(accent);
     }
   });
 
@@ -61,11 +63,13 @@ describe("state transition controller", () => {
     const motion = MOTION_KEYS.map((key) => before.motion[key]);
     const expression = EXPRESSION_KEYS.map((key) => before.expression[key]);
     const phase = { ...before.phase };
+    const accent = { ...before.accent };
 
     const after = controller.setTargetState("error", 0.11);
     expect(MOTION_KEYS.map((key) => after.motion[key])).toEqual(motion);
     expect(EXPRESSION_KEYS.map((key) => after.expression[key])).toEqual(expression);
     expect(after.phase).toEqual(phase);
+    expect(after.accent).toEqual(accent);
     expect(after.targetState).toBe("error");
   });
 
@@ -87,6 +91,7 @@ describe("state transition controller", () => {
         for (const key of EXPRESSION_KEYS) {
           expect(Number.isFinite(sample.expression[key])).toBe(true);
         }
+        for (const value of Object.values(sample.accent)) expect(Number.isFinite(value)).toBe(true);
         for (const value of Object.values(sample.phase)) expect(Number.isFinite(value)).toBe(true);
       }
     }
@@ -142,8 +147,22 @@ describe("state transition controller", () => {
     controller.advance(4);
     expect(controller.sample.targetState).toBe("idle");
     expect(controller.sample.settled).toBe(true);
+    expect(controller.sample.accent).toEqual({ error: 0, done: 0 });
     for (const key of MOTION_KEYS)
       expect(controller.sample.motion[key]).toBe(STATE_MOTION.idle[key]);
+  });
+
+  test("crossfades semantic accents through the same interruptible spring", () => {
+    const controller = new StateTransitionController("error");
+    expect(controller.sample.accent).toEqual({ error: 1, done: 0 });
+    controller.setTargetState("done", 0);
+    const midpoint = controller.advance(0.085);
+    expect(midpoint.accent.error).toBeGreaterThan(0);
+    expect(midpoint.accent.error).toBeLessThan(1);
+    expect(midpoint.accent.done).toBeGreaterThan(0);
+    expect(midpoint.accent.done).toBeLessThan(1);
+    controller.advance(1);
+    expect(controller.sample.accent).toEqual({ error: 0, done: 1 });
   });
 
   test("reduced-motion snap preserves the target expression without spatial interpolation", () => {

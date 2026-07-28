@@ -12,6 +12,15 @@
  * bake script will use the same entry.
  */
 
+export {
+  ACCENT_KEYS,
+  DONE_ACCENT_COLOR,
+  DONE_ACCENT_RGB,
+  ERROR_ACCENT_COLOR,
+  ERROR_ACCENT_RGB,
+  STATE_ACCENT,
+  type StateAccent,
+} from "./core/accent.js";
 export { clockState, clockTime, resetClock, subscribeToClock } from "./core/clock.js";
 export {
   createExpressionRigMetrics,

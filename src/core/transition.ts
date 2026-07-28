@@ -1,3 +1,4 @@
+import { ACCENT_KEYS, STATE_ACCENT, type StateAccent } from "./accent.js";
 import { EXPRESSION_KEYS, type ExpressionParams, STATE_EXPRESSION } from "./expression.js";
 import {
   createMotionPhase,
@@ -35,6 +36,8 @@ export interface StateTransitionSample {
   expression: Readonly<ExpressionParams>;
   /** Integrated phases keep every oscillator continuous while its speed changes. */
   phase: Readonly<MotionPhase>;
+  /** Stable semantic colour channels; renderers blend these without parsing CSS per frame. */
+  accent: Readonly<StateAccent>;
   /** State most recently requested by the consumer. */
   requestedState: ThinkingHeadState;
   /** Current spring target. Becomes Idle after Done's completion hold. */
@@ -96,6 +99,13 @@ function copyExpressionInto(out: ExpressionParams, source: Readonly<ExpressionPa
   }
 }
 
+function copyAccentInto(out: StateAccent, source: Readonly<StateAccent>): void {
+  for (let i = 0; i < ACCENT_KEYS.length; i++) {
+    const key = ACCENT_KEYS[i];
+    out[key] = source[key];
+  }
+}
+
 /**
  * Allocation-free, interruptible transition over the complete motion and expression vectors.
  *
@@ -107,11 +117,14 @@ export class StateTransitionController {
 
   private readonly motion: MotionParams;
   private readonly expression: ExpressionParams;
+  private readonly accent: StateAccent;
   private readonly phase: MotionPhase;
   private readonly motionVelocity = new Float64Array(MOTION_KEYS.length);
   private readonly expressionVelocity = new Float64Array(EXPRESSION_KEYS.length);
+  private readonly accentVelocity = new Float64Array(ACCENT_KEYS.length);
   private targetMotion: Readonly<MotionParams>;
   private targetExpression: Readonly<ExpressionParams>;
+  private targetAccent: Readonly<StateAccent>;
   private response: number;
   private lastTime: number;
   private doneSettledAt = -1;
@@ -120,8 +133,10 @@ export class StateTransitionController {
   constructor(initialState: ThinkingHeadState, initialTime = 0, playbackRate = 1) {
     this.motion = { ...STATE_MOTION[initialState] };
     this.expression = { ...STATE_EXPRESSION[initialState] };
+    this.accent = { ...STATE_ACCENT[initialState] };
     this.targetMotion = STATE_MOTION[initialState];
     this.targetExpression = STATE_EXPRESSION[initialState];
+    this.targetAccent = STATE_ACCENT[initialState];
     this.response = STATE_TRANSITION_RESPONSE[initialState];
     this.lastTime = Number.isFinite(initialTime) ? Math.max(0, initialTime) : 0;
     const safePlaybackRate = Number.isFinite(playbackRate) ? playbackRate : 1;
@@ -130,6 +145,7 @@ export class StateTransitionController {
       motion: this.motion,
       expression: this.expression,
       phase: this.phase,
+      accent: this.accent,
       requestedState: initialState,
       targetState: initialState,
       settled: true,
@@ -149,7 +165,8 @@ export class StateTransitionController {
       this.sample.requestedState === state &&
       this.sample.targetState === state &&
       this.targetMotion === STATE_MOTION[state] &&
-      this.targetExpression === STATE_EXPRESSION[state]
+      this.targetExpression === STATE_EXPRESSION[state] &&
+      this.targetAccent === STATE_ACCENT[state]
     ) {
       return this.sample;
     }
@@ -157,6 +174,7 @@ export class StateTransitionController {
       state,
       STATE_MOTION[state],
       STATE_EXPRESSION[state],
+      STATE_ACCENT[state],
       STATE_TRANSITION_RESPONSE[state],
       state === "done",
     );
@@ -189,6 +207,7 @@ export class StateTransitionController {
       state,
       motion,
       expression,
+      STATE_ACCENT[state],
       Number.isFinite(response) && response > 0 ? response : DEFAULT_TRANSITION_RESPONSE,
       false,
     );
@@ -247,6 +266,25 @@ export class StateTransitionController {
         }
       }
 
+      for (let i = 0; i < ACCENT_KEYS.length; i++) {
+        const key = ACCENT_KEYS[i];
+        const target = this.targetAccent[key];
+        const value = this.accent[key];
+        const velocity = this.accentVelocity[i];
+        const y = value - target;
+        const j = velocity + omega * y;
+        const next = target + (y + j * dt) * decay;
+        const nextVelocity = (velocity - omega * j * dt) * decay;
+        this.accent[key] = next;
+        this.accentVelocity[i] = nextVelocity;
+        if (
+          Math.abs(next - target) > POSITION_EPSILON ||
+          Math.abs(nextVelocity) > VELOCITY_EPSILON
+        ) {
+          settled = false;
+        }
+      }
+
       if (settled) this.settleExactly();
       else this.sample.settled = false;
     }
@@ -265,11 +303,14 @@ export class StateTransitionController {
     this.sample.targetState = state;
     this.targetMotion = STATE_MOTION[state];
     this.targetExpression = STATE_EXPRESSION[state];
+    this.targetAccent = STATE_ACCENT[state];
     this.response = STATE_TRANSITION_RESPONSE[state];
     copyMotionInto(this.motion, this.targetMotion);
     copyExpressionInto(this.expression, this.targetExpression);
+    copyAccentInto(this.accent, this.targetAccent);
     this.motionVelocity.fill(0);
     this.expressionVelocity.fill(0);
+    this.accentVelocity.fill(0);
     this.sample.settled = true;
     this.doneSettledAt = state === "done" ? this.lastTime : -1;
     this.autoReturnDone = state === "done";
@@ -284,8 +325,10 @@ export class StateTransitionController {
     this.advance(now, playbackRate);
     copyMotionInto(this.motion, this.targetMotion);
     copyExpressionInto(this.expression, this.targetExpression);
+    copyAccentInto(this.accent, this.targetAccent);
     this.motionVelocity.fill(0);
     this.expressionVelocity.fill(0);
+    this.accentVelocity.fill(0);
     this.sample.settled = true;
     return this.sample;
   }
@@ -294,6 +337,7 @@ export class StateTransitionController {
     state: ThinkingHeadState,
     motion: Readonly<MotionParams>,
     expression: Readonly<ExpressionParams>,
+    accent: Readonly<StateAccent>,
     response: number,
     autoReturnDone: boolean,
   ): void {
@@ -301,6 +345,7 @@ export class StateTransitionController {
     this.sample.targetState = state;
     this.targetMotion = motion;
     this.targetExpression = expression;
+    this.targetAccent = accent;
     this.response = response;
     this.sample.settled = false;
     this.doneSettledAt = -1;
@@ -372,8 +417,10 @@ export class StateTransitionController {
   private settleExactly(): void {
     copyMotionInto(this.motion, this.targetMotion);
     copyExpressionInto(this.expression, this.targetExpression);
+    copyAccentInto(this.accent, this.targetAccent);
     this.motionVelocity.fill(0);
     this.expressionVelocity.fill(0);
+    this.accentVelocity.fill(0);
     this.sample.settled = true;
   }
 
@@ -388,6 +435,7 @@ export class StateTransitionController {
     this.sample.targetState = "idle";
     this.targetMotion = STATE_MOTION.idle;
     this.targetExpression = STATE_EXPRESSION.idle;
+    this.targetAccent = STATE_ACCENT.idle;
     this.response = STATE_TRANSITION_RESPONSE.idle;
     this.sample.settled = false;
     this.doneSettledAt = -1;

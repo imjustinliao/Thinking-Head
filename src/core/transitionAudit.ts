@@ -1,3 +1,4 @@
+import { ACCENT_KEYS, STATE_ACCENT } from "./accent.js";
 import { EXPRESSION_KEYS, STATE_EXPRESSION } from "./expression.js";
 import { MOTION_KEYS, STATE_MOTION } from "./motion.js";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "./states.js";
@@ -65,6 +66,7 @@ export function auditStateTransition(
   let settledAt: number | null = from === to ? 0 : null;
   const previousMotion = new Float64Array(MOTION_KEYS.length);
   const previousExpression = new Float64Array(EXPRESSION_KEYS.length);
+  const previousAccent = new Float64Array(ACCENT_KEYS.length);
 
   for (let frame = 0; frame < frameCount; frame++) {
     const time = startTime + frame / fps;
@@ -117,6 +119,31 @@ export function auditStateTransition(
         }
       }
       previousExpression[index] = value;
+      if (frame === frameCount - 1)
+        endpointError = Math.max(endpointError, Math.abs(value - target));
+    }
+
+    for (let index = 0; index < ACCENT_KEYS.length; index++) {
+      const key = ACCENT_KEYS[index];
+      const value = sample.accent[key];
+      const source = STATE_ACCENT[from][key];
+      const target = STATE_ACCENT[to][key];
+      finite &&= Number.isFinite(value);
+      if (frame === 0) {
+        startDiscontinuity = Math.max(startDiscontinuity, Math.abs(value - source));
+      } else {
+        const span = Math.abs(target - source);
+        if (span > VALUE_EPSILON) {
+          maxNormalizedStep = Math.max(
+            maxNormalizedStep,
+            Math.abs(value - previousAccent[index]) / span,
+          );
+          const minimum = Math.min(source, target) - VALUE_EPSILON;
+          const maximum = Math.max(source, target) + VALUE_EPSILON;
+          if (value < minimum || value > maximum) overshootCount++;
+        }
+      }
+      previousAccent[index] = value;
       if (frame === frameCount - 1)
         endpointError = Math.max(endpointError, Math.abs(value - target));
     }

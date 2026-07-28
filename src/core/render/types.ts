@@ -1,3 +1,4 @@
+import type { StateAccent } from "../accent.js";
 import type { ExpressionParams } from "../expression.js";
 import type { MotionParams, MotionPhase } from "../motion.js";
 import type { HeadPointSet } from "../pointset.js";
@@ -77,6 +78,8 @@ export interface RenderFrame {
   motion: MotionParams;
   /** Facial deformation parameters for the current state or manual preview. */
   expression: ExpressionParams;
+  /** Optional semantic Error/Done tint mixed continuously by the renderer. */
+  accent?: Readonly<StateAccent>;
   /** How many particles from the selected optical level to draw. */
   count: number;
   camera: Camera;

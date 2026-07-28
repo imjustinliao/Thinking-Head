@@ -33,11 +33,6 @@ interface HeadSlotProps {
   onBackend?: (backend: RenderBackend) => void;
 }
 
-const STATE_COLOR: Partial<Record<ThinkingHeadState, string>> = {
-  error: "#ff6f5c",
-  done: "#8affc1",
-};
-
 /**
  * One rendered head.
  *
@@ -89,13 +84,6 @@ export function HeadSlot({
     const { poseScale } = resolveTier(size);
     return { ...camera, yaw: camera.yaw * poseScale, pitch: camera.pitch * poseScale };
   }, [camera, size]);
-
-  // Semantic accents supplement each state's non-colour motion. This demo-level mapping previews
-  // the state colour layer the public wrapper will own; the core renderer stays style-driven.
-  const effectiveStyle = useMemo<RenderStyle>(() => {
-    const color = STATE_COLOR[state];
-    return color ? { ...style, color } : style;
-  }, [state, style]);
 
   useEffect(() => {
     const controller = controllerRef.current;
@@ -151,11 +139,12 @@ export function HeadSlot({
       pointSet,
       count: pointSet.count,
       camera: effectiveCamera,
-      style: effectiveStyle,
+      style,
       time: clockTime(),
       phase: controller.sample.phase,
       motion: reducedMotion ? STILL_MOTION : controller.sample.motion,
       expression: controller.sample.expression,
+      accent: controller.sample.accent,
     };
 
     const draw = (time: number): void => {
@@ -172,6 +161,7 @@ export function HeadSlot({
       frame.phase = sample.phase;
       frame.motion = reducedMotion ? STILL_MOTION : sample.motion;
       frame.expression = sample.expression;
+      frame.accent = sample.accent;
       renderer.draw(frame);
     };
     drawRef.current = draw;
@@ -218,7 +208,7 @@ export function HeadSlot({
       if (drawRef.current === draw) drawRef.current = null;
       if (refreshClockRef.current === refreshClock) refreshClockRef.current = null;
     };
-  }, [size, model, effectiveCamera, effectiveStyle, targetCellCss, reducedMotion]);
+  }, [size, model, effectiveCamera, style, targetCellCss, reducedMotion]);
 
   return (
     <span

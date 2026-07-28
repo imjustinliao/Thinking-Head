@@ -46,12 +46,6 @@
 .shell[data-modality="vision"] {
   --accent: var(--accent-rose);
 }
-.shell[data-state="error"] {
-  --accent: var(--alarm);
-}
-.shell[data-state="done"] {
-  --accent: #8affc1;
-}
 
 * {
   box-sizing: border-box;
@@ -804,13 +798,6 @@ body {
   }
 }
 
-.chamber[data-state="error"] {
-  --accent: var(--alarm);
-}
-
-.chamber[data-state="done"] {
-  --accent: #8affc1;
-}
 
 /* ==========================================================================
    Inline transcript sample

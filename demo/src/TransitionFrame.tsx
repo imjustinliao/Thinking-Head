@@ -70,6 +70,7 @@ export function TransitionFrame({
       phase: sample.phase,
       motion: sample.motion,
       expression: sample.expression,
+      accent: sample.accent,
     };
     renderer.draw(frame);
     return () => renderer.dispose();

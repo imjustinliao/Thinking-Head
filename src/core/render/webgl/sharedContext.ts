@@ -1,3 +1,4 @@
+import { DONE_ACCENT_RGB, ERROR_ACCENT_RGB } from "../../accent.js";
 import { EXPRESSION_KEYS, expressionRigOf } from "../../expression.js";
 import { type SwayOffsets, swayOffsetsInto } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
@@ -434,6 +435,14 @@ class SharedGL implements SharedGLRenderer {
     this.fillLight[2] = FILL_LIGHT.z / fillLightLen;
 
     parseColor(style.color, this.color);
+    const errorAccent = Math.max(0, Math.min(1, frame.accent?.error ?? 0));
+    const doneAccent = Math.max(0, Math.min(1, frame.accent?.done ?? 0));
+    this.color[0] += (ERROR_ACCENT_RGB.r - this.color[0]) * errorAccent;
+    this.color[1] += (ERROR_ACCENT_RGB.g - this.color[1]) * errorAccent;
+    this.color[2] += (ERROR_ACCENT_RGB.b - this.color[2]) * errorAccent;
+    this.color[0] += (DONE_ACCENT_RGB.r - this.color[0]) * doneAccent;
+    this.color[1] += (DONE_ACCENT_RGB.g - this.color[1]) * doneAccent;
+    this.color[2] += (DONE_ACCENT_RGB.b - this.color[2]) * doneAccent;
     for (let i = 0; i < EXPRESSION_KEYS.length; i++) {
       this.expressionValues[i] = expression[EXPRESSION_KEYS[i]];
     }
