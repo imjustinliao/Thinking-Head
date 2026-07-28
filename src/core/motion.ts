@@ -38,6 +38,9 @@ export interface MotionParams {
   jitterAmplitude: number;
   jitterSpeed: number;
 
+  /** Shared integrated phase speed for local blink, gaze, brow, mouth, and jaw behaviour. */
+  facialSpeed: number;
+
   /** Uniform lift applied to every particle before the travelling brightness ripple. */
   brightnessBias: number;
   /**
@@ -121,6 +124,7 @@ export const MOTION_KEYS = [
   "waveSpeed",
   "jitterAmplitude",
   "jitterSpeed",
+  "facialSpeed",
   "brightnessBias",
   "shimmerAmplitude",
   "shimmerScale",
@@ -157,6 +161,7 @@ export interface MotionPhase {
   shimmer: number;
   sway: number;
   dart: number;
+  facial: number;
 }
 
 export function createMotionPhase(
@@ -171,6 +176,7 @@ export function createMotionPhase(
     shimmer: time * playbackRate * motion.shimmerSpeed,
     sway: time * playbackRate * motion.swaySpeed,
     dart: time * playbackRate * motion.swayDartSpeed,
+    facial: time * playbackRate * motion.facialSpeed,
   };
 }
 
@@ -183,6 +189,7 @@ export const STILL_MOTION: MotionParams = {
   waveSpeed: 0,
   jitterAmplitude: 0,
   jitterSpeed: 0,
+  facialSpeed: 0,
   brightnessBias: 0,
   shimmerAmplitude: 0,
   shimmerScale: 0,
@@ -221,6 +228,7 @@ export const IDLE_MOTION: MotionParams = {
 
   jitterAmplitude: 0.16,
   jitterSpeed: 1.9,
+  facialSpeed: 0.54,
 
   brightnessBias: 0,
   // The primary carrier of "alive" at inline sizes — see the field comment on shimmerAmplitude.
@@ -273,6 +281,7 @@ export const LISTENING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.05,
   jitterSpeed: 3.2,
+  facialSpeed: 0.72,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.55,
@@ -326,6 +335,7 @@ export const READING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.04,
   jitterSpeed: 2.6,
+  facialSpeed: 1.45,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.5,
@@ -386,6 +396,7 @@ export const THINKING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.09,
   jitterSpeed: 1.2,
+  facialSpeed: 0.38,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.42,
@@ -440,6 +451,7 @@ export const SEARCHING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.08,
   jitterSpeed: 4.1,
+  facialSpeed: 2.1,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.62,
@@ -493,6 +505,7 @@ export const EXECUTING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.1,
   jitterSpeed: 5.2,
+  facialSpeed: 1.25,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.56,
@@ -546,6 +559,7 @@ export const GENERATING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.1,
   jitterSpeed: 3.8,
+  facialSpeed: 1.7,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.68,
@@ -594,6 +608,7 @@ export const REVIEWING_MOTION: MotionParams = {
 
   jitterAmplitude: 0.045,
   jitterSpeed: 2.9,
+  facialSpeed: 0.92,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.58,
@@ -641,6 +656,7 @@ export const ERROR_MOTION: MotionParams = {
 
   jitterAmplitude: 0.14,
   jitterSpeed: 6.4,
+  facialSpeed: 2.35,
 
   brightnessBias: 0,
   shimmerAmplitude: 0.76,
@@ -689,6 +705,7 @@ export const DONE_MOTION: MotionParams = {
 
   jitterAmplitude: 0.018,
   jitterSpeed: 1.3,
+  facialSpeed: 0.46,
 
   // Greater than the ripple amplitude, so completion never dips below ordinary brightness.
   brightnessBias: 0.22,

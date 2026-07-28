@@ -1,3 +1,4 @@
+import type { MotionParams, MotionPhase } from "./motion.js";
 import type { HeadPointSet } from "./pointset.js";
 import { REGION, REGION_COUNT } from "./regions.js";
 import type { ThinkingHeadState } from "./states.js";
@@ -46,6 +47,14 @@ export interface ExpressionParams {
   jaw_shiftX: number;
   /** Signed forward lower-jaw offset. */
   jaw_forward: number;
+
+  /** Continuous local facial-life amplitudes, blended with the static pose. */
+  eye_blink: number;
+  eye_scanX: number;
+  eye_scanY: number;
+  brow_pulse: number;
+  mouth_articulate: number;
+  jaw_articulate: number;
 }
 
 export const EXPRESSION_KEYS = [
@@ -67,6 +76,12 @@ export const EXPRESSION_KEYS = [
   "jaw_open",
   "jaw_shiftX",
   "jaw_forward",
+  "eye_blink",
+  "eye_scanX",
+  "eye_scanY",
+  "brow_pulse",
+  "mouth_articulate",
+  "jaw_articulate",
 ] as const satisfies readonly (keyof ExpressionParams)[];
 
 export type ExpressionKey = (typeof EXPRESSION_KEYS)[number];
@@ -90,10 +105,21 @@ export const NEUTRAL_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   jaw_open: 0,
   jaw_shiftX: 0,
   jaw_forward: 0,
+  eye_blink: 0,
+  eye_scanX: 0,
+  eye_scanY: 0,
+  brow_pulse: 0,
+  mouth_articulate: 0,
+  jaw_articulate: 0,
 });
 
 /** `idle` is the neutral facial baseline every named expression is tuned against. */
-export const IDLE_EXPRESSION = NEUTRAL_EXPRESSION;
+export const IDLE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
+  ...NEUTRAL_EXPRESSION,
+  eye_blink: 0.42,
+  eye_scanX: 0.035,
+  eye_scanY: 0.02,
+});
 
 /**
  * `listening` — alert, receptive attention.
@@ -113,6 +139,10 @@ export const LISTENING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   mouth_cornerUpL: 0.08,
   mouth_cornerUpR: 0.08,
   mouth_press: 0.03,
+  eye_blink: 0.32,
+  eye_scanX: 0.08,
+  eye_scanY: 0.04,
+  brow_pulse: 0.06,
 });
 
 /**
@@ -131,6 +161,9 @@ export const READING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   eye_openR: -0.24,
   eye_gazeY: -0.38,
   mouth_press: 0.03,
+  eye_blink: 0.24,
+  eye_scanX: 0.42,
+  eye_scanY: 0.06,
 });
 
 /**
@@ -152,6 +185,11 @@ export const THINKING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   mouth_cornerUpL: -0.02,
   mouth_pucker: 0.08,
   mouth_press: 0.02,
+  eye_blink: 0.22,
+  eye_scanX: 0.16,
+  eye_scanY: 0.12,
+  brow_pulse: 0.14,
+  mouth_articulate: 0.04,
 });
 
 /**
@@ -170,6 +208,10 @@ export const SEARCHING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   eye_openR: 0.18,
   eye_gazeX: 0.34,
   mouth_press: 0.06,
+  eye_blink: 0.16,
+  eye_scanX: 0.56,
+  eye_scanY: 0.18,
+  brow_pulse: 0.08,
 });
 
 /**
@@ -188,6 +230,10 @@ export const EXECUTING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   eye_openR: -0.18,
   mouth_press: 0.2,
   jaw_forward: 0.04,
+  eye_blink: 0.18,
+  eye_scanX: 0.04,
+  brow_pulse: 0.08,
+  mouth_articulate: 0.06,
 });
 
 /**
@@ -208,6 +254,12 @@ export const GENERATING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   mouth_cornerUpR: 0.1,
   mouth_open: 0.45,
   jaw_open: 0.18,
+  eye_blink: 0.2,
+  eye_scanX: 0.06,
+  eye_scanY: 0.04,
+  brow_pulse: 0.06,
+  mouth_articulate: 0.48,
+  jaw_articulate: 0.2,
 });
 
 /**
@@ -227,6 +279,11 @@ export const REVIEWING_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   eye_gazeY: -0.14,
   mouth_press: 0.13,
   jaw_forward: 0.02,
+  eye_blink: 0.2,
+  eye_scanX: 0.16,
+  eye_scanY: 0.12,
+  brow_pulse: 0.14,
+  mouth_articulate: 0.04,
 });
 
 /**
@@ -247,6 +304,12 @@ export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   mouth_cornerUpR: -0.28,
   mouth_open: 0.28,
   jaw_open: 0.1,
+  eye_blink: 0.08,
+  eye_scanX: 0.1,
+  eye_scanY: 0.06,
+  brow_pulse: 0.16,
+  mouth_articulate: 0.1,
+  jaw_articulate: 0.05,
 });
 
 /**
@@ -265,6 +328,8 @@ export const DONE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   cheek_raise: 0.36,
   mouth_cornerUpL: 0.62,
   mouth_cornerUpR: 0.62,
+  eye_blink: 0.3,
+  brow_pulse: 0.04,
 });
 
 /**
@@ -283,6 +348,53 @@ export const STATE_EXPRESSION: Record<ThinkingHeadState, Readonly<ExpressionPara
   error: ERROR_EXPRESSION,
   done: DONE_EXPRESSION,
 };
+
+/** Creates caller-owned expression storage for allocation-free frame composition. */
+export function createExpressionParams(
+  source: Readonly<ExpressionParams> = NEUTRAL_EXPRESSION,
+): ExpressionParams {
+  return { ...source };
+}
+
+/**
+ * Composes a settled facial pose with its continuous local behaviour.
+ *
+ * The integrated facial phase belongs to the transition controller, so changing a state's speed
+ * bends the oscillator trajectory instead of jumping it. All amplitude controls are themselves
+ * spring-blended expression values. Renderers call this once per frame into persistent storage.
+ */
+export function animateExpressionInto(
+  out: ExpressionParams,
+  base: Readonly<ExpressionParams>,
+  time: number,
+  motion: Readonly<MotionParams>,
+  phase?: Readonly<MotionPhase>,
+): ExpressionParams {
+  for (let i = 0; i < EXPRESSION_KEYS.length; i++) {
+    const key = EXPRESSION_KEYS[i];
+    out[key] = base[key];
+  }
+
+  if (motion.facialSpeed === 0) return out;
+
+  const facialPhase = phase?.facial ?? time * motion.facialSpeed;
+  const blinkWave = Math.max(0, Math.sin(facialPhase));
+  const blink = blinkWave * blinkWave * blinkWave * blinkWave;
+  const scanX = Math.sin(facialPhase * 1.6180339887 + 0.41);
+  const scanY = Math.sin(facialPhase * Math.SQRT2 + 1.17);
+  const pulse = Math.sin(facialPhase * 0.73 + 0.82);
+  const articulation = 0.5 + 0.5 * Math.sin(facialPhase * 2.31 + 2.04);
+
+  out.eye_openL = clampSigned(base.eye_openL - base.eye_blink * blink);
+  out.eye_openR = clampSigned(base.eye_openR - base.eye_blink * blink * 0.94);
+  out.eye_gazeX = clampSigned(base.eye_gazeX + base.eye_scanX * scanX);
+  out.eye_gazeY = clampSigned(base.eye_gazeY + base.eye_scanY * scanY);
+  out.brow_raiseL = clampSigned(base.brow_raiseL + base.brow_pulse * pulse);
+  out.brow_raiseR = clampSigned(base.brow_raiseR + base.brow_pulse * pulse * 0.78);
+  out.mouth_open = clampUnit(base.mouth_open + base.mouth_articulate * articulation);
+  out.jaw_open = clampUnit(base.jaw_open + base.jaw_articulate * articulation);
+  return out;
+}
 
 /**
  * Region-local anchors derived from a point set rather than from the current procedural head.
@@ -378,6 +490,37 @@ function clampSigned(value: number): number {
   return Math.max(-1, Math.min(1, value));
 }
 
+function regionInfluence(
+  px: number,
+  py: number,
+  pz: number,
+  region: number,
+  weight: number,
+  targetRegion: number,
+  rig: ExpressionRigMetrics,
+  expansion: number,
+  haloStrength: number,
+): number {
+  const offset = targetRegion * 3;
+  const cx = rig.regionCenter[offset] ?? 0;
+  const cy = rig.regionCenter[offset + 1] ?? 0;
+  const cz = rig.regionCenter[offset + 2] ?? 0;
+  const ex = Math.max((rig.regionHalfExtent[offset] ?? 0) * expansion, 1e-6);
+  const ey = Math.max((rig.regionHalfExtent[offset + 1] ?? 0) * expansion, 1e-6);
+  const ez = Math.max((rig.regionHalfExtent[offset + 2] ?? 0) * expansion, 1e-6);
+  const distance = Math.hypot((px - cx) / ex, (py - cy) / ey, (pz - cz) / ez);
+  const halo = clampUnit((1.65 - distance) / 0.8);
+  const core = region === targetRegion ? clampUnit(weight) : 0;
+  return Math.max(core, halo * halo * haloStrength);
+}
+
+function normaliseExpressionNormal(out: Float32Array): void {
+  const length = Math.hypot(out[3], out[4], out[5]) || 1;
+  out[3] /= length;
+  out[4] /= length;
+  out[5] /= length;
+}
+
 /**
  * Applies one expression to one centred rest-space particle.
  *
@@ -407,105 +550,158 @@ export function deformExpressionPoint(
   out[4] = ny;
   out[5] = nz;
 
-  if (region < 0 || region >= REGION_COUNT || region === REGION.cranium) return;
+  if (region < 0 || region >= REGION_COUNT) return;
 
-  const offset = region * 3;
-  const cx = rig.regionCenter[offset] ?? 0;
-  const cy = rig.regionCenter[offset + 1] ?? 0;
-  const cz = rig.regionCenter[offset + 2] ?? 0;
-  const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
-  const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
-  const ez = Math.max(rig.regionHalfExtent[offset + 2] ?? 0, 1e-6);
-  const lx = clampSigned((px - cx) / ex);
-  const ly = clampSigned((py - cy) / ey);
-  const lz = clampSigned((pz - cz) / ez);
-  const influence = clampUnit(weight);
   const scale = Math.max(0, radius) * expressionScale;
+  if (scale === 0) return;
 
-  if (region === REGION.browL || region === REGION.browR) {
-    const left = region === REGION.browL;
+  for (let brow = 0; brow < 2; brow++) {
+    const target = brow === 0 ? REGION.browL : REGION.browR;
+    const left = target === REGION.browL;
     const side = left ? 1 : -1;
+    const offset = target * 3;
+    const cx = rig.regionCenter[offset] ?? 0;
+    const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
+    const lx = clampSigned((px - cx) / ex);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.45, 0.52);
+    if (influence <= 0) continue;
     const raise = clampSigned(left ? expression.brow_raiseL : expression.brow_raiseR);
     const inner = clampUnit((1 - side * lx) * 0.5);
     const innerUp = clampSigned(expression.brow_innerUp);
     const furrow = clampUnit(expression.brow_furrow);
-    out[0] = px - side * scale * 0.018 * furrow * inner * influence;
-    out[1] =
-      py + scale * (0.036 * raise + 0.028 * innerUp * inner - 0.02 * furrow * inner) * influence;
-    return;
+    out[0] -= side * scale * 0.038 * furrow * inner * influence;
+    out[1] += scale * (0.058 * raise + 0.05 * innerUp * inner - 0.034 * furrow * inner) * influence;
+    out[3] -= side * 0.12 * furrow * inner * influence;
+    out[4] += 0.16 * (raise + innerUp * inner) * influence;
   }
 
-  if (region === REGION.eyeL || region === REGION.eyeR) {
-    // A front-facing ocular surface belongs to the globe, not the eyelid rig. Eye opening moves
-    // the surrounding lid particles while the globe remains anatomically spherical behind them.
-    if (nz > 0.35) return;
-    const open = clampSigned(region === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
+  for (let eye = 0; eye < 2; eye++) {
+    const target = eye === 0 ? REGION.eyeL : REGION.eyeR;
+    const offset = target * 3;
+    const cx = rig.regionCenter[offset] ?? 0;
+    const cy = rig.regionCenter[offset + 1] ?? 0;
+    const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
+    const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+    const lx = clampSigned((px - cx) / ex);
+    const ly = clampSigned((py - cy) / ey);
     const upperLid = clampUnit(ly * 0.5 + 0.5);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.38, 0.46);
+    if (influence <= 0) continue;
+    const open = clampSigned(target === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
+    const globe = region === target && nz > 0.35;
+    const lidInfluence = globe ? 0 : influence;
+    const gazeInfluence = globe ? Math.max(0.72, clampUnit(weight)) : influence * 0.24;
+    const gazeX = clampSigned(expression.eye_gazeX);
     const gazeY = clampSigned(expression.eye_gazeY);
-    out[0] = px + scale * 0.025 * clampSigned(expression.eye_gazeX) * influence;
-    out[1] = py + scale * (0.028 * open * ly + (0.016 + 0.01 * upperLid) * gazeY) * influence;
-    return;
+    out[0] += scale * 0.042 * gazeX * gazeInfluence;
+    out[1] +=
+      scale *
+      (0.056 * open * ly * lidInfluence + (0.03 + 0.016 * upperLid) * gazeY * gazeInfluence);
+    out[2] -= scale * 0.016 * Math.max(0, -open) * lidInfluence;
+    out[3] += 0.08 * gazeX * gazeInfluence - 0.05 * lx * open * lidInfluence;
+    out[4] += 0.12 * open * ly * lidInfluence + 0.07 * gazeY * gazeInfluence;
   }
 
-  if (region === REGION.cheek) {
-    const support = clampUnit(1 - Math.abs(ly)) * clampUnit(1 - Math.abs(lz));
-    const raise = clampUnit(expression.cheek_raise);
-    out[1] = py + scale * 0.024 * raise * support;
-    out[2] = pz + scale * 0.012 * raise * support;
-    return;
+  {
+    const target = REGION.cheek;
+    const offset = target * 3;
+    const cy = rig.regionCenter[offset + 1] ?? 0;
+    const cz = rig.regionCenter[offset + 2] ?? 0;
+    const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+    const ez = Math.max(rig.regionHalfExtent[offset + 2] ?? 0, 1e-6);
+    const ly = clampSigned((py - cy) / ey);
+    const lz = clampSigned((pz - cz) / ez);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.18, 0.34);
+    const support = influence * clampUnit(1 - Math.abs(ly)) * clampUnit(1 - Math.abs(lz));
+    const smile =
+      Math.max(
+        0,
+        (clampSigned(expression.mouth_cornerUpL) + clampSigned(expression.mouth_cornerUpR)) * 0.5,
+      ) * 0.38;
+    const raise = clampUnit(expression.cheek_raise) + smile;
+    out[1] += scale * 0.052 * raise * support;
+    out[2] += scale * 0.028 * raise * support;
+    out[4] += 0.12 * raise * support;
+    out[5] += 0.08 * raise * support;
   }
 
-  if (region === REGION.nose) {
+  {
+    const target = REGION.nose;
+    const offset = target * 3;
+    const cx = rig.regionCenter[offset] ?? 0;
+    const cy = rig.regionCenter[offset + 1] ?? 0;
+    const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
+    const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+    const lx = clampSigned((px - cx) / ex);
+    const ly = clampSigned((py - cy) / ey);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.3, 0.38);
     const lower = clampUnit((1 - ly) * 0.5);
-    const support = lower * (0.35 + 0.65 * clampUnit(1 - Math.abs(lx)));
+    const support = influence * lower * (0.35 + 0.65 * clampUnit(1 - Math.abs(lx)));
     const scrunch = clampUnit(expression.nose_scrunch);
-    out[1] = py + scale * 0.018 * scrunch * support;
-    out[2] = pz - scale * 0.014 * scrunch * support;
-    return;
+    out[0] += Math.sign(lx || 1) * scale * 0.018 * scrunch * support;
+    out[1] += scale * 0.036 * scrunch * support;
+    out[2] -= scale * 0.03 * scrunch * support;
+    out[4] += 0.1 * scrunch * support;
+    out[5] -= 0.08 * scrunch * support;
   }
 
-  if (region === REGION.mouth) {
+  {
+    const target = REGION.mouth;
+    const offset = target * 3;
+    const cx = rig.regionCenter[offset] ?? 0;
+    const cy = rig.regionCenter[offset + 1] ?? 0;
+    const ex = Math.max(rig.regionHalfExtent[offset] ?? 0, 1e-6);
+    const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+    const lx = clampSigned((px - cx) / ex);
+    const ly = clampSigned((py - cy) / ey);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.42, 0.42);
     const leftMix = clampUnit(lx * 0.5 + 0.5);
     const cornerControl =
       clampSigned(expression.mouth_cornerUpR) +
       (clampSigned(expression.mouth_cornerUpL) - clampSigned(expression.mouth_cornerUpR)) * leftMix;
-    const corner = clampUnit(1 - influence);
+    const corner = clampUnit((Math.abs(lx) - 0.2) / 0.8);
     const open = clampUnit(expression.mouth_open);
     const split = ly === 0 ? -1 : Math.sign(ly);
-    const openingSupport = 0.3 + 0.7 * influence;
     const pucker = clampUnit(expression.mouth_pucker);
     const press = clampUnit(expression.mouth_press);
 
-    out[0] = px - lx * scale * 0.02 * pucker * influence;
-    out[1] =
-      py +
+    out[0] +=
+      scale * (-0.046 * lx * pucker + 0.024 * lx * Math.abs(cornerControl) * corner) * influence;
+    out[1] +=
       scale *
-        (0.032 * cornerControl * corner +
-          0.022 * open * split * openingSupport -
-          0.016 * press * ly * influence);
-    out[2] =
-      pz +
-      scale * (0.025 * pucker * influence - 0.008 * open * influence - 0.012 * press * influence);
-    return;
+      (0.068 * cornerControl * corner + 0.052 * open * split - 0.032 * press * ly) *
+      influence;
+    out[2] += scale * (0.042 * pucker - 0.014 * open - 0.024 * press) * influence;
+    out[4] += (0.18 * cornerControl * corner + 0.12 * open * split - 0.1 * press * ly) * influence;
+    out[5] += (0.1 * pucker - 0.08 * press) * influence;
   }
 
-  if (region === REGION.jaw) {
+  {
+    const target = REGION.jaw;
+    const offset = target * 3;
+    const cy = rig.regionCenter[offset + 1] ?? 0;
+    const cz = rig.regionCenter[offset + 2] ?? 0;
+    const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
+    const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.24, 0.48);
     const hingeY = cy + ey;
-    const hinge = clampUnit((hingeY - py) / (2 * ey));
-    const angle = 0.22 * expressionScale * clampUnit(expression.jaw_open) * hinge;
+    const attachment = influence * clampUnit((hingeY - py) / (1.65 * ey));
+    const angle = 0.28 * expressionScale * clampUnit(expression.jaw_open);
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
-    const relativeY = py - hingeY;
-    const relativeZ = pz - cz;
-
-    out[0] = px + scale * 0.035 * clampSigned(expression.jaw_shiftX) * hinge;
-    out[1] = hingeY + relativeY * cosine - relativeZ * sine;
-    out[2] =
-      cz +
-      relativeY * sine +
-      relativeZ * cosine +
-      scale * 0.04 * clampSigned(expression.jaw_forward) * hinge;
-    out[4] = ny * cosine - nz * sine;
-    out[5] = ny * sine + nz * cosine;
+    const relativeY = out[1] - hingeY;
+    const relativeZ = out[2] - cz;
+    const rotatedY = hingeY + relativeY * cosine - relativeZ * sine;
+    const rotatedZ = cz + relativeY * sine + relativeZ * cosine;
+    out[0] += attachment * scale * 0.052 * clampSigned(expression.jaw_shiftX);
+    out[1] += (rotatedY - out[1]) * attachment;
+    out[2] +=
+      (rotatedZ - out[2]) * attachment +
+      attachment * scale * 0.058 * clampSigned(expression.jaw_forward);
+    const rotatedNy = out[4] * cosine - out[5] * sine;
+    const rotatedNz = out[4] * sine + out[5] * cosine;
+    out[4] += (rotatedNy - out[4]) * attachment;
+    out[5] += (rotatedNz - out[5]) * attachment;
   }
+
+  normaliseExpressionNormal(out);
 }

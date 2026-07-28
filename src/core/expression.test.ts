@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import {
+  animateExpressionInto,
+  createExpressionParams,
   createExpressionRigMetrics,
   DONE_EXPRESSION,
   deformExpressionPoint,
@@ -21,6 +23,7 @@ import {
   THINKING_EXPRESSION,
 } from "./expression.js";
 import { generateHeadLevel } from "./geometry.js";
+import { IDLE_MOTION, STILL_MOTION } from "./motion.js";
 import type { HeadPointSet } from "./pointset.js";
 import { REGION } from "./regions.js";
 import { THINKING_HEAD_STATES } from "./states.js";
@@ -35,7 +38,7 @@ function expressionWith(key: ExpressionKey, value = 1): ExpressionParams {
   return { ...NEUTRAL_EXPRESSION, [key]: value };
 }
 
-const TARGET_REGIONS: Record<ExpressionKey, number[]> = {
+const TARGET_REGIONS: Partial<Record<ExpressionKey, number[]>> = {
   brow_raiseL: [REGION.browL],
   brow_raiseR: [REGION.browR],
   brow_innerUp: [REGION.browL, REGION.browR],
@@ -57,8 +60,8 @@ const TARGET_REGIONS: Record<ExpressionKey, number[]> = {
 };
 
 describe("expression control contract", () => {
-  test("contains 18 unique scalar controls with a neutral zero vector", () => {
-    expect(EXPRESSION_KEYS).toHaveLength(18);
+  test("contains 24 unique scalar controls with a neutral zero vector", () => {
+    expect(EXPRESSION_KEYS).toHaveLength(24);
     expect(new Set(EXPRESSION_KEYS).size).toBe(EXPRESSION_KEYS.length);
     for (const key of EXPRESSION_KEYS) expect(NEUTRAL_EXPRESSION[key]).toBe(0);
   });
@@ -259,7 +262,8 @@ describe("done expression", () => {
   test("is immutable, registered and leaves Idle as the sole neutral state", () => {
     expect(Object.isFrozen(DONE_EXPRESSION)).toBe(true);
     expect(STATE_EXPRESSION.done).toBe(DONE_EXPRESSION);
-    expect(STATE_EXPRESSION.idle).toBe(NEUTRAL_EXPRESSION);
+    expect(STATE_EXPRESSION.idle).toBe(IDLE_EXPRESSION);
+    expect(IDLE_EXPRESSION).not.toBe(NEUTRAL_EXPRESSION);
     for (const state of THINKING_HEAD_STATES) {
       if (state === "idle") continue;
       expect(STATE_EXPRESSION[state], `${state} should own an active expression`).not.toBe(
@@ -363,13 +367,15 @@ describe("analytic point deformation", () => {
     }
   });
 
-  test("every control moves its intended region and no other region", () => {
+  test("static controls move their intended core and connected surrounding tissue", () => {
     const rig = expressionRigOf(head);
     const out = new Float32Array(6);
+    const staticKeys = EXPRESSION_KEYS.slice(0, 18);
 
-    for (const key of EXPRESSION_KEYS) {
+    for (const key of staticKeys) {
       const expression = expressionWith(key);
       const targets = TARGET_REGIONS[key];
+      expect(targets).toBeDefined();
       let targetDelta = 0;
       let outsideDelta = 0;
 
@@ -403,13 +409,44 @@ describe("analytic point deformation", () => {
           out[4] - ny,
           out[5] - nz,
         );
-        if (targets.includes(head.regionId[i])) targetDelta = Math.max(targetDelta, delta);
+        if (targets?.includes(head.regionId[i])) targetDelta = Math.max(targetDelta, delta);
         else outsideDelta = Math.max(outsideDelta, delta);
       }
 
       expect(targetDelta, `${key} should deform its target`).toBeGreaterThan(1e-5);
-      expect(outsideDelta, `${key} should stay region-local`).toBeLessThan(1e-7);
+      expect(outsideDelta, `${key} should carry into adjacent skin`).toBeGreaterThan(1e-7);
     }
+  });
+
+  test("continuous facial controls animate locally and reduced motion preserves the base pose", () => {
+    const base = {
+      ...NEUTRAL_EXPRESSION,
+      eye_blink: 0.6,
+      eye_scanX: 0.4,
+      eye_scanY: 0.2,
+      brow_pulse: 0.3,
+      mouth_articulate: 0.5,
+      jaw_articulate: 0.2,
+    };
+    const animated = createExpressionParams();
+    animateExpressionInto(animated, base, 1, IDLE_MOTION, {
+      breath: 0,
+      wave: 0,
+      jitter: 0,
+      shimmer: 0,
+      sway: 0,
+      dart: 0,
+      facial: Math.PI / 2,
+    });
+
+    expect(animated.eye_openL).toBeLessThan(0);
+    expect(animated.eye_gazeX).not.toBe(0);
+    expect(animated.brow_raiseL).not.toBe(0);
+    expect(animated.mouth_open).toBeGreaterThan(0);
+    expect(animated.jaw_open).toBeGreaterThan(0);
+
+    animateExpressionInto(animated, base, 1, STILL_MOTION);
+    expect(animated).toEqual(base);
   });
 
   test("jaw rotation preserves unit normals", () => {

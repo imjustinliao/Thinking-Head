@@ -1,5 +1,10 @@
 import { DONE_ACCENT_RGB, ERROR_ACCENT_RGB } from "../../accent.js";
-import { EXPRESSION_KEYS, expressionRigOf } from "../../expression.js";
+import {
+  animateExpressionInto,
+  createExpressionParams,
+  EXPRESSION_KEYS,
+  expressionRigOf,
+} from "../../expression.js";
 import { type SwayOffsets, swayOffsetsInto } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
@@ -218,6 +223,7 @@ class SharedGL implements SharedGLRenderer {
   // Reused across frames — the draw path must not allocate.
   private readonly rot = new Float32Array(9);
   private readonly center = new Float32Array(3);
+  private readonly animatedExpression = createExpressionParams();
   private readonly light = new Float32Array(3);
   private readonly fillLight = new Float32Array(3);
   private readonly color = new Float32Array(3);
@@ -444,8 +450,9 @@ class SharedGL implements SharedGLRenderer {
     this.color[0] += (DONE_ACCENT_RGB.r - this.color[0]) * doneAccent;
     this.color[1] += (DONE_ACCENT_RGB.g - this.color[1]) * doneAccent;
     this.color[2] += (DONE_ACCENT_RGB.b - this.color[2]) * doneAccent;
+    animateExpressionInto(this.animatedExpression, expression, frame.time, motion, frame.phase);
     for (let i = 0; i < EXPRESSION_KEYS.length; i++) {
-      this.expressionValues[i] = expression[EXPRESSION_KEYS[i]];
+      this.expressionValues[i] = this.animatedExpression[EXPRESSION_KEYS[i]];
     }
 
     gl.useProgram(res.program);

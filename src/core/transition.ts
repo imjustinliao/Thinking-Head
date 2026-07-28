@@ -61,6 +61,7 @@ const JITTER_SPEED_INDEX = MOTION_KEYS.indexOf("jitterSpeed");
 const SHIMMER_SPEED_INDEX = MOTION_KEYS.indexOf("shimmerSpeed");
 const SWAY_SPEED_INDEX = MOTION_KEYS.indexOf("swaySpeed");
 const DART_SPEED_INDEX = MOTION_KEYS.indexOf("swayDartSpeed");
+const FACIAL_SPEED_INDEX = MOTION_KEYS.indexOf("facialSpeed");
 
 function springOmega(response: number): number {
   const safeResponse =
@@ -444,6 +445,15 @@ export class StateTransitionController {
         motion.swayDartSpeed,
         velocity[DART_SPEED_INDEX],
         target.swayDartSpeed,
+        omega,
+        dt,
+      );
+    phase.facial +=
+      playbackRate *
+      integratedSpringValue(
+        motion.facialSpeed,
+        velocity[FACIAL_SPEED_INDEX],
+        target.facialSpeed,
         omega,
         dt,
       );

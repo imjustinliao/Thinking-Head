@@ -1,5 +1,10 @@
 import { DONE_ACCENT_COLOR, ERROR_ACCENT_COLOR } from "../accent.js";
-import { deformExpressionPoint, expressionRigOf } from "../expression.js";
+import {
+  animateExpressionInto,
+  createExpressionParams,
+  deformExpressionPoint,
+  expressionRigOf,
+} from "../expression.js";
 import {
   normalDisplacement,
   type SwayOffsets,
@@ -49,6 +54,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
   let depth = new Float32Array(0);
   let order = new Int32Array(0);
   const expressionPoint = new Float32Array(6);
+  const animatedExpression = createExpressionParams();
   const sway: SwayOffsets = { yaw: 0, pitch: 0, roll: 0 };
   const colorPalette = new Array<string>(256);
   let paletteSource = "";
@@ -133,6 +139,13 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
       const { positions, normals, center, occlusion, weight } = pointSet;
       const expressionRig = expressionRigOf(pointSet);
+      animateExpressionInto(
+        animatedExpression,
+        frame.expression,
+        frame.time,
+        frame.motion,
+        frame.phase,
+      );
       // Amplitudes are in cell units, so the same motion reads identically at every LOD level.
       const cell = pointSet.cellSize;
       const radius = pointSet.radius || 1;
@@ -193,7 +206,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           weight[i],
           radius,
           expressionRig,
-          frame.expression,
+          animatedExpression,
           expressionScale,
         );
         const ex = expressionPoint[0];

@@ -111,114 +111,169 @@ float clampSigned(float value) {
  * Analytic facial deformation. This mirrors deformExpressionPoint() in expression.ts; motion is
  * applied afterwards from the immutable rest-space phase seed.
  */
+float regionInfluence(
+  vec3 rest,
+  int region,
+  float rawWeight,
+  int target,
+  float expansion,
+  float haloStrength
+) {
+  vec3 extent = max(u_regionHalfExtent[target] * expansion, vec3(1e-6));
+  float distance = length((rest - u_regionCenter[target]) / extent);
+  float halo = clampUnit((1.65 - distance) / 0.8);
+  float core = region == target ? clampUnit(rawWeight) : 0.0;
+  return max(core, halo * halo * haloStrength);
+}
+
 void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
-  if (region == ${REGION.cranium}) return;
-
-  vec3 center = u_regionCenter[region];
-  vec3 extent = max(u_regionHalfExtent[region], vec3(1e-6));
-  vec3 regionLocal = clamp((p - center) / extent, vec3(-1.0), vec3(1.0));
-  float influence = clampUnit(rawWeight);
+  vec3 rest = p;
   float scale = max(u_boundRadius, 0.0) * u_expressionScale;
+  if (scale == 0.0) return;
 
-  if (region == ${REGION.browL} || region == ${REGION.browR}) {
-    bool left = region == ${REGION.browL};
+  for (int brow = 0; brow < 2; brow++) {
+    int target = brow == 0 ? ${REGION.browL} : ${REGION.browR};
+    bool left = target == ${REGION.browL};
     float side = left ? 1.0 : -1.0;
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    float localX = clampSigned((rest.x - u_regionCenter[target].x) / extent.x);
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.45, 0.52);
     float raise = clampSigned(
       left
         ? u_expression[${expressionIndex("brow_raiseL")}]
         : u_expression[${expressionIndex("brow_raiseR")}]
     );
-    float inner = clampUnit((1.0 - side * regionLocal.x) * 0.5);
+    float inner = clampUnit((1.0 - side * localX) * 0.5);
     float innerUp = clampSigned(u_expression[${expressionIndex("brow_innerUp")}]);
     float furrow = clampUnit(u_expression[${expressionIndex("brow_furrow")}]);
-    p.x -= side * scale * 0.018 * furrow * inner * influence;
+    p.x -= side * scale * 0.038 * furrow * inner * influence;
     p.y +=
-      scale * (0.036 * raise + 0.028 * innerUp * inner - 0.02 * furrow * inner) * influence;
-    return;
+      scale * (0.058 * raise + 0.05 * innerUp * inner - 0.034 * furrow * inner) * influence;
+    n.x -= side * 0.12 * furrow * inner * influence;
+    n.y += 0.16 * (raise + innerUp * inner) * influence;
   }
 
-  if (region == ${REGION.eyeL} || region == ${REGION.eyeR}) {
-    // Preserve front-facing ocular-globe points; only the surrounding lid surface opens.
-    if (n.z > 0.35) return;
+  for (int eye = 0; eye < 2; eye++) {
+    int target = eye == 0 ? ${REGION.eyeL} : ${REGION.eyeR};
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    vec3 local = clamp((rest - u_regionCenter[target]) / extent, vec3(-1.0), vec3(1.0));
+    float upperLid = clampUnit(local.y * 0.5 + 0.5);
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.38, 0.46);
     float open = clampSigned(
-      region == ${REGION.eyeL}
+      target == ${REGION.eyeL}
         ? u_expression[${expressionIndex("eye_openL")}]
         : u_expression[${expressionIndex("eye_openR")}]
     );
-    float upperLid = clampUnit(regionLocal.y * 0.5 + 0.5);
+    bool globe = region == target && n.z > 0.35;
+    float lidInfluence = globe ? 0.0 : influence;
+    float gazeInfluence = globe ? max(0.72, clampUnit(rawWeight)) : influence * 0.24;
+    float gazeX = clampSigned(u_expression[${expressionIndex("eye_gazeX")}]);
     float gazeY = clampSigned(u_expression[${expressionIndex("eye_gazeY")}]);
-    p.x += scale * 0.025 * clampSigned(u_expression[${expressionIndex("eye_gazeX")}]) * influence;
+    p.x += scale * 0.042 * gazeX * gazeInfluence;
     p.y +=
       scale *
-      (0.028 * open * regionLocal.y +
-       (0.016 + 0.01 * upperLid) * gazeY) *
-      influence;
-    return;
+      (0.056 * open * local.y * lidInfluence +
+       (0.03 + 0.016 * upperLid) * gazeY * gazeInfluence);
+    p.z -= scale * 0.016 * max(0.0, -open) * lidInfluence;
+    n.x += 0.08 * gazeX * gazeInfluence - 0.05 * local.x * open * lidInfluence;
+    n.y += 0.12 * open * local.y * lidInfluence + 0.07 * gazeY * gazeInfluence;
   }
 
-  if (region == ${REGION.cheek}) {
-    float support =
-      clampUnit(1.0 - abs(regionLocal.y)) * clampUnit(1.0 - abs(regionLocal.z));
-    float raise = clampUnit(u_expression[${expressionIndex("cheek_raise")}]);
-    p.y += scale * 0.024 * raise * support;
-    p.z += scale * 0.012 * raise * support;
-    return;
+  {
+    int target = ${REGION.cheek};
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    vec3 local = clamp((rest - u_regionCenter[target]) / extent, vec3(-1.0), vec3(1.0));
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.18, 0.34);
+    float support = influence * clampUnit(1.0 - abs(local.y)) * clampUnit(1.0 - abs(local.z));
+    float smile =
+      max(
+        0.0,
+        (clampSigned(u_expression[${expressionIndex("mouth_cornerUpL")}]) +
+         clampSigned(u_expression[${expressionIndex("mouth_cornerUpR")}])) *
+          0.5
+      ) *
+      0.38;
+    float raise = clampUnit(u_expression[${expressionIndex("cheek_raise")}]) + smile;
+    p.y += scale * 0.052 * raise * support;
+    p.z += scale * 0.028 * raise * support;
+    n.y += 0.12 * raise * support;
+    n.z += 0.08 * raise * support;
   }
 
-  if (region == ${REGION.nose}) {
-    float lower = clampUnit((1.0 - regionLocal.y) * 0.5);
-    float support = lower * (0.35 + 0.65 * clampUnit(1.0 - abs(regionLocal.x)));
+  {
+    int target = ${REGION.nose};
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    vec3 local = clamp((rest - u_regionCenter[target]) / extent, vec3(-1.0), vec3(1.0));
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.3, 0.38);
+    float lower = clampUnit((1.0 - local.y) * 0.5);
+    float support = influence * lower * (0.35 + 0.65 * clampUnit(1.0 - abs(local.x)));
     float scrunch = clampUnit(u_expression[${expressionIndex("nose_scrunch")}]);
-    p.y += scale * 0.018 * scrunch * support;
-    p.z -= scale * 0.014 * scrunch * support;
-    return;
+    p.x += sign(local.x == 0.0 ? 1.0 : local.x) * scale * 0.018 * scrunch * support;
+    p.y += scale * 0.036 * scrunch * support;
+    p.z -= scale * 0.03 * scrunch * support;
+    n.y += 0.1 * scrunch * support;
+    n.z -= 0.08 * scrunch * support;
   }
 
-  if (region == ${REGION.mouth}) {
-    float leftMix = clampUnit(regionLocal.x * 0.5 + 0.5);
+  {
+    int target = ${REGION.mouth};
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    vec3 local = clamp((rest - u_regionCenter[target]) / extent, vec3(-1.0), vec3(1.0));
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.42, 0.42);
+    float leftMix = clampUnit(local.x * 0.5 + 0.5);
     float cornerControl = mix(
       clampSigned(u_expression[${expressionIndex("mouth_cornerUpR")}]),
       clampSigned(u_expression[${expressionIndex("mouth_cornerUpL")}]),
       leftMix
     );
-    float corner = clampUnit(1.0 - influence);
+    float corner = clampUnit((abs(local.x) - 0.2) / 0.8);
     float open = clampUnit(u_expression[${expressionIndex("mouth_open")}]);
-    float split = regionLocal.y == 0.0 ? -1.0 : sign(regionLocal.y);
-    float openingSupport = 0.3 + 0.7 * influence;
+    float split = local.y == 0.0 ? -1.0 : sign(local.y);
     float pucker = clampUnit(u_expression[${expressionIndex("mouth_pucker")}]);
     float press = clampUnit(u_expression[${expressionIndex("mouth_press")}]);
-
-    p.x -= regionLocal.x * scale * 0.02 * pucker * influence;
+    p.x +=
+      scale * (-0.046 * local.x * pucker + 0.024 * local.x * abs(cornerControl) * corner) *
+      influence;
     p.y +=
       scale *
-      (0.032 * cornerControl * corner +
-       0.022 * open * split * openingSupport -
-       0.016 * press * regionLocal.y * influence);
-    p.z +=
-      scale *
-      (0.025 * pucker * influence - 0.008 * open * influence - 0.012 * press * influence);
-    return;
+      (0.068 * cornerControl * corner + 0.052 * open * split - 0.032 * press * local.y) *
+      influence;
+    p.z += scale * (0.042 * pucker - 0.014 * open - 0.024 * press) * influence;
+    n.y +=
+      (0.18 * cornerControl * corner + 0.12 * open * split - 0.1 * press * local.y) *
+      influence;
+    n.z += (0.1 * pucker - 0.08 * press) * influence;
   }
 
-  if (region == ${REGION.jaw}) {
+  {
+    int target = ${REGION.jaw};
+    vec3 center = u_regionCenter[target];
+    vec3 extent = max(u_regionHalfExtent[target], vec3(1e-6));
+    float influence = regionInfluence(rest, region, rawWeight, target, 1.24, 0.48);
     float hingeY = center.y + extent.y;
-    float hinge = clampUnit((hingeY - p.y) / (2.0 * extent.y));
+    float attachment = influence * clampUnit((hingeY - rest.y) / (1.65 * extent.y));
     float angle =
-      0.22 * u_expressionScale * clampUnit(u_expression[${expressionIndex("jaw_open")}]) * hinge;
+      0.28 * u_expressionScale * clampUnit(u_expression[${expressionIndex("jaw_open")}]);
     float cosine = cos(angle);
     float sine = sin(angle);
-    float relativeY = p.y - hingeY;
-    float relativeZ = p.z - center.z;
-
-    p.x += scale * 0.035 * clampSigned(u_expression[${expressionIndex("jaw_shiftX")}]) * hinge;
-    p.y = hingeY + relativeY * cosine - relativeZ * sine;
+    vec2 relative = vec2(p.y - hingeY, p.z - center.z);
+    vec2 rotated =
+      vec2(
+        hingeY + relative.x * cosine - relative.y * sine,
+        center.z + relative.x * sine + relative.y * cosine
+      );
+    p.x +=
+      attachment * scale * 0.052 * clampSigned(u_expression[${expressionIndex("jaw_shiftX")}]);
+    p.y = mix(p.y, rotated.x, attachment);
     p.z =
-      center.z +
-      relativeY * sine +
-      relativeZ * cosine +
-      scale * 0.04 * clampSigned(u_expression[${expressionIndex("jaw_forward")}]) * hinge;
-    n.yz = vec2(n.y * cosine - n.z * sine, n.y * sine + n.z * cosine);
+      mix(p.z, rotated.y, attachment) +
+      attachment * scale * 0.058 * clampSigned(u_expression[${expressionIndex("jaw_forward")}]);
+    vec2 rotatedNormal =
+      vec2(n.y * cosine - n.z * sine, n.y * sine + n.z * cosine);
+    n.yz = mix(n.yz, rotatedNormal, attachment);
   }
+
+  n = normalize(n);
 }
 
 /**
