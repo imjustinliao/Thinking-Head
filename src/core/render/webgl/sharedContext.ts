@@ -1,5 +1,5 @@
 import { EXPRESSION_KEYS, expressionRigOf } from "../../expression.js";
-import { swayOffsets } from "../../motion.js";
+import { type SwayOffsets, swayOffsetsInto } from "../../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion, REGION_COUNT } from "../../regions.js";
 import { cameraBasis, fitScale } from "../camera.js";
 import {
@@ -153,20 +153,19 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_occlusionFloor",
     "u_color",
     "u_square",
-    "u_time",
+    "u_breathPhase",
+    "u_wavePhase",
+    "u_jitterPhase",
+    "u_shimmerPhase",
     "u_cellSize",
     "u_breathAmplitude",
-    "u_breathSpeed",
     "u_outwardAmplitude",
     "u_waveAmplitude",
     "u_waveScale",
-    "u_waveSpeed",
     "u_jitterAmplitude",
-    "u_jitterSpeed",
     "u_brightnessBias",
     "u_shimmerAmplitude",
     "u_shimmerScale",
-    "u_shimmerSpeed",
     "u_shimmerHarmonic",
     "u_shimmerDir",
     "u_shimmerRadial",
@@ -219,6 +218,7 @@ class SharedGL implements SharedGLRenderer {
   private readonly fillLight = new Float32Array(3);
   private readonly color = new Float32Array(3);
   private readonly expressionValues = new Float32Array(EXPRESSION_KEYS.length);
+  private readonly sway: SwayOffsets = { yaw: 0, pitch: 0, roll: 0 };
   /** Grown on demand for the Uint8 -> float region conversion; never reallocated per frame. */
   private regionScratch = new Float32Array(0);
 
@@ -391,7 +391,7 @@ class SharedGL implements SharedGLRenderer {
     const expressionRig = expressionRigOf(pointSet);
     const boundRadius = pointSet.radius || 1;
     const shading = deriveShading(cssSize, devicePixels, pointSet.cellSize, style, boundRadius);
-    const sway = swayOffsets(frame.time, motion);
+    const sway = swayOffsetsInto(this.sway, frame.time, motion, frame.phase);
     const b = cameraBasis(
       camera,
       sway.yaw * shading.tier.poseScale,
@@ -459,20 +459,19 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_occlusionFloor, OCCLUSION_FLOOR);
     gl.uniform3fv(u.u_color, this.color);
     gl.uniform1f(u.u_square, style.shape === "square" ? 1 : 0);
-    gl.uniform1f(u.u_time, frame.time);
+    gl.uniform1f(u.u_breathPhase, frame.phase?.breath ?? frame.time * motion.breathSpeed);
+    gl.uniform1f(u.u_wavePhase, frame.phase?.wave ?? frame.time * motion.waveSpeed);
+    gl.uniform1f(u.u_jitterPhase, frame.phase?.jitter ?? frame.time * motion.jitterSpeed);
+    gl.uniform1f(u.u_shimmerPhase, frame.phase?.shimmer ?? frame.time * motion.shimmerSpeed);
     gl.uniform1f(u.u_cellSize, pointSet.cellSize);
     gl.uniform1f(u.u_breathAmplitude, motion.breathAmplitude);
-    gl.uniform1f(u.u_breathSpeed, motion.breathSpeed);
     gl.uniform1f(u.u_outwardAmplitude, motion.outwardAmplitude);
     gl.uniform1f(u.u_waveAmplitude, motion.waveAmplitude);
     gl.uniform1f(u.u_waveScale, motion.waveScale);
-    gl.uniform1f(u.u_waveSpeed, motion.waveSpeed);
     gl.uniform1f(u.u_jitterAmplitude, motion.jitterAmplitude);
-    gl.uniform1f(u.u_jitterSpeed, motion.jitterSpeed);
     gl.uniform1f(u.u_brightnessBias, motion.brightnessBias);
     gl.uniform1f(u.u_shimmerAmplitude, motion.shimmerAmplitude);
     gl.uniform1f(u.u_shimmerScale, motion.shimmerScale);
-    gl.uniform1f(u.u_shimmerSpeed, motion.shimmerSpeed);
     gl.uniform1f(u.u_shimmerHarmonic, motion.shimmerHarmonic);
     gl.uniform3f(u.u_shimmerDir, motion.shimmerDirX, motion.shimmerDirY, motion.shimmerDirZ);
     gl.uniform1f(u.u_shimmerRadial, motion.shimmerRadial);

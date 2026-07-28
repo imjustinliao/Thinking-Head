@@ -112,6 +112,68 @@ export interface MotionParams {
   poseRollBias: number;
 }
 
+export const MOTION_KEYS = [
+  "breathAmplitude",
+  "breathSpeed",
+  "outwardAmplitude",
+  "waveAmplitude",
+  "waveScale",
+  "waveSpeed",
+  "jitterAmplitude",
+  "jitterSpeed",
+  "brightnessBias",
+  "shimmerAmplitude",
+  "shimmerScale",
+  "shimmerSpeed",
+  "shimmerHarmonic",
+  "shimmerDirX",
+  "shimmerDirY",
+  "shimmerDirZ",
+  "shimmerRadial",
+  "shimmerMirror",
+  "swayYaw",
+  "swayPitch",
+  "swaySpeed",
+  "swayDartYaw",
+  "swayDartSpeed",
+  "poseYawBias",
+  "posePitchBias",
+  "poseRollBias",
+] as const satisfies readonly (keyof MotionParams)[];
+
+export type MotionKey = (typeof MOTION_KEYS)[number];
+
+/**
+ * Integrated oscillator phases.
+ *
+ * A raw `time * speed` phase jumps when speed is blended late in a page's lifetime because the
+ * whole elapsed time is multiplied by the changing value. Integrating frequency instead makes
+ * speed changes bend the phase trajectory without moving its current position.
+ */
+export interface MotionPhase {
+  breath: number;
+  wave: number;
+  jitter: number;
+  shimmer: number;
+  sway: number;
+  dart: number;
+}
+
+export function createMotionPhase(
+  time = 0,
+  motion: MotionParams = STILL_MOTION,
+  playbackRate = 1,
+): MotionPhase {
+  return {
+    breath: time * playbackRate * motion.breathSpeed,
+    wave: time * playbackRate * motion.waveSpeed,
+    jitter: time * playbackRate * motion.jitterSpeed,
+    shimmer: time * playbackRate * motion.shimmerSpeed,
+    sway: time * playbackRate * motion.swaySpeed,
+    dart: time * playbackRate * motion.swayDartSpeed,
+  };
+}
+
 export const STILL_MOTION: MotionParams = {
   breathAmplitude: 0,
   breathSpeed: 0,
@@ -689,18 +751,23 @@ export function normalDisplacement(
   pz: number,
   time: number,
   m: MotionParams,
+  phase?: MotionPhase,
 ): number {
+  const breathPhase = phase?.breath ?? time * m.breathSpeed;
+  const wavePhase = phase?.wave ?? time * m.waveSpeed;
+  const jitterPhase = phase?.jitter ?? time * m.jitterSpeed;
+
   // Breath: uniform across the surface, so the whole head swells rather than rippling.
-  const breath = Math.sin(time * m.breathSpeed);
+  const breath = Math.sin(breathPhase);
   const outward = 0.5 + breath * 0.5;
 
   // Travelling swell. Two waves along different axes at incommensurate rates; their sum never
   // repeats, and both are low spatial frequency so neighbours stay coherent.
-  const waveA = Math.sin((px + py * 0.6) * m.waveScale + time * m.waveSpeed);
-  const waveB = Math.sin((pz * PHI - py) * m.waveScale * 0.83 + time * m.waveSpeed * SQRT2);
+  const waveA = Math.sin((px + py * 0.6) * m.waveScale + wavePhase);
+  const waveB = Math.sin((pz * PHI - py) * m.waveScale * 0.83 + wavePhase * SQRT2);
 
   // Shimmer: high spatial frequency, so adjacent cells differ. Deliberately tiny.
-  const jitter = Math.sin((px * 31.7 + py * 47.3 + pz * 23.1) * 2 + time * m.jitterSpeed);
+  const jitter = Math.sin((px * 31.7 + py * 47.3 + pz * 23.1) * 2 + jitterPhase);
 
   return (
     m.breathAmplitude * breath +
@@ -727,6 +794,7 @@ export function shimmerMultiplier(
   pz: number,
   time: number,
   m: MotionParams,
+  motionPhase?: MotionPhase,
 ): number {
   const directional = px * m.shimmerDirX + py * m.shimmerDirY + pz * m.shimmerDirZ;
   const radial = Math.hypot(px, py);
@@ -734,7 +802,7 @@ export function shimmerMultiplier(
   const radialAlong = directional + (radial - directional) * radialMix;
   const mirrorMix = Math.max(0, Math.min(1, m.shimmerMirror));
   const along = radialAlong + (Math.abs(radialAlong) - radialAlong) * mirrorMix;
-  const phase = along * m.shimmerScale + time * m.shimmerSpeed;
+  const phase = along * m.shimmerScale + (motionPhase?.shimmer ?? time * m.shimmerSpeed);
   // Normalised by the sum of amplitudes so adding the harmonic never expands the caller's
   // configured brightness range beyond ±shimmerAmplitude.
   const band =
@@ -749,19 +817,30 @@ export function shimmerMultiplier(
  * of the same work repeated across thousands of particles, and it actually looks like a head
  * turning. Both backends read this on the CPU, so a per-state tilt propagates for free.
  */
-export function swayOffsets(
+export interface SwayOffsets {
+  yaw: number;
+  pitch: number;
+  roll: number;
+}
+
+export function swayOffsetsInto(
+  out: SwayOffsets,
   time: number,
   m: MotionParams,
-): { yaw: number; pitch: number; roll: number } {
-  return {
-    yaw:
-      m.poseYawBias +
-      m.swayYaw * Math.sin(time * m.swaySpeed) +
-      m.swayDartYaw * Math.sin(time * m.swayDartSpeed + 0.37),
-    // Incommensurate with yaw, so the head traces a slow open path instead of a closed loop.
-    pitch: m.posePitchBias + m.swayPitch * Math.sin(time * m.swaySpeed * PHI + 1.1),
-    roll: m.poseRollBias,
-  };
+  phase?: MotionPhase,
+): SwayOffsets {
+  const swayPhase = phase?.sway ?? time * m.swaySpeed;
+  const dartPhase = phase?.dart ?? time * m.swayDartSpeed;
+  out.yaw =
+    m.poseYawBias + m.swayYaw * Math.sin(swayPhase) + m.swayDartYaw * Math.sin(dartPhase + 0.37);
+  // Incommensurate with yaw, so the head traces a slow open path instead of a closed loop.
+  out.pitch = m.posePitchBias + m.swayPitch * Math.sin(swayPhase * PHI + 1.1);
+  out.roll = m.poseRollBias;
+  return out;
+}
+
+export function swayOffsets(time: number, m: MotionParams, phase?: MotionPhase): SwayOffsets {
+  return swayOffsetsInto({ yaw: 0, pitch: 0, roll: 0 }, time, m, phase);
 }
 
 /**

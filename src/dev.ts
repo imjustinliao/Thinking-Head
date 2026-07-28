@@ -44,21 +44,27 @@ export {
   type FeatureParams,
 } from "./core/landmarks.js";
 export {
+  createMotionPhase,
   DONE_MOTION,
   ERROR_MOTION,
   EXECUTING_MOTION,
   GENERATING_MOTION,
   IDLE_MOTION,
   LISTENING_MOTION,
+  MOTION_KEYS,
+  type MotionKey,
   type MotionParams,
+  type MotionPhase,
   normalDisplacement,
   READING_MOTION,
   REVIEWING_MOTION,
   SEARCHING_MOTION,
   STATE_MOTION,
   STILL_MOTION,
+  type SwayOffsets,
   shimmerMultiplier,
   swayOffsets,
+  swayOffsetsInto,
   THINKING_MOTION,
 } from "./core/motion.js";
 export type { HeadPointSet } from "./core/pointset.js";
@@ -97,3 +103,10 @@ export {
   type RenderFrame,
   type RenderStyle,
 } from "./core/render/types.js";
+export {
+  DEFAULT_TRANSITION_RESPONSE,
+  DONE_HOLD_SECONDS,
+  STATE_TRANSITION_RESPONSE,
+  StateTransitionController,
+  type StateTransitionSample,
+} from "./core/transition.js";

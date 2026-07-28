@@ -1,5 +1,5 @@
 import type { ExpressionParams } from "../expression.js";
-import type { MotionParams } from "../motion.js";
+import type { MotionParams, MotionPhase } from "../motion.js";
 import type { HeadPointSet } from "../pointset.js";
 
 /**
@@ -71,6 +71,8 @@ export interface RenderFrame {
   pointSet: HeadPointSet;
   /** Seconds from the shared clock. Drives all continuous motion. */
   time: number;
+  /** Integrated oscillator phases for phase-continuous speed changes. */
+  phase?: MotionPhase;
   /** Motion parameters for the current state. */
   motion: MotionParams;
   /** Facial deformation parameters for the current state or manual preview. */

@@ -1,5 +1,10 @@
 import { deformExpressionPoint, expressionRigOf } from "../expression.js";
-import { normalDisplacement, shimmerMultiplier, swayOffsets } from "../motion.js";
+import {
+  normalDisplacement,
+  type SwayOffsets,
+  shimmerMultiplier,
+  swayOffsetsInto,
+} from "../motion.js";
 import { drawScaleOf, intensityOf, isFeatureRegion } from "../regions.js";
 import { cameraBasis, fitScale } from "./camera.js";
 import {
@@ -43,6 +48,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
   let depth = new Float32Array(0);
   let order = new Int32Array(0);
   const expressionPoint = new Float32Array(6);
+  const sway: SwayOffsets = { yaw: 0, pitch: 0, roll: 0 };
   const colorPalette = new Array<string>(256);
   let paletteSource = "";
 
@@ -142,7 +148,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         albedoFlatten,
         featureAlbedoScale,
       } = deriveShading(cssSize, device, pointSet.cellSize, style, radius);
-      const sway = swayOffsets(frame.time, frame.motion);
+      swayOffsetsInto(sway, frame.time, frame.motion, frame.phase);
       const b = cameraBasis(
         frame.camera,
         sway.yaw * tier.poseScale,
@@ -189,7 +195,8 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
         // Continuous motion: displace along the normal so the surface swells and ripples
         // without particles leaving it.
-        const disp = normalDisplacement(rx0, ry0, rz0, frame.time, frame.motion) * cell;
+        const disp =
+          normalDisplacement(rx0, ry0, rz0, frame.time, frame.motion, frame.phase) * cell;
         const px = ex + enx * disp;
         const py = ey + eny * disp;
         const pz = ez + enz * disp;
@@ -253,7 +260,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
 
         // Brightness ripple: the primary carrier of "alive" perception at inline sizes, where
         // positional displacement is sub-pixel by construction (see shimmerAmplitude's doc).
-        const shimmer = shimmerMultiplier(rx0, ry0, rz0, frame.time, frame.motion);
+        const shimmer = shimmerMultiplier(rx0, ry0, rz0, frame.time, frame.motion, frame.phase);
 
         const backness = facing < 0 ? Math.min(1, -facing) : 0;
         // Darkness belongs in particle colour, not opacity. Keeping shadowed particles opaque

@@ -56,21 +56,21 @@ uniform float u_fillStrength;
 uniform float u_ambient;
 uniform float u_occlusionFloor;
 
-// Continuous motion. Amplitudes are in nominal particle-spacing units.
-uniform float u_time;
+// Continuous motion. Amplitudes are in nominal particle-spacing units. Phase is integrated on
+// the CPU so blending a speed cannot multiply the page's entire elapsed time and jump.
+uniform float u_breathPhase;
+uniform float u_wavePhase;
+uniform float u_jitterPhase;
+uniform float u_shimmerPhase;
 uniform float u_cellSize;
 uniform float u_breathAmplitude;
-uniform float u_breathSpeed;
 uniform float u_outwardAmplitude;
 uniform float u_waveAmplitude;
 uniform float u_waveScale;
-uniform float u_waveSpeed;
 uniform float u_jitterAmplitude;
-uniform float u_jitterSpeed;
 uniform float u_brightnessBias;
 uniform float u_shimmerAmplitude;
 uniform float u_shimmerScale;
-uniform float u_shimmerSpeed;
 uniform float u_shimmerHarmonic;
 // Direction the shimmer band travels along, in object space. Raised to a uniform so states
 // can point the sweep deliberately — reading uses (1, 0, 0) for a horizontal scan.
@@ -222,12 +222,12 @@ void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
  * normalDisplacement() in motion.ts — the two backends must agree exactly, so any change to
  * one needs the same change to the other.
  */
-float normalDisplacement(vec3 p, float t) {
-  float breath = sin(t * u_breathSpeed);
+float normalDisplacement(vec3 p) {
+  float breath = sin(u_breathPhase);
   float outward = 0.5 + breath * 0.5;
-  float waveA = sin((p.x + p.y * 0.6) * u_waveScale + t * u_waveSpeed);
-  float waveB = sin((p.z * PHI - p.y) * u_waveScale * 0.83 + t * u_waveSpeed * SQRT2);
-  float jitter = sin((p.x * 31.7 + p.y * 47.3 + p.z * 23.1) * 2.0 + t * u_jitterSpeed);
+  float waveA = sin((p.x + p.y * 0.6) * u_waveScale + u_wavePhase);
+  float waveB = sin((p.z * PHI - p.y) * u_waveScale * 0.83 + u_wavePhase * SQRT2);
+  float jitter = sin((p.x * 31.7 + p.y * 47.3 + p.z * 23.1) * 2.0 + u_jitterPhase);
   return u_breathAmplitude * breath +
          u_outwardAmplitude * outward +
          u_waveAmplitude * (waveA + waveB * 0.6) +
@@ -240,12 +240,12 @@ float normalDisplacement(vec3 p, float t) {
  * displacement is sub-pixel by construction (amplitudes are in cell units, and the LOD system
  * holds a cell to a near-constant on-screen size).
  */
-float shimmerMultiplier(vec3 p, float t) {
+float shimmerMultiplier(vec3 p) {
   float directional = dot(p, u_shimmerDir);
   float radial = length(p.xy);
   float radialAlong = mix(directional, radial, clamp(u_shimmerRadial, 0.0, 1.0));
   float along = mix(radialAlong, abs(radialAlong), clamp(u_shimmerMirror, 0.0, 1.0));
-  float phase = along * u_shimmerScale + t * u_shimmerSpeed;
+  float phase = along * u_shimmerScale + u_shimmerPhase;
   float band =
     (sin(phase) + u_shimmerHarmonic * sin(phase * 3.0)) /
     (1.0 + abs(u_shimmerHarmonic));
@@ -262,7 +262,7 @@ void main() {
   deformExpression(expressed, expressedNormal, region, a_weight);
 
   // Displace along the normal so the surface swells and ripples without particles leaving it.
-  float disp = normalDisplacement(rest, u_time) * u_cellSize;
+  float disp = normalDisplacement(rest) * u_cellSize;
   vec3 p = u_rot * (expressed + expressedNormal * disp);
   float viewZ = u_distance - p.z;
 
@@ -317,7 +317,7 @@ void main() {
   float backness = facing < 0.0 ? min(1.0, -facing) : 0.0;
   float depthT = clamp((u_boundRadius - p.z) / (2.0 * u_boundRadius), 0.0, 1.0);
 
-  float shimmer = shimmerMultiplier(rest, u_time);
+  float shimmer = shimmerMultiplier(rest);
 
   // Light and material control radiance, never coverage. Folding them into alpha made the dark
   // eye sockets, nasal planes and jaw physically disappear, leaving a perforated face.
