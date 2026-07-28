@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Ten-state transitions are integrated, audited and visually approved.** Sub-96px expression optical gain is awaiting Justin's review |
-| **Last implementation commit** | `173b913` — v12.5 - Amplify facial expression at optical sizes |
+| **Step** | **Ten animated facial identities are rebuilt, frame-audited and independently approved.** Awaiting Justin's visual review |
+| **Last implementation commit** | `52ab1a7` — v13.1 - Gate facial transitions and endpoint geometry |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's visual review of the v12.5 small-size expression gain |
+| **Blocked on** | Nothing technical; Justin's visual review is the current checkpoint |
 
 ---
 
@@ -923,6 +923,47 @@ cut, velocity reset or oscillator phase jump.
 
 This is **ready for Justin's small-size expression review** at `http://localhost:5173`.
 
+### Connected animated facial identities (v12.7–v13.1)
+
+Justin correctly found that the previous ten states changed head pose, shimmer and tint while the
+actual face remained nearly static. The old deformation moved most features by only fractions of a
+particle, excluded surrounding skin and front ocular particles, kept neutral normals, and stopped
+all local facial motion after a transition settled.
+
+- Replaced exclusive one-region deformation with an analytic connected-skin rig. Brow, eyelid,
+  cheek, nose, mouth and jaw controls propagate through bounded anatomical halos into adjacent
+  forehead, orbital, nasolabial, chin and mandibular tissue. Deformed normals now make the key
+  light reveal changing facial planes.
+- Added allocation-free continuous facial behaviour to the same interruptible state vector:
+  blinks, gaze scans, brow tension, mouth articulation and jaw follow-through. Facial and blink
+  speeds have independently integrated phases, so random retargets bend their timing without a
+  cut.
+- Corrected the physical details found during review: gaze rotates the ocular normal and moves the
+  monochrome iris/pupil while the globe stays fixed in its socket; a human-scale blink closes to a
+  particle seam for roughly 152–202ms; the lower lip inherits about 84% of mandibular travel while
+  the upper lip stays nearly fixed; the deep jaw core rotates rigidly; nose scrunch remains
+  centreline-symmetric.
+- Retuned all ten endpoints as distinct upper- plus lower/mid-face combinations. Generating uses
+  central speech-like articulation instead of a wide cheek seam; Error reads worried rather than
+  hollow; Done remains a closed settled smile. The eye aperture/iris material keeps gaze readable
+  at inline sizes without colour.
+- Added a fixed-camera, neutral-white facial endpoint gallery at 48, 96 and 320px, plus a
+  production/facial-only switch for exact frame recording. State pose, shimmer and tint can no
+  longer conceal a weak facial endpoint during review.
+- Deterministic audits now compose the effective animated face on every 60fps frame. **90/90**
+  directed transitions pass with zero facial start discontinuity, all **10/10** held states retain
+  local facial life, four rapid timestamped retarget sequences have zero event discontinuity, and
+  all **45/45** endpoint pairs clear production-projected two-family separation gates at both 48
+  and 96px.
+- Three independent post-correction reviews approved the final result: visual identity at
+  48/96/320px, anatomical cohesion and jaw/eye/blink physics, and transition/retarget timing.
+- All **182 tests**, tracked-source lint, typecheck and production build pass. The package runtime
+  remains one shared WebGL2 context, zero dependencies, one expression-vector upload and no
+  per-frame allocation.
+
+This is **ready for Justin's visual review**. The deterministic review surface is
+`http://localhost:5173/?transition-lab=1`; choose `Facial only` to isolate any transition.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -1004,13 +1045,13 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v12.5 optical expression masters at `http://localhost:5173`.** Check
-   16px, 32px, 48px and 64px; 96px and 320px are intentionally unchanged.
+1. **Justin reviews the v13.1 ten-state facial system at `http://localhost:5173`.** Use
+   `?transition-lab=1` for the 48/96/320px facial-only gallery and exact frame recordings.
 2. **Implement cursor-drag 360° orbit as a separate interaction checkpoint.** Use direct Pointer
    Events, capture, immediate one-to-one tracking and bounded pitch while preserving continuous
    state motion.
-3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
-   as its own browser-verified commit.
+3. **Address any isolated facial corrections from Justin's evaluation.** Keep each correction as
+   its own browser-verified commit.
 4. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.
