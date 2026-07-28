@@ -6,7 +6,9 @@ import {
   COMPACT_MAX_SIZE,
   depthFadeOf,
   deriveShading,
+  FULL_SURFACE_RESOLUTION,
   GLYPH_MAX_SIZE,
+  minimumResolutionForSize,
   resolutionForSize,
   resolveTier,
   sculptShade,
@@ -52,10 +54,18 @@ describe("shading derivation", () => {
     expect(deriveShading(GLYPH_MAX_SIZE + 1, 33, 0.1, DEFAULT_STYLE, 1).glyphMode).toBe(false);
   });
 
-  test("every tier preserves the complete anatomical surface", () => {
-    expect(resolveTier(16).minResolution).toBe(136);
-    expect(resolveTier(96).minResolution).toBe(136);
-    expect(resolveTier(320).minResolution).toBe(136);
+  test("tier floors preserve landmarks without over-sampling small canvases", () => {
+    expect(resolveTier(16).minResolution).toBe(17);
+    expect(resolveTier(96).minResolution).toBe(48);
+    expect(resolveTier(320).minResolution).toBe(96);
+  });
+
+  test("optical LOD grows through dedicated small variants then preserves the full sculpt", () => {
+    expect(minimumResolutionForSize(16)).toBe(17);
+    expect(minimumResolutionForSize(24)).toBe(24);
+    expect(minimumResolutionForSize(32)).toBe(47);
+    expect(minimumResolutionForSize(48)).toBe(FULL_SURFACE_RESOLUTION);
+    expect(minimumResolutionForSize(320)).toBe(FULL_SURFACE_RESOLUTION);
   });
 
   test("feature footprint steps down as real facial anatomy gains enough pixels", () => {
@@ -74,6 +84,16 @@ describe("shading derivation", () => {
     expect(at16).toBeGreaterThan(at48);
     expect(at48).toBeGreaterThan(1);
     expect(display).toBeGreaterThan(1);
+  });
+
+  test("optical framing also magnifies sub-48px particle footprints", () => {
+    const glyph = deriveShading(16, 16, 2 / 17, DEFAULT_STYLE, 1);
+    const sampledRadius = (16 / 17) * 0.5 * CELL_FILL;
+    expect(glyph.baseRadius).toBeCloseTo(sampledRadius * glyph.framingScale, 4);
+
+    const full = deriveShading(48, 48, 2 / 136, DEFAULT_STYLE, 1);
+    const fullSampledRadius = Math.max(0.35, (48 / 136) * 0.5 * CELL_FILL);
+    expect(full.baseRadius).toBeCloseTo(fullSampledRadius, 4);
   });
 
   test("glyph landmarks retain stronger contrast only where the pixel budget needs it", () => {
@@ -120,13 +140,15 @@ describe("shading derivation", () => {
     expect(dpr2).toBeCloseTo(dpr1 * 2, 5);
   });
 
-  test("surface resolution stays complete until a larger surface can add information", () => {
-    const at64 = resolutionForSize(64, 2);
-    const at128 = resolutionForSize(128, 2);
-    const at256 = resolutionForSize(256, 2);
-    expect(at64).toBe(136);
-    expect(at128).toBe(136);
-    expect(at256).toBe(136);
+  test("surface resolution scales below 48px and stays complete above it", () => {
+    const at16 = resolutionForSize(16, 2);
+    const at24 = resolutionForSize(24, 2);
+    const at32 = resolutionForSize(32, 2);
+    const at48 = resolutionForSize(48, 2);
+    expect(at16).toBeLessThan(at24);
+    expect(at24).toBeLessThan(at32);
+    expect(at32).toBeLessThan(at48);
+    expect(resolutionForSize(256, 2)).toBe(FULL_SURFACE_RESOLUTION);
   });
 
   test("resolution respects the tier floor so tiny heads still resolve a face", () => {

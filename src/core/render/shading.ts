@@ -6,14 +6,15 @@ import type { RenderStyle } from "./types.js";
  * Both renderer backends read this, so the Canvas 2D fallback cannot silently look different
  * from the GPU path.
  *
- * The governing principle is signal preservation: every tier keeps the complete anatomical
- * surface and lets anti-aliased particle footprints filter it to the available pixels. Removing
- * samples before projection erased the eye, nose and mouth configuration at small sizes.
+ * The governing principle is optical level of detail: the baked surface is progressively ordered
+ * with facial landmarks at its front, so small tiers use fewer, larger representative particles
+ * and large tiers converge on the complete anatomical surface. Over-sampling a small canvas
+ * averages thousands of subpixel particles into a pale mask.
  *
- * Two earlier models failed this. Deriving radius from particle *spacing* inverted it outright —
- * fewer particles meant fatter ones, so a 32px head rendered as a handful of blobs. A fixed CSS
- * radius over a poorly distributed procedural cloud fixed the size but left the face as
- * unstructured stipple. The current points are sampled from coherent human anatomy.
+ * Earlier spacing-driven attempts failed because their sparse points were not a coherent,
+ * landmark-preserving surface and their footprint did not follow optical framing. The current
+ * progressive point set preserves facial configuration first, so its spacing can safely drive a
+ * deliberate hierarchy of visible particle sizes.
  */
 
 /** Upper-side portrait key. The raking angle separates the nose, orbital and cheek planes. */
@@ -34,8 +35,7 @@ export const AMBIENT = 0.16;
 export const OCCLUSION_FLOOR = 0.24;
 
 /**
- * Reference on-screen spacing used by callers that explicitly request a progressive LOD.
- * The built-in tiers floor the runtime at the complete canonical surface.
+ * On-screen spacing, in CSS pixels, that neighbouring surface particles should occupy.
  */
 export const TARGET_CELL_CSS = 1.6;
 
@@ -52,9 +52,9 @@ export const CELL_FILL = 1.15;
  * first continuous attempt proved it. Tiers keep the number of configurations that must actually
  * look good down to three, and each one is tuned on its own terms.
  *
- * All tiers retain the full canonical sample set. Lighting, pose and feature footprint remain
- * tier properties because low-resolution face perception depends on broad feature configuration,
- * while large views can support the complete sculptural signal.
+ * Density, lighting, pose and feature footprint are tier properties because low-resolution face
+ * perception depends on broad feature configuration, while large views can support the complete
+ * sculptural signal.
  */
 export type TierName = "glyph" | "compact" | "display";
 
@@ -66,7 +66,7 @@ export interface SizeTier {
   cullFarSide: boolean;
   /** How much of the camera's yaw/pitch to apply; a small head reads best near face-on. */
   poseScale: number;
-  /** Minimum surface resolution. Built-in tiers retain the complete canonical surface. */
+  /** Minimum landmark-preserving surface resolution for this visual tier. */
   minResolution: number;
   /** Mixes feature material toward uniform white as real surface anatomy becomes legible. */
   albedoFlatten: number;
@@ -77,14 +77,13 @@ export interface SizeTier {
 }
 
 const TIERS: SizeTier[] = [
-  // The canonical surface resolution is 136. Keeping it at every tier prevents the renderer from
-  // deleting the landmarks it is trying to communicate before rasterisation can integrate them.
+  // The progressive prefix preserves both eyes and the mouth from resolution 17 upward.
   {
     name: "glyph",
     lightingScale: 0.42,
     cullFarSide: true,
     poseScale: 0,
-    minResolution: 136,
+    minResolution: 17,
     albedoFlatten: 0,
     skinRadius: 1,
     featureScale: 1.12,
@@ -94,7 +93,7 @@ const TIERS: SizeTier[] = [
     lightingScale: 0.62,
     cullFarSide: false,
     poseScale: 0.55,
-    minResolution: 136,
+    minResolution: 48,
     albedoFlatten: 0.25,
     skinRadius: 1,
     featureScale: 1.05,
@@ -104,7 +103,7 @@ const TIERS: SizeTier[] = [
     lightingScale: 1,
     cullFarSide: false,
     poseScale: 1,
-    minResolution: 136,
+    minResolution: 96,
     albedoFlatten: 0.55,
     skinRadius: 1,
     featureScale: 1,
@@ -113,6 +112,8 @@ const TIERS: SizeTier[] = [
 
 export const GLYPH_MAX_SIZE = 64;
 export const COMPACT_MAX_SIZE = 160;
+export const FULL_SURFACE_SIZE = 48;
+export const FULL_SURFACE_RESOLUTION = 136;
 
 export function resolveTier(cssSize: number): SizeTier {
   if (cssSize <= GLYPH_MAX_SIZE) return TIERS[0];
@@ -121,12 +122,24 @@ export function resolveTier(cssSize: number): SizeTier {
 }
 
 /**
- * Surface resolution for a rendered size. Built-in tiers floor this at the complete canonical
- * sample set; the size calculation remains useful for future higher-resolution surfaces.
+ * Optical particle budget rather than one density blindly scaled down.
+ *
+ * Below 48px the progressive surface behaves like hand-drawn icon variants: fewer circles with
+ * heavier visual weight and all key landmarks retained. At and above 48px the complete surface
+ * preserves the sculpt Justin approved.
+ */
+export function minimumResolutionForSize(cssSize: number): number {
+  if (cssSize >= FULL_SURFACE_SIZE) return FULL_SURFACE_RESOLUTION;
+  const t = Math.max(0, Math.min(1, (cssSize - 16) / (FULL_SURFACE_SIZE - 16)));
+  const optical = 17 + (FULL_SURFACE_RESOLUTION - 17) * t * t;
+  return Math.max(resolveTier(cssSize).minResolution, Math.round(optical));
+}
+
+/**
+ * Surface resolution for a rendered size, floored only enough to preserve its key landmarks.
  */
 export function resolutionForSize(cssSize: number, targetCellCss = TARGET_CELL_CSS): number {
-  const tier = resolveTier(cssSize);
-  return Math.max(tier.minResolution, Math.round(cssSize / targetCellCss));
+  return Math.max(minimumResolutionForSize(cssSize), Math.round(cssSize / targetCellCss));
 }
 
 export interface DerivedShading {
@@ -161,7 +174,7 @@ export function deriveShading(
   // near a fixed on-screen size, this is constant in practice.
   const cellsAcross = worldRadius > 0 ? (2 * worldRadius) / Math.max(cellSize, 1e-6) : 1;
   const cellPx = devicePixels / Math.max(cellsAcross, 1);
-  const baseRadius = Math.max(0.35, cellPx * 0.5 * CELL_FILL * style.particleScale);
+  const sampledRadius = Math.max(0.35, cellPx * 0.5 * CELL_FILL * style.particleScale);
 
   // Feature footprint changes only at explicit size tiers; the optional public knob layers on
   // top and eases away as the full sculpt becomes large enough to carry itself.
@@ -170,9 +183,12 @@ export function deriveShading(
 
   const glyphMode = tier.cullFarSide;
   const glyphRoom = 1 - Math.min(1, cssSize / GLYPH_MAX_SIZE);
-  const glyphZoom = 1.2 + 4.1 * glyphRoom ** 4;
+  const glyphZoom = 1.2 + 3.1 * glyphRoom ** 4;
   const framingScale = tier.name === "glyph" ? glyphZoom : tier.name === "compact" ? 1.18 : 1.25;
   const featureAlbedoScale = tier.name === "glyph" ? 0.68 - 0.38 * glyphRoom ** 2 : 1;
+  // Optical glyph framing magnifies particle positions. Their footprint must follow that zoom or
+  // a correct progressive prefix opens into a disconnected constellation.
+  const baseRadius = sampledRadius * (cssSize < FULL_SURFACE_SIZE ? framingScale : 1);
 
   return {
     tier,

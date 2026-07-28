@@ -78,7 +78,10 @@ export {
 export {
   CELL_FILL,
   COMPACT_MAX_SIZE,
+  FULL_SURFACE_RESOLUTION,
+  FULL_SURFACE_SIZE,
   GLYPH_MAX_SIZE,
+  minimumResolutionForSize,
   resolutionForSize,
   resolveTier,
   type SizeTier,

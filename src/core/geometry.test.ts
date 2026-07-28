@@ -4,6 +4,7 @@ import { DEFAULT_HEAD_PARAMS } from "./head.js";
 import type { HeadPointSet } from "./pointset.js";
 import { validatePointSet } from "./pointset.js";
 import { FEATURE_REGIONS, REGION, REGION_NAMES } from "./regions.js";
+import { minimumResolutionForSize } from "./render/shading.js";
 
 let head: HeadPointSet;
 
@@ -142,6 +143,17 @@ describe("progressive levels of detail", () => {
     expect(present).toContain(REGION.eyeL);
     expect(present).toContain(REGION.eyeR);
     expect(present).toContain(REGION.mouth);
+  });
+
+  test("DPR sharpens particles without changing their CSS-space density", () => {
+    const model = new HeadModel();
+    const cssSize = 24;
+    const targetCellCss = 1.6;
+    const minimum = minimumResolutionForSize(cssSize);
+    const dpr1 = model.levelForSize(cssSize, targetCellCss, minimum);
+    const dpr2 = model.levelForSize(cssSize * 2, targetCellCss * 2, minimum);
+    expect(dpr2.resolution).toBe(dpr1.resolution);
+    expect(dpr2.count).toBe(dpr1.count);
   });
 });
 

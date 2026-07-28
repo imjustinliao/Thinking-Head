@@ -3,9 +3,9 @@ import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
 import {
   type ExpressionParams,
   HeadModel,
+  minimumResolutionForSize,
   type RenderBackend,
   type RenderStyle,
-  resolveTier,
   STATE_EXPRESSION,
 } from "thinking-head/dev";
 import { Backdrop } from "./Backdrop.js";
@@ -83,8 +83,8 @@ export function App() {
     // Warm the level the controls are currently showing so the timing readout is meaningful.
     built.levelForSize(
       48 * 2,
-      deferredTuning.sampling.targetCellCss,
-      resolveTier(48).minResolution,
+      deferredTuning.sampling.targetCellCss * 2,
+      minimumResolutionForSize(48),
     );
     return { model: built, generateMs: performance.now() - started };
   }, [deferredTuning]);
@@ -105,7 +105,11 @@ export function App() {
   );
 
   const targetCellCss = deferredTuning.sampling.targetCellCss;
-  const activeLevel = model.levelForSize(size * 2, targetCellCss, resolveTier(size).minResolution);
+  const activeLevel = model.levelForSize(
+    size * 2,
+    targetCellCss * 2,
+    minimumResolutionForSize(size),
+  );
 
   // Pills keep their row shape at any slider value: the head tracks the size control but stays
   // within icon range, while the inline sample and orbit stage demo the full range.
