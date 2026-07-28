@@ -137,6 +137,7 @@ function buildResources(gl: WebGL2RenderingContext): GLResources {
     "u_distance",
     "u_fitScale",
     "u_boundRadius",
+    "u_expressionScale",
     "u_viewportPx",
     "u_baseRadius",
     "u_featureEmphasis",
@@ -455,6 +456,7 @@ class SharedGL implements SharedGLRenderer {
     gl.uniform1f(u.u_distance, camera.distance);
     gl.uniform1f(u.u_fitScale, fitScale(boundRadius, camera) * shading.framingScale);
     gl.uniform1f(u.u_boundRadius, boundRadius);
+    gl.uniform1f(u.u_expressionScale, shading.expressionScale);
     gl.uniform2f(u.u_viewportPx, devicePixels, devicePixels);
     gl.uniform1f(u.u_baseRadius, shading.baseRadius);
     gl.uniform1f(u.u_featureEmphasis, shading.featureEmphasis);

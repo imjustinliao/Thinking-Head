@@ -177,6 +177,15 @@ describe("shading derivation", () => {
     expect(at48.featureAlbedoScale).toBeLessThan(at64.featureAlbedoScale);
   });
 
+  test("expression displacement gains only the sub-96px optical masters", () => {
+    expect(deriveShading(16, 32, 2 / 17, DEFAULT_STYLE, 1).expressionScale).toBe(2);
+    expect(deriveShading(48, 96, 2 / 48, DEFAULT_STYLE, 1).expressionScale).toBe(1.6);
+    expect(deriveShading(64, 128, 2 / 68, DEFAULT_STYLE, 1).expressionScale).toBe(1.4);
+    expect(deriveShading(80, 160, 2 / 68, DEFAULT_STYLE, 1).expressionScale).toBe(1.2);
+    expect(deriveShading(96, 192, 2 / 136, DEFAULT_STYLE, 1).expressionScale).toBe(1);
+    expect(deriveShading(320, 640, 2 / 136, DEFAULT_STYLE, 1).expressionScale).toBe(1);
+  });
+
   test("tiny surfels fuse into skin while retaining bright particle cores", () => {
     const at16 = deriveShading(16, 32, 2 / 17, DEFAULT_STYLE, 1);
     const at48 = deriveShading(48, 96, 2 / 48, DEFAULT_STYLE, 1);

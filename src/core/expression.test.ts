@@ -438,6 +438,41 @@ describe("analytic point deformation", () => {
     }
   });
 
+  test("optical expression gain scales displacement without changing neutral geometry", () => {
+    const rig = createExpressionRigMetrics();
+    const brow = REGION.browL * 3;
+    rig.regionHalfExtent[brow] = 1;
+    rig.regionHalfExtent[brow + 1] = 1;
+    rig.regionHalfExtent[brow + 2] = 1;
+    const expression = { ...NEUTRAL_EXPRESSION, brow_raiseL: 1 };
+    const regular = new Float32Array(6);
+    const optical = new Float32Array(6);
+    const neutral = new Float32Array(6);
+
+    deformExpressionPoint(regular, 0, 0, 0, 0, 1, 0, REGION.browL, 1, 1, rig, expression);
+    deformExpressionPoint(optical, 0, 0, 0, 0, 1, 0, REGION.browL, 1, 1, rig, expression, 1.6);
+    deformExpressionPoint(
+      neutral,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      REGION.browL,
+      1,
+      1,
+      rig,
+      NEUTRAL_EXPRESSION,
+      2,
+    );
+
+    expect(optical[1]).toBeCloseTo(regular[1] * 1.6, 6);
+    expect(neutral[0]).toBe(0);
+    expect(neutral[1]).toBe(0);
+    expect(neutral[2]).toBe(0);
+  });
+
   test("eye opening preserves the spherical ocular surface behind the lids", () => {
     const rig = expressionRigOf(head);
     const globeIndex = Array.from(head.regionId).findIndex((region, index) => {

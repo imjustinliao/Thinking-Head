@@ -153,6 +153,8 @@ export interface DerivedShading {
   baseRadius: number;
   /** Camera-fit multiplier that lets the face use the pixels available to each tier. */
   framingScale: number;
+  /** Optical gain for expression displacement where a physical deformation is subpixel. */
+  expressionScale: number;
   /** Draw-size multiplier for feature regions. 1 keeps every dot identical. */
   featureEmphasis: number;
   glyphMode: boolean;
@@ -199,6 +201,8 @@ export function deriveShading(
   const glyphMode = tier.cullFarSide;
   const glyphFraming = 1.58 - 0.4 * glyphT;
   const framingScale = tier.name === "glyph" ? glyphFraming : tier.name === "compact" ? 1.18 : 1.25;
+  const expressionScale =
+    1 + Math.max(0, Math.min(1, (FULL_SURFACE_SIZE - cssSize) / (FULL_SURFACE_SIZE - 16)));
   const featureAlbedoScale = tier.name === "glyph" ? 0.82 + 0.18 * glyphT : 1;
   const albedoFlatten = tier.name === "glyph" ? 0.45 - 0.2 * glyphT : tier.albedoFlatten;
   const skinRadius = tier.name === "glyph" ? 1.45 - 0.45 * glyphT : tier.skinRadius;
@@ -213,6 +217,7 @@ export function deriveShading(
     tier,
     baseRadius,
     framingScale,
+    expressionScale,
     featureEmphasis,
     glyphMode,
     faceOnly: cssSize <= 32,

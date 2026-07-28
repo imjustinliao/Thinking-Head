@@ -143,6 +143,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
         baseRadius,
         featureEmphasis,
         framingScale,
+        expressionScale,
         glyphMode,
         faceOnly,
         skinRadius,
@@ -193,6 +194,7 @@ export function createCanvas2DRenderer(canvas: HTMLCanvasElement): HeadRenderer 
           radius,
           expressionRig,
           frame.expression,
+          expressionScale,
         );
         const ex = expressionPoint[0];
         const ey = expressionPoint[1];

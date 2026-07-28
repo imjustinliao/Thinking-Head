@@ -398,6 +398,7 @@ export function deformExpressionPoint(
   radius: number,
   rig: ExpressionRigMetrics,
   expression: ExpressionParams,
+  expressionScale = 1,
 ): void {
   out[0] = px;
   out[1] = py;
@@ -419,7 +420,7 @@ export function deformExpressionPoint(
   const ly = clampSigned((py - cy) / ey);
   const lz = clampSigned((pz - cz) / ez);
   const influence = clampUnit(weight);
-  const scale = Math.max(0, radius);
+  const scale = Math.max(0, radius) * expressionScale;
 
   if (region === REGION.browL || region === REGION.browR) {
     const left = region === REGION.browL;
@@ -491,7 +492,7 @@ export function deformExpressionPoint(
   if (region === REGION.jaw) {
     const hingeY = cy + ey;
     const hinge = clampUnit((hingeY - py) / (2 * ey));
-    const angle = 0.22 * clampUnit(expression.jaw_open) * hinge;
+    const angle = 0.22 * expressionScale * clampUnit(expression.jaw_open) * hinge;
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
     const relativeY = py - hingeY;

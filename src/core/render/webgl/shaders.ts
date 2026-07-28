@@ -38,6 +38,7 @@ uniform vec3 u_center;
 uniform float u_distance;
 uniform float u_fitScale;
 uniform float u_boundRadius;
+uniform float u_expressionScale;
 uniform vec2 u_viewportPx;
 
 // Shading, all derived on the CPU by deriveShading() so both backends agree exactly.
@@ -117,7 +118,7 @@ void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
   vec3 extent = max(u_regionHalfExtent[region], vec3(1e-6));
   vec3 regionLocal = clamp((p - center) / extent, vec3(-1.0), vec3(1.0));
   float influence = clampUnit(rawWeight);
-  float scale = max(u_boundRadius, 0.0);
+  float scale = max(u_boundRadius, 0.0) * u_expressionScale;
 
   if (region == ${REGION.browL} || region == ${REGION.browR}) {
     bool left = region == ${REGION.browL};
@@ -202,7 +203,8 @@ void deformExpression(inout vec3 p, inout vec3 n, int region, float rawWeight) {
   if (region == ${REGION.jaw}) {
     float hingeY = center.y + extent.y;
     float hinge = clampUnit((hingeY - p.y) / (2.0 * extent.y));
-    float angle = 0.22 * clampUnit(u_expression[${expressionIndex("jaw_open")}]) * hinge;
+    float angle =
+      0.22 * u_expressionScale * clampUnit(u_expression[${expressionIndex("jaw_open")}]) * hinge;
     float cosine = cos(angle);
     float sine = sin(angle);
     float relativeY = p.y - hingeY;
