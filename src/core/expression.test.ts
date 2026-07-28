@@ -24,7 +24,7 @@ import {
   THINKING_EXPRESSION,
 } from "./expression.js";
 import { generateHeadLevel } from "./geometry.js";
-import { IDLE_MOTION, STILL_MOTION } from "./motion.js";
+import { createMotionPhase, IDLE_MOTION, STILL_MOTION } from "./motion.js";
 import type { HeadPointSet } from "./pointset.js";
 import { REGION } from "./regions.js";
 import { THINKING_HEAD_STATES } from "./states.js";
@@ -438,6 +438,7 @@ describe("analytic point deformation", () => {
       sway: 0,
       dart: 0,
       facial: Math.PI / 2,
+      blink: Math.PI / 2,
     });
 
     expect(animated.eye_openL).toBeLessThan(0);
@@ -448,6 +449,25 @@ describe("analytic point deformation", () => {
 
     animateExpressionInto(animated, base, 1, STILL_MOTION);
     expect(animated).toEqual(base);
+  });
+
+  test("idle blink closes fully for a brief human-scale interval", () => {
+    const animated = createExpressionParams();
+    const step = 0.002;
+    const cycle = (Math.PI * 2) / IDLE_MOTION.blinkSpeed;
+    let closedDuration = 0;
+    for (let time = 0; time <= cycle; time += step) {
+      animateExpressionInto(
+        animated,
+        IDLE_EXPRESSION,
+        time,
+        IDLE_MOTION,
+        createMotionPhase(time, IDLE_MOTION),
+      );
+      if (animated.eye_openL < -0.5) closedDuration += step;
+    }
+    expect(closedDuration).toBeGreaterThan(0.1);
+    expect(closedDuration).toBeLessThan(0.35);
   });
 
   test("every static endpoint owns a distinct upper-and-lower-face vector", () => {
@@ -564,6 +584,81 @@ describe("analytic point deformation", () => {
       { ...NEUTRAL_EXPRESSION, eye_openL: 1, eye_openR: 1 },
     );
     expect(Array.from(out.subarray(0, 3))).toEqual(Array.from(rest));
+  });
+
+  test("gaze keeps the ocular surface in its socket while rotating its normal", () => {
+    const rig = expressionRigOf(head);
+    const globeIndex = Array.from(head.regionId).findIndex((region, index) => {
+      const offset = index * 3;
+      return (region === REGION.eyeL || region === REGION.eyeR) && head.normals[offset + 2] > 0.7;
+    });
+    expect(globeIndex).toBeGreaterThanOrEqual(0);
+    const offset = globeIndex * 3;
+    const rest = [
+      head.positions[offset] - head.center.x,
+      head.positions[offset + 1] - head.center.y,
+      head.positions[offset + 2] - head.center.z,
+    ] as const;
+    const out = new Float32Array(6);
+    deformExpressionPoint(
+      out,
+      ...rest,
+      head.normals[offset],
+      head.normals[offset + 1],
+      head.normals[offset + 2],
+      head.regionId[globeIndex],
+      head.weight[globeIndex],
+      head.radius,
+      rig,
+      { ...NEUTRAL_EXPRESSION, eye_gazeX: 1, eye_gazeY: 0.5 },
+    );
+
+    expect(Array.from(out.subarray(0, 3))).toEqual(Array.from(rest));
+    expect(out[3]).not.toBeCloseTo(head.normals[offset], 6);
+  });
+
+  test("lower lip follows the jaw substantially more than the upper lip", () => {
+    const rig = expressionRigOf(head);
+    const mouth = REGION.mouth * 3;
+    const mouthCy = rig.regionCenter[mouth + 1] ?? 0;
+    const expression = { ...NEUTRAL_EXPRESSION, jaw_open: 1 };
+    const out = new Float32Array(6);
+    let upperTravel = 0;
+    let lowerTravel = 0;
+    let upperCount = 0;
+    let lowerCount = 0;
+
+    for (let index = 0; index < head.count; index++) {
+      if (head.regionId[index] !== REGION.mouth) continue;
+      const offset = index * 3;
+      const px = head.positions[offset] - head.center.x;
+      const py = head.positions[offset + 1] - head.center.y;
+      const pz = head.positions[offset + 2] - head.center.z;
+      deformExpressionPoint(
+        out,
+        px,
+        py,
+        pz,
+        head.normals[offset],
+        head.normals[offset + 1],
+        head.normals[offset + 2],
+        REGION.mouth,
+        head.weight[index],
+        head.radius,
+        rig,
+        expression,
+      );
+      const travel = Math.hypot(out[0] - px, out[1] - py, out[2] - pz);
+      if (py >= mouthCy) {
+        upperTravel += travel;
+        upperCount++;
+      } else {
+        lowerTravel += travel;
+        lowerCount++;
+      }
+    }
+
+    expect(lowerTravel / lowerCount).toBeGreaterThan((upperTravel / upperCount) * 3);
   });
 
   test("eye material opens the aperture and moves the dark pupil with gaze", () => {

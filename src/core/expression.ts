@@ -306,16 +306,16 @@ export const ERROR_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   ...NEUTRAL_EXPRESSION,
   brow_innerUp: 0.65,
   brow_furrow: 0.36,
-  eye_openL: 0.45,
-  eye_openR: 0.45,
+  eye_openL: 0.32,
+  eye_openR: 0.32,
   nose_scrunch: 0.35,
   mouth_cornerUpL: -0.62,
   mouth_cornerUpR: -0.62,
   mouth_open: 0.38,
   jaw_open: 0.18,
-  eye_blink: 0.08,
-  eye_scanX: 0.1,
-  eye_scanY: 0.06,
+  eye_blink: 0.14,
+  eye_scanX: 0.05,
+  eye_scanY: 0.03,
   brow_pulse: 0.16,
   mouth_articulate: 0.1,
   jaw_articulate: 0.05,
@@ -338,6 +338,7 @@ export const DONE_EXPRESSION: Readonly<ExpressionParams> = Object.freeze({
   mouth_cornerUpL: 0.85,
   mouth_cornerUpR: 0.85,
   eye_blink: 0.3,
+  eye_scanX: 0.04,
   brow_pulse: 0.04,
 });
 
@@ -387,15 +388,17 @@ export function animateExpressionInto(
   if (motion.facialSpeed === 0) return out;
 
   const facialPhase = phase?.facial ?? time * motion.facialSpeed;
-  const blinkWave = Math.max(0, Math.sin(facialPhase));
-  const blink = blinkWave * blinkWave * blinkWave * blinkWave;
+  const blinkPhase = phase?.blink ?? time * motion.blinkSpeed;
+  const blinkRise = clampUnit((Math.sin(blinkPhase) - 0.992) / 0.008);
+  const blink = blinkRise * blinkRise * (3 - 2 * blinkRise);
   const scanX = Math.sin(facialPhase * 1.6180339887 + 0.41);
   const scanY = Math.sin(facialPhase * Math.SQRT2 + 1.17);
   const pulse = Math.sin(facialPhase * 0.73 + 0.82);
   const articulation = 0.5 + 0.5 * Math.sin(facialPhase * 2.31 + 2.04);
 
-  out.eye_openL = clampSigned(base.eye_openL - base.eye_blink * blink);
-  out.eye_openR = clampSigned(base.eye_openR - base.eye_blink * blink * 0.94);
+  const blinkClosure = base.eye_blink > 0 ? blink * (0.78 + base.eye_blink * 0.22) : 0;
+  out.eye_openL = clampSigned(base.eye_openL - blinkClosure);
+  out.eye_openR = clampSigned(base.eye_openR - blinkClosure * 0.96);
   out.eye_gazeX = clampSigned(base.eye_gazeX + base.eye_scanX * scanX);
   out.eye_gazeY = clampSigned(base.eye_gazeY + base.eye_scanY * scanY);
   out.brow_raiseL = clampSigned(base.brow_raiseL + base.brow_pulse * pulse);
@@ -600,12 +603,14 @@ export function deformExpressionPoint(
     const globe = region === target && nz > 0.35;
     const lidInfluence = globe ? 0 : influence;
     const gazeInfluence = globe ? Math.max(0.72, clampUnit(weight)) : influence * 0.24;
+    const positionalGazeInfluence = globe ? 0 : influence * 0.18;
     const gazeX = clampSigned(expression.eye_gazeX);
     const gazeY = clampSigned(expression.eye_gazeY);
-    out[0] += scale * 0.042 * gazeX * gazeInfluence;
+    out[0] += scale * 0.042 * gazeX * positionalGazeInfluence;
     out[1] +=
       scale *
-      (0.056 * open * ly * lidInfluence + (0.03 + 0.016 * upperLid) * gazeY * gazeInfluence);
+      (0.056 * open * ly * lidInfluence +
+        (0.03 + 0.016 * upperLid) * gazeY * positionalGazeInfluence);
     out[2] -= scale * 0.016 * Math.max(0, -open) * lidInfluence;
     out[3] += 0.08 * gazeX * gazeInfluence - 0.05 * lx * open * lidInfluence;
     out[4] += 0.12 * open * ly * lidInfluence + 0.07 * gazeY * gazeInfluence;
@@ -647,7 +652,7 @@ export function deformExpressionPoint(
     const lower = clampUnit((1 - ly) * 0.5);
     const support = influence * lower * (0.35 + 0.65 * clampUnit(1 - Math.abs(lx)));
     const scrunch = clampUnit(expression.nose_scrunch);
-    out[0] += Math.sign(lx || 1) * scale * 0.018 * scrunch * support;
+    out[0] += lx * scale * 0.022 * scrunch * support;
     out[1] += scale * 0.036 * scrunch * support;
     out[2] -= scale * 0.03 * scrunch * support;
     out[4] += 0.1 * scrunch * support;
@@ -664,13 +669,15 @@ export function deformExpressionPoint(
     const lx = clampSigned((px - cx) / ex);
     const ly = clampSigned((py - cy) / ey);
     const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.42, 0.42);
+    const openingInfluence =
+      region === target ? Math.max(clampUnit(weight), influence * 0.65) : influence * 0.08;
     const leftMix = clampUnit(lx * 0.5 + 0.5);
     const cornerControl =
       clampSigned(expression.mouth_cornerUpR) +
       (clampSigned(expression.mouth_cornerUpL) - clampSigned(expression.mouth_cornerUpR)) * leftMix;
     const corner = clampUnit((Math.abs(lx) - 0.2) / 0.8);
     const open = clampUnit(expression.mouth_open);
-    const split = ly === 0 ? -1 : Math.sign(ly);
+    const split = ly >= 0 ? 0.3 : -0.7;
     const pucker = clampUnit(expression.mouth_pucker);
     const press = clampUnit(expression.mouth_press);
 
@@ -678,11 +685,14 @@ export function deformExpressionPoint(
       scale * (-0.046 * lx * pucker + 0.024 * lx * Math.abs(cornerControl) * corner) * influence;
     out[1] +=
       scale *
-      (0.068 * cornerControl * corner + 0.052 * open * split - 0.032 * press * ly) *
-      influence;
-    out[2] += scale * (0.042 * pucker - 0.014 * open - 0.024 * press) * influence;
-    out[4] += (0.18 * cornerControl * corner + 0.12 * open * split - 0.1 * press * ly) * influence;
-    out[5] += (0.1 * pucker - 0.08 * press) * influence;
+      (0.068 * cornerControl * corner * influence +
+        (0.052 * open * split - 0.032 * press * ly) * openingInfluence);
+    out[2] +=
+      scale * (0.042 * pucker * influence - (0.014 * open + 0.024 * press) * openingInfluence);
+    out[4] +=
+      0.18 * cornerControl * corner * influence +
+      (0.12 * open * split - 0.1 * press * ly) * openingInfluence;
+    out[5] += 0.1 * pucker * influence - 0.08 * press * openingInfluence;
   }
 
   {
@@ -693,7 +703,15 @@ export function deformExpressionPoint(
     const ey = Math.max(rig.regionHalfExtent[offset + 1] ?? 0, 1e-6);
     const influence = regionInfluence(px, py, pz, region, weight, target, rig, 1.24, 0.48);
     const hingeY = cy + ey;
-    const attachment = influence * clampUnit((hingeY - py) / (1.65 * ey));
+    const softAttachment = influence * clampUnit((hingeY - py) / (1.65 * ey));
+    const jawCoreAttachment = region === target ? clampUnit((hingeY - py) / (0.45 * ey)) : 0;
+    const mouthOffset = REGION.mouth * 3;
+    const mouthCy = rig.regionCenter[mouthOffset + 1] ?? 0;
+    const mouthEy = Math.max(rig.regionHalfExtent[mouthOffset + 1] ?? 0, 1e-6);
+    const mouthLy = clampSigned((py - mouthCy) / mouthEy);
+    const lowerLipAttachment =
+      region === REGION.mouth ? clampUnit((-mouthLy + 0.05) / 0.55) * 0.82 : 0;
+    const attachment = Math.max(softAttachment, jawCoreAttachment, lowerLipAttachment);
     const angle = 0.28 * expressionScale * clampUnit(expression.jaw_open);
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
@@ -740,7 +758,7 @@ export function expressionAlbedo(
   const lx = clampSigned((px - cx) / ex);
   const ly = clampSigned((py - cy) / ey);
   const open = clampSigned(region === REGION.eyeL ? expression.eye_openL : expression.eye_openR);
-  const halfAperture = Math.max(0.1, Math.min(0.44, 0.27 + open * 0.17));
+  const halfAperture = Math.max(0.025, Math.min(0.46, 0.27 + open * 0.24));
   const aperture = clampUnit((halfAperture - Math.abs(ly)) / 0.09);
   const irisX = clampSigned(expression.eye_gazeX) * 0.42;
   const irisY = clampSigned(expression.eye_gazeY) * 0.32;
