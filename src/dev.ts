@@ -38,6 +38,11 @@ export {
   STATE_EXPRESSION,
 } from "./core/expression.js";
 export {
+  auditAllFacialEndpointGeometry,
+  auditFacialEndpointGeometry,
+  type FacialEndpointGeometryResult,
+} from "./core/facialGeometryAudit.js";
+export {
   DEFAULT_GENERATE_OPTIONS,
   type GenerateOptions,
   generateHeadLevel,
@@ -122,7 +127,13 @@ export {
 } from "./core/transition.js";
 export {
   auditAllStateTransitions,
+  auditFacialRetargetSequence,
+  auditHeldFacialState,
   auditStateTransition,
+  type FacialRetargetAuditResult,
+  type FacialRetargetEvent,
+  type HeldFacialAuditResult,
+  MAX_FACIAL_FRAME_STEP,
   MAX_NORMALIZED_FRAME_STEP,
   type TransitionAuditOptions,
   type TransitionAuditResult,

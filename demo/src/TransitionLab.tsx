@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
 import {
   auditAllStateTransitions,
+  auditHeldFacialState,
   type Camera,
   HeadModel,
   minimumResolutionForSize,
@@ -71,14 +72,23 @@ export function TransitionLab() {
   const fps = Math.round(numberFromQuery(query.get("fps"), 60, 12, 60));
   const duration = numberFromQuery(query.get("duration"), 0.8, 0.2, 3);
   const startTime = numberFromQuery(query.get("start"), 37.25, 0, 3600);
+  const facialOnly = query.get("view") === "facial";
   const times = useMemo(() => frameTimes(duration, fps), [duration, fps]);
   const audit = useMemo(
     () => auditAllStateTransitions({ fps, duration: 0.8, startTime }),
     [fps, startTime],
   );
   const passedCount = audit.filter((result) => result.passed).length;
+  const heldFacialAudit = useMemo(
+    () =>
+      THINKING_HEAD_STATES.map((state) =>
+        auditHeldFacialState(state, { fps, duration: 3, startTime }),
+      ),
+    [fps, startTime],
+  );
   const slowestSettle = Math.max(...audit.map((result) => result.settledAt ?? 0));
   const largestStep = Math.max(...audit.map((result) => result.maxNormalizedStep));
+  const largestFacialStep = Math.max(...audit.map((result) => result.maxFacialFrameStep));
   const minimumDirection = Math.min(...audit.map((result) => result.minimumDirectionMagnitude));
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const model = useMemo(() => new HeadModel(DEFAULT_TUNING.head, DEFAULT_TUNING.features), []);
@@ -127,6 +137,13 @@ export function TransitionLab() {
         </p>
         <form className="transition-lab__controls" method="get">
           <input type="hidden" name="transition-lab" value="1" />
+          <label>
+            View
+            <select name="view" defaultValue={facialOnly ? "facial" : "production"}>
+              <option value="production">Production</option>
+              <option value="facial">Facial only</option>
+            </select>
+          </label>
           <label>
             From
             <select name="from" defaultValue={from}>
@@ -223,7 +240,9 @@ export function TransitionLab() {
         <div className="transition-lab__section-heading">
           <span>02</span>
           <div>
-            <h2 id="frames-heading">Frame recording</h2>
+            <h2 id="frames-heading">
+              {facialOnly ? "Facial-only frame recording" : "Production frame recording"}
+            </h2>
             <p>
               Each tile is reconstructed from the selected phase; no wall-clock animation is
               sampled.
@@ -245,8 +264,9 @@ export function TransitionLab() {
               size={size}
               dpr={dpr}
               pointSet={selectedPointSet}
-              camera={DEFAULT_TUNING.camera}
+              camera={facialOnly ? FACIAL_CAMERA : DEFAULT_TUNING.camera}
               style={LAB_STYLE}
+              facialOnly={facialOnly}
               className="transition-lab__frame"
             />
           ))}
@@ -329,6 +349,16 @@ export function TransitionLab() {
             <dd>{(largestStep * 100).toFixed(1)}%</dd>
           </div>
           <div>
+            <dt>Largest facial step</dt>
+            <dd>{(largestFacialStep * 100).toFixed(1)}%</dd>
+          </div>
+          <div>
+            <dt>Living held faces</dt>
+            <dd>
+              {heldFacialAudit.filter((result) => result.passed).length} / {heldFacialAudit.length}
+            </dd>
+          </div>
+          <div>
             <dt>Min direction length</dt>
             <dd>{minimumDirection.toFixed(2)}</dd>
           </div>
@@ -341,6 +371,7 @@ export function TransitionLab() {
                 <th>Frames</th>
                 <th>Settle</th>
                 <th>Largest step</th>
+                <th>Facial step</th>
                 <th>End error</th>
                 <th>Result</th>
               </tr>
@@ -356,6 +387,7 @@ export function TransitionLab() {
                     {result.settledAt === null ? "—" : `${Math.round(result.settledAt * 1000)}ms`}
                   </td>
                   <td>{(result.maxNormalizedStep * 100).toFixed(1)}%</td>
+                  <td>{(result.maxFacialFrameStep * 100).toFixed(1)}%</td>
                   <td>{result.endpointError.toExponential(1)}</td>
                   <td>{result.passed ? "pass" : "review"}</td>
                 </tr>
