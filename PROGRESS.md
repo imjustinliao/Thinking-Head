@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Large sculpt approved; dedicated optical LODs now serve 16/24/32px.** Awaiting Justin's small-size review |
-| **Last implementation commit** | `26591a6` — v11.0 - Add optical particle LOD for small faces |
+| **Step** | **Large sculpt approved; rebuilt optical masters now serve every size below 96px.** Awaiting Justin's small-size review |
+| **Last implementation commit** | `7b4a5e7` — v11.2 - Rebuild optical LOD for readable small faces |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of the sub-48px optical variants before the separate cursor-drag orbit checkpoint |
+| **Blocked on** | Justin's review of the sub-96px optical masters before state-transition implementation |
 
 ---
 
@@ -819,6 +819,31 @@ averaged into a pale miniature instead of reading as individual particle bots.
 This is **ready for Justin's small-size visual review, not yet visually approved**. The large
 sculpt is approved and must remain unchanged.
 
+### Small-face optical master rebuild (v11.2)
+
+Justin found that v11.0 still failed at the gallery's default 48px and below. The boundary itself
+was wrong: 48px switched straight back to all 8,192 particles, recreating the subpixel averaging
+that the optical LOD was supposed to remove. The smallest tier also enlarged positions by as much
+as 4.3×, clipping the silhouette, while state-driven head rotation smeared the remaining facial
+pixels.
+
+- Extended the deliberate optical ladder through 80px: 16→r17/128 particles,
+  24→r24/255, 32→r34/512, 48→r48/1,020, 64→r68/2,048 and 80→r96/4,082. The complete
+  r136/8,192 sculpt now begins at 96px.
+- Replaced runaway glyph zoom with a bounded 1.20–1.25× optical frame and coupled the particle
+  footprint to it, producing controlled overlap rather than either holes or an opaque blob.
+- Enlarged and darkened eye, brow and mouth particles progressively as the pixel budget shrinks.
+  The canonical surface still supplies the silhouette and real landmark placement.
+- Applied the size tier's pose scale to state-driven sway and pose biases in both WebGL2 and
+  Canvas 2D. Glyph heads now remain front-facing; 96px+ motion is unchanged.
+- The in-app browser refused localhost access during this checkpoint, so no live visual approval
+  is claimed. The dev server is running for Justin's review.
+- All 147 tests, typecheck, lint and build pass. Regression coverage locks the complete optical
+  ladder, DPR-invariant density, bounded framing and progressively stronger glyph landmarks.
+
+This is **ready for Justin's visual review, not yet visually approved**. The approved large head
+path is unchanged from 96px upward.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -899,15 +924,16 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v11.0 optical variants at `http://localhost:5173`.** Check 16px, 24px
-   and 32px; 48px and 320px intentionally retain the approved complete sculpt.
-2. **Implement cursor-drag 360° orbit as the next interaction checkpoint after approval.** Use direct Pointer Events,
-   capture, immediate one-to-one tracking and bounded pitch while preserving continuous state
-   motion.
-3. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
+1. **Justin reviews the v11.2 optical masters at `http://localhost:5173`.** Check 16px, 24px,
+   32px, 48px, 64px and 80px; 96px and 320px intentionally retain the approved complete sculpt.
+2. **Implement interruptible state transitions after small-size approval.** Blend the complete
+   motion and expression vectors from the current presentation value, preserve continuous
+   oscillator phase, and record representative transitions frame by frame.
+3. **Implement cursor-drag 360° orbit as a separate interaction checkpoint.** Use direct Pointer
+   Events, capture, immediate one-to-one tracking and bounded pitch while preserving continuous
+   state motion.
+4. **Address any isolated expression corrections from Justin's evaluation.** Keep each correction
    as its own browser-verified commit.
-4. **State transitions** — `mix()` over the `MotionParams` scalars plus the expression vector,
-   triggerable at any moment. The sinusoid basis already makes arbitrary-time entry safe.
 5. The React wrapper and the `./react` subpath export — currently `package.json` exports
    only `.`; add the subpath when the wrapper lands. It owns the `role="status"` /
    `aria-live` pattern from `CLAUDE.md` §5, which the demo placeholder does not yet do.

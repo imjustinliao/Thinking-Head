@@ -134,8 +134,8 @@ human base:
   candidates, preserves sixteen anatomical landmarks, progressively farthest-point samples the
   surface with extra facial density, adds separate anterior ocular surfaces behind the eyelids,
   bakes local occlusion and quantises the result.
-- The progressive order drives optically corrected variants below 48px: landmark-preserving
-  prefixes use fewer, larger circles as the pixel budget shrinks. At 48px and above the built-in
+- The progressive order drives optically corrected variants below 96px: landmark-preserving
+  prefixes use fewer, larger circles as the pixel budget shrinks. At 96px and above the built-in
   renderer retains the complete surface. The renderer, motion system, expression rig and tagged
   point-set contract remain intact.
 - The source asset explicitly declares CC0 in its header. No source mesh, binary model, runtime
@@ -148,11 +148,14 @@ The denser, ocular-complete surface and all ten expression presets are live. At 
 rejected sparse square-tile treatment was replaced by filtered circular particle splats over the
 human surface. Lighting now controls particle radiance separately from coverage, so dark orbital,
 nasal, lip and jaw planes remain solid surface rather than becoming transparent holes. Justin
-approved the large sculpt on 2026-07-27. At v11.0 dedicated optical LODs use 128 particles at
-16px, 255 at 24px and 1,020 at 32px, then return to the approved complete 8,192-point sculpt at
-48px. DPR sharpens circle edges without multiplying CSS-space density. The sub-48px variants
-await Justin's review; do not retune the approved large sculpt while correcting them. The public
-marketing/demo website remains deferred. Facial review is the active Phase 1 work.
+approved the large sculpt on 2026-07-27. At v11.2 dedicated optical masters use 128 particles at
+16px, 255 at 24px, 512 at 32px, 1,020 at 48px, 2,048 at 64px and 4,082 at 80px, then return to
+the approved complete 8,192-point sculpt at 96px. DPR sharpens circle edges without multiplying
+CSS-space density. Glyph views stay front-facing and enlarge/darken only the expressive
+landmarks, preserving facial configuration instead of miniaturising display shading. These
+sub-96px variants await Justin's review; do not retune the approved large sculpt while correcting
+them. The public marketing/demo website remains deferred. Facial review is the active Phase 1
+work.
 
 ---
 
