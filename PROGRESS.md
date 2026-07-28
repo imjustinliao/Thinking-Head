@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Sparse square tiles are replaced by complete-surface circular splats.** Awaiting Justin's multi-size visual review |
-| **Last implementation commit** | `a92883e` — v10.8 - Replace tiles with filtered particle splats |
+| **Step** | **Large sculpt approved; dedicated optical LODs now serve 16/24/32px.** Awaiting Justin's small-size review |
+| **Last implementation commit** | `26591a6` — v11.0 - Add optical particle LOD for small faces |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of the 16px glyph, 48px gallery and 320px sculpt before the separate cursor-drag orbit checkpoint |
+| **Blocked on** | Justin's review of the sub-48px optical variants before the separate cursor-drag orbit checkpoint |
 
 ---
 
@@ -794,6 +794,31 @@ screenshot pointed to a sampling/filtering failure rather than another anatomy-p
 This is **ready for Justin's visual review, not yet visually approved**. Cursor-drag orbit remains
 the next isolated interaction checkpoint only after this renderer direction is accepted.
 
+### Small-face optical level of detail (v11.0)
+
+Justin approved the large sculpt but found that forcing all 8,192 particles into smaller canvases
+made the face barely visible. The failure was over-sampling: thousands of subpixel circles
+averaged into a pale miniature instead of reading as individual particle bots.
+
+- Preserved the approved complete 8,192-point surface from 48px upward. No display-size geometry,
+  lighting, material or motion value changed.
+- Added dedicated optically corrected variants below 48px: 128 particles at 16px, 255 at 24px and
+  1,020 at 32px. The canonical progressive ordering keeps paired eyes and the mouth in every
+  prefix.
+- Coupled particle footprint to optical framing below 48px. Enlarging a sparse glyph now enlarges
+  its circles as well as their positions, preventing the face from opening into a disconnected
+  constellation.
+- Corrected DPR handling: rendered size and target spacing now scale together. Retina displays
+  sharpen circle edges without silently quadrupling particle density.
+- Browser-compared 16px, 24px, 32px and the unchanged 48px boundary. The live readout confirms the
+  intended particle ladder, the 320px orbit remains on the complete surface, and one WebGL2
+  context remains active.
+- All 145 tests, lint and build pass. Regression coverage locks the optical ladder, framing
+  footprint and DPR-invariant CSS density.
+
+This is **ready for Justin's small-size visual review, not yet visually approved**. The large
+sculpt is approved and must remain unchanged.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -874,8 +899,8 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v10.8 complete-surface circular splats at `http://localhost:5173`.**
-   Check the 16px inline glyph, 48px gallery and enlarged 320px orbit sculpt.
+1. **Justin reviews the v11.0 optical variants at `http://localhost:5173`.** Check 16px, 24px
+   and 32px; 48px and 320px intentionally retain the approved complete sculpt.
 2. **Implement cursor-drag 360° orbit as the next interaction checkpoint after approval.** Use direct Pointer Events,
    capture, immediate one-to-one tracking and bounded pitch while preserving continuous state
    motion.

@@ -134,10 +134,10 @@ human base:
   candidates, preserves sixteen anatomical landmarks, progressively farthest-point samples the
   surface with extra facial density, adds separate anterior ocular surfaces behind the eyelids,
   bakes local occlusion and quantises the result.
-- The progressive order remains available to explicit callers, but built-in size tiers retain
-  the complete surface and filter its projected particle footprints. Prefix-thinning erased
-  facial landmarks before rasterisation at the sizes where their configuration matters most.
-  The renderer, motion system, expression rig and tagged point-set contract remain intact.
+- The progressive order drives optically corrected variants below 48px: landmark-preserving
+  prefixes use fewer, larger circles as the pixel budget shrinks. At 48px and above the built-in
+  renderer retains the complete surface. The renderer, motion system, expression rig and tagged
+  point-set contract remain intact.
 - The source asset explicitly declares CC0 in its header. No source mesh, binary model, runtime
   dependency, attribution requirement or network call ships. Provenance is recorded in
   `docs/research-notes.md`.
@@ -146,12 +146,13 @@ human base:
 
 The denser, ocular-complete surface and all ten expression presets are live. At v10.8 the
 rejected sparse square-tile treatment was replaced by filtered circular particle splats over the
-complete 8,192-point surface at every built-in size tier. Lighting now controls particle
-radiance separately from coverage, so dark orbital, nasal, lip and jaw planes remain solid
-surface rather than becoming transparent holes. Size-dependent framing and landmark contrast
-preserve a face glyph at 16px while the display tier keeps full sculptural shading. The head is
-not visually approved until Justin reviews it. The public marketing/demo website remains
-deferred. Facial review is the active Phase 1 work.
+human surface. Lighting now controls particle radiance separately from coverage, so dark orbital,
+nasal, lip and jaw planes remain solid surface rather than becoming transparent holes. Justin
+approved the large sculpt on 2026-07-27. At v11.0 dedicated optical LODs use 128 particles at
+16px, 255 at 24px and 1,020 at 32px, then return to the approved complete 8,192-point sculpt at
+48px. DPR sharpens circle edges without multiplying CSS-space density. The sub-48px variants
+await Justin's review; do not retune the approved large sculpt while correcting them. The public
+marketing/demo website remains deferred. Facial review is the active Phase 1 work.
 
 ---
 
