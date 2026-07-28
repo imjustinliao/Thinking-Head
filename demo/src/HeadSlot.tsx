@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
   clockTime,
   createRenderer,
+  DONE_HOLD_SECONDS,
   type ExpressionParams,
   type HeadModel,
   type HeadRenderer,
@@ -71,7 +72,10 @@ export function HeadSlot({
   const requestIdRef = useRef(requestId);
   const doneReturnNotifiedRef = useRef(false);
   const onDoneReturnRef = useRef(onDoneReturn);
+  const onBackendRef = useRef(onBackend);
+  const [rendererRevision, setRendererRevision] = useState(0);
   onDoneReturnRef.current = onDoneReturn;
+  onBackendRef.current = onBackend;
   const reducedMotion = usePrefersReducedMotion();
 
   if (!controllerRef.current) {
@@ -83,14 +87,15 @@ export function HeadSlot({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const { renderer, backend } = createRenderer(canvas);
+    const { renderer, backend } = createRenderer(canvas, reducedMotion);
     rendererRef.current = renderer;
-    onBackend?.(backend);
+    onBackendRef.current?.(backend);
+    setRendererRevision((revision) => revision + 1);
     return () => {
       renderer.dispose();
-      rendererRef.current = null;
+      if (rendererRef.current === renderer) rendererRef.current = null;
     };
-  }, [onBackend]);
+  }, [reducedMotion]);
 
   // Pose comes from the size tier: the three-quarter turn that reads alive at display sizes
   // smears the features sideways on a glyph-sized head, so small heads sit face-on.
@@ -137,6 +142,19 @@ export function HeadSlot({
   }, [speed]);
 
   useEffect(() => {
+    if (!reducedMotion || !autoReturnDone || state !== "done") return;
+    const scheduledRequest = requestId;
+    const timeout = window.setTimeout(() => {
+      if (requestIdRef.current !== scheduledRequest) return;
+      if (doneReturnNotifiedRef.current) return;
+      doneReturnNotifiedRef.current = true;
+      onDoneReturnRef.current?.();
+    }, DONE_HOLD_SECONDS * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [autoReturnDone, reducedMotion, requestId, state]);
+
+  useEffect(() => {
+    if (rendererRevision === 0) return;
     const canvas = canvasRef.current;
     const renderer = rendererRef.current;
     const controller = controllerRef.current;
@@ -167,15 +185,7 @@ export function HeadSlot({
     };
 
     const draw = (time: number): void => {
-      let sample = controller.advance(time, speedRef.current);
-      if (
-        reducedMotion &&
-        sample.requestedState === "done" &&
-        sample.targetState === "idle" &&
-        !sample.settled
-      ) {
-        sample = controller.snapToTarget(time, speedRef.current);
-      }
+      const sample = controller.advance(time, speedRef.current);
       if (
         sample.requestedState === "done" &&
         sample.targetState === "idle" &&
@@ -191,13 +201,13 @@ export function HeadSlot({
       frame.accent = sample.accent;
       renderer.draw(frame);
     };
-    drawRef.current = draw;
-
     let unsubscribe: (() => void) | null = null;
     let visible = false;
-    const needsClock = (): boolean =>
-      !reducedMotion ||
-      (controller.sample.requestedState === "done" && controller.sample.targetState === "done");
+    const redrawIfVisible = (time: number): void => {
+      if (visible) draw(time);
+    };
+    drawRef.current = redrawIfVisible;
+    const needsClock = (): boolean => !reducedMotion;
 
     const stop = (): void => {
       unsubscribe?.();
@@ -223,6 +233,7 @@ export function HeadSlot({
     const observer = new IntersectionObserver(
       ([entry]) => {
         visible = entry?.isIntersecting ?? false;
+        if (visible) draw(clockTime());
         refreshClock();
       },
       { rootMargin: "64px" },
@@ -232,10 +243,10 @@ export function HeadSlot({
     return () => {
       observer.disconnect();
       stop();
-      if (drawRef.current === draw) drawRef.current = null;
+      if (drawRef.current === redrawIfVisible) drawRef.current = null;
       if (refreshClockRef.current === refreshClock) refreshClockRef.current = null;
     };
-  }, [size, model, effectiveCamera, style, targetCellCss, reducedMotion]);
+  }, [size, model, effectiveCamera, style, targetCellCss, reducedMotion, rendererRevision]);
 
   return (
     <span

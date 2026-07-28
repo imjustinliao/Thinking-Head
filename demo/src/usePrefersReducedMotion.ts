@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 
+function forcedReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("reduced-motion") === "1"
+  );
+}
+
 /**
  * Tracks `prefers-reduced-motion`, live.
  *
@@ -11,10 +18,15 @@ export function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() =>
     typeof window === "undefined"
       ? false
-      : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      : forcedReducedMotion() || window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
 
   useEffect(() => {
+    // Deterministic local verification seam; production consumers never receive the demo hook.
+    if (forcedReducedMotion()) {
+      setReduced(true);
+      return;
+    }
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onChange = () => setReduced(query.matches);
     query.addEventListener("change", onChange);
