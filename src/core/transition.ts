@@ -46,6 +46,11 @@ export interface StateTransitionSample {
   settled: boolean;
 }
 
+export interface StateTransitionControllerOptions {
+  /** Disable only for static state studies that must hold Done as a permanent endpoint. */
+  autoReturnDone?: boolean;
+}
+
 const POSITION_EPSILON = 1e-4;
 const VELOCITY_EPSILON = 1e-3;
 const TAU = Math.PI * 2;
@@ -127,10 +132,16 @@ export class StateTransitionController {
   private targetAccent: Readonly<StateAccent>;
   private response: number;
   private lastTime: number;
+  private readonly autoReturnDoneEnabled: boolean;
   private doneSettledAt = -1;
   private autoReturnDone = false;
 
-  constructor(initialState: ThinkingHeadState, initialTime = 0, playbackRate = 1) {
+  constructor(
+    initialState: ThinkingHeadState,
+    initialTime = 0,
+    playbackRate = 1,
+    options: StateTransitionControllerOptions = {},
+  ) {
     this.motion = { ...STATE_MOTION[initialState] };
     this.expression = { ...STATE_EXPRESSION[initialState] };
     this.accent = { ...STATE_ACCENT[initialState] };
@@ -139,6 +150,7 @@ export class StateTransitionController {
     this.targetAccent = STATE_ACCENT[initialState];
     this.response = STATE_TRANSITION_RESPONSE[initialState];
     this.lastTime = Number.isFinite(initialTime) ? Math.max(0, initialTime) : 0;
+    this.autoReturnDoneEnabled = options.autoReturnDone ?? true;
     const safePlaybackRate = Number.isFinite(playbackRate) ? playbackRate : 1;
     this.phase = createMotionPhase(this.lastTime, this.motion, safePlaybackRate);
     this.sample = {
@@ -150,7 +162,7 @@ export class StateTransitionController {
       targetState: initialState,
       settled: true,
     };
-    if (initialState === "done") {
+    if (initialState === "done" && this.autoReturnDoneEnabled) {
       this.autoReturnDone = true;
       this.doneSettledAt = this.lastTime;
     }
@@ -176,8 +188,31 @@ export class StateTransitionController {
       STATE_EXPRESSION[state],
       STATE_ACCENT[state],
       STATE_TRANSITION_RESPONSE[state],
-      state === "done",
+      state === "done" && this.autoReturnDoneEnabled,
     );
+    return this.sample;
+  }
+
+  /** Replays a semantic event even when its named state is already the current target. */
+  restartState(state: ThinkingHeadState, now: number, playbackRate = 1): StateTransitionSample {
+    this.advance(now, playbackRate);
+    const alreadyAtEndpoint =
+      this.sample.settled &&
+      this.targetMotion === STATE_MOTION[state] &&
+      this.targetExpression === STATE_EXPRESSION[state] &&
+      this.targetAccent === STATE_ACCENT[state];
+    this.beginTarget(
+      state,
+      STATE_MOTION[state],
+      STATE_EXPRESSION[state],
+      STATE_ACCENT[state],
+      STATE_TRANSITION_RESPONSE[state],
+      state === "done" && this.autoReturnDoneEnabled,
+    );
+    if (alreadyAtEndpoint) {
+      this.settleExactly();
+      this.doneSettledAt = state === "done" && this.autoReturnDoneEnabled ? this.lastTime : -1;
+    }
     return this.sample;
   }
 
@@ -313,7 +348,7 @@ export class StateTransitionController {
     this.accentVelocity.fill(0);
     this.sample.settled = true;
     this.doneSettledAt = state === "done" ? this.lastTime : -1;
-    this.autoReturnDone = state === "done";
+    this.autoReturnDone = state === "done" && this.autoReturnDoneEnabled;
     return this.sample;
   }
 

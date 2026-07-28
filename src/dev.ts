@@ -117,6 +117,7 @@ export {
   DONE_HOLD_SECONDS,
   STATE_TRANSITION_RESPONSE,
   StateTransitionController,
+  type StateTransitionControllerOptions,
   type StateTransitionSample,
 } from "./core/transition.js";
 export {

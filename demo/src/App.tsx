@@ -61,12 +61,17 @@ export function App() {
   // The selected pill drives both the inline sample and orbit head. Its reviewed motion and
   // expression presets stay paired unless the manual expression sandbox is active.
   const [activeState, setActiveState] = useState<ThinkingHeadState>("thinking");
+  const [stateRequestId, setStateRequestId] = useState(0);
 
   // Stable so it does not retrigger every instance's renderer effect on each render.
   const onBackend = useCallback((next: RenderBackend) => setBackend(next), []);
   const selectState = useCallback((state: ThinkingHeadState) => {
     setActiveState(state);
+    setStateRequestId((request) => request + 1);
     setExpressionOverride(null);
+  }, []);
+  const finishDone = useCallback(() => {
+    setActiveState((state) => (state === "done" ? "idle" : state));
   }, []);
   const resetTuning = useCallback(() => {
     setTuning(structuredClone(DEFAULT_TUNING));
@@ -245,6 +250,9 @@ export function App() {
                 expressionOverride={expressionOverride}
                 targetCellCss={targetCellCss}
                 speed={speed}
+                requestId={stateRequestId}
+                autoReturnDone
+                onDoneReturn={finishDone}
                 onBackend={onBackend}
               />
               <span className="transcript-text">
@@ -329,6 +337,9 @@ export function App() {
               expressionOverride={expressionOverride}
               targetCellCss={targetCellCss}
               speed={speed}
+              requestId={stateRequestId}
+              autoReturnDone
+              onDoneReturn={finishDone}
             />
           </div>
         </section>

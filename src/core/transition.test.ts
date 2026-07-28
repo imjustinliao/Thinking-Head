@@ -152,6 +152,27 @@ describe("state transition controller", () => {
       expect(controller.sample.motion[key]).toBe(STATE_MOTION.idle[key]);
   });
 
+  test("can hold Done permanently for a static state study", () => {
+    const controller = new StateTransitionController("done", 0, 1, {
+      autoReturnDone: false,
+    });
+    controller.advance(10);
+    expect(controller.sample.requestedState).toBe("done");
+    expect(controller.sample.targetState).toBe("done");
+    expect(controller.sample.settled).toBe(true);
+    expect(controller.sample.accent).toEqual({ error: 0, done: 1 });
+  });
+
+  test("restarts Done's hold when the same semantic event is requested again", () => {
+    const controller = new StateTransitionController("done");
+    controller.advance(DONE_HOLD_SECONDS * 0.75);
+    controller.restartState("done", DONE_HOLD_SECONDS * 0.75);
+    controller.advance(DONE_HOLD_SECONDS * 1.5);
+    expect(controller.sample.targetState).toBe("done");
+    controller.advance(DONE_HOLD_SECONDS * 2 + 0.01);
+    expect(controller.sample.targetState).toBe("idle");
+  });
+
   test("crossfades semantic accents through the same interruptible spring", () => {
     const controller = new StateTransitionController("error");
     expect(controller.sample.accent).toEqual({ error: 1, done: 0 });

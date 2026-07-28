@@ -30,6 +30,11 @@ interface HeadSlotProps {
   targetCellCss: number;
   /** Multiplies the shared clock, so the demo's speed control affects every instance alike. */
   speed: number;
+  /** Increment to replay a semantic event even when `state` has not changed. */
+  requestId?: number;
+  /** Active indicators return Done to Idle; static gallery studies keep the endpoint. */
+  autoReturnDone?: boolean;
+  onDoneReturn?: () => void;
   onBackend?: (backend: RenderBackend) => void;
 }
 
@@ -52,6 +57,9 @@ export function HeadSlot({
   expressionOverride,
   targetCellCss,
   speed,
+  requestId = 0,
+  autoReturnDone = false,
+  onDoneReturn,
   onBackend,
 }: HeadSlotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,10 +68,16 @@ export function HeadSlot({
   const drawRef = useRef<((time: number) => void) | null>(null);
   const refreshClockRef = useRef<(() => void) | null>(null);
   const speedRef = useRef(speed);
+  const requestIdRef = useRef(requestId);
+  const doneReturnNotifiedRef = useRef(false);
+  const onDoneReturnRef = useRef(onDoneReturn);
+  onDoneReturnRef.current = onDoneReturn;
   const reducedMotion = usePrefersReducedMotion();
 
   if (!controllerRef.current) {
-    controllerRef.current = new StateTransitionController(state, clockTime(), speed);
+    controllerRef.current = new StateTransitionController(state, clockTime(), speed, {
+      autoReturnDone,
+    });
   }
 
   useEffect(() => {
@@ -90,6 +104,9 @@ export function HeadSlot({
     if (!controller) return;
     const now = clockTime();
     const previousSpeed = speedRef.current;
+    const replay = requestId !== requestIdRef.current;
+    requestIdRef.current = requestId;
+    if (state === "done") doneReturnNotifiedRef.current = false;
 
     if (reducedMotion) {
       if (expressionOverride) {
@@ -100,13 +117,15 @@ export function HeadSlot({
       }
     } else if (expressionOverride) {
       controller.setTarget(state, STATE_MOTION[state], expressionOverride, now, previousSpeed);
+    } else if (replay) {
+      controller.restartState(state, now, previousSpeed);
     } else {
       controller.setTargetState(state, now, previousSpeed);
     }
 
     drawRef.current?.(now);
     refreshClockRef.current?.();
-  }, [expressionOverride, reducedMotion, state]);
+  }, [expressionOverride, reducedMotion, requestId, state]);
 
   useEffect(() => {
     const controller = controllerRef.current;
@@ -156,6 +175,14 @@ export function HeadSlot({
         !sample.settled
       ) {
         sample = controller.snapToTarget(time, speedRef.current);
+      }
+      if (
+        sample.requestedState === "done" &&
+        sample.targetState === "idle" &&
+        !doneReturnNotifiedRef.current
+      ) {
+        doneReturnNotifiedRef.current = true;
+        onDoneReturnRef.current?.();
       }
       frame.time = time;
       frame.phase = sample.phase;
