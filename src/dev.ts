@@ -113,6 +113,7 @@ export {
 export {
   auditAllStateTransitions,
   auditStateTransition,
+  MAX_NORMALIZED_FRAME_STEP,
   type TransitionAuditOptions,
   type TransitionAuditResult,
 } from "./core/transitionAudit.js";

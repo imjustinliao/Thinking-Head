@@ -49,6 +49,7 @@ function pairUrl(from: ThinkingHeadState, to: ThinkingHeadState, size: number): 
     size: String(size),
     fps: "60",
     duration: "0.8",
+    start: "37.25",
   });
   return `?${query.toString()}`;
 }
@@ -57,13 +58,14 @@ export function TransitionLab() {
   const query = new URLSearchParams(window.location.search);
   const from = stateFromQuery(query.get("from"), "thinking");
   const to = stateFromQuery(query.get("to"), "error");
-  const size = Math.round(numberFromQuery(query.get("size"), 96, 32, 192));
+  const size = Math.round(numberFromQuery(query.get("size"), 96, 16, 320));
   const fps = Math.round(numberFromQuery(query.get("fps"), 60, 12, 60));
-  const duration = numberFromQuery(query.get("duration"), 0.8, 0.2, 1.2);
+  const duration = numberFromQuery(query.get("duration"), 0.8, 0.2, 3);
+  const startTime = numberFromQuery(query.get("start"), 37.25, 0, 3600);
   const times = useMemo(() => frameTimes(duration, fps), [duration, fps]);
   const audit = useMemo(
-    () => auditAllStateTransitions({ fps, duration: Math.max(duration, 0.8) }),
-    [duration, fps],
+    () => auditAllStateTransitions({ fps, duration: 0.8, startTime }),
+    [fps, startTime],
   );
   const passedCount = audit.filter((result) => result.passed).length;
   const slowestSettle = Math.max(...audit.map((result) => result.settledAt ?? 0));
@@ -99,7 +101,8 @@ export function TransitionLab() {
           {from} → {to}
         </h1>
         <p>
-          {times.length} exact frames · {fps} fps · {duration.toFixed(2)} seconds · {size}px
+          {times.length} exact frames · {fps} fps · {duration.toFixed(2)} seconds · {size}px · phase{" "}
+          {startTime.toFixed(2)}s
         </p>
         <form className="transition-lab__controls" method="get">
           <input type="hidden" name="transition-lab" value="1" />
@@ -121,7 +124,7 @@ export function TransitionLab() {
           </label>
           <label>
             Size
-            <input name="size" type="number" min="32" max="192" defaultValue={size} />
+            <input name="size" type="number" min="16" max="320" defaultValue={size} />
           </label>
           <label>
             FPS
@@ -133,9 +136,20 @@ export function TransitionLab() {
               name="duration"
               type="number"
               min="0.2"
-              max="1.2"
+              max="3"
               step="0.1"
               defaultValue={duration}
+            />
+          </label>
+          <label>
+            Start phase
+            <input
+              name="start"
+              type="number"
+              min="0"
+              max="3600"
+              step="0.01"
+              defaultValue={startTime}
             />
           </label>
           <button type="submit">Load sequence</button>
@@ -148,7 +162,10 @@ export function TransitionLab() {
           <span>01</span>
           <div>
             <h2 id="frames-heading">Frame recording</h2>
-            <p>Each tile is reconstructed from t=0; no wall-clock animation is sampled.</p>
+            <p>
+              Each tile is reconstructed from the selected phase; no wall-clock animation is
+              sampled.
+            </p>
           </div>
         </div>
         <div
@@ -161,6 +178,8 @@ export function TransitionLab() {
               from={from}
               to={to}
               time={time}
+              startTime={startTime}
+              fps={fps}
               size={size}
               dpr={dpr}
               pointSet={selectedPointSet}
@@ -186,7 +205,7 @@ export function TransitionLab() {
         <div className="transition-lab__matrix">
           {THINKING_HEAD_STATES.flatMap((source) =>
             THINKING_HEAD_STATES.map((target) => {
-              const midpoint = STATE_TRANSITION_RESPONSE[target] * 0.25;
+              const midpoint = STATE_TRANSITION_RESPONSE[target] * 0.267;
               return (
                 <a
                   className="transition-lab__pair"
@@ -197,6 +216,8 @@ export function TransitionLab() {
                     from={source}
                     to={target}
                     time={midpoint}
+                    startTime={startTime}
+                    fps={fps}
                     size={matrixSize}
                     dpr={dpr}
                     pointSet={matrixPointSet}

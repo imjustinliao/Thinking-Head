@@ -6,10 +6,12 @@ import { StateTransitionController } from "./transition.js";
 const VALUE_EPSILON = 1e-9;
 const ENDPOINT_EPSILON = 1e-4;
 const MIN_DIRECTION_MAGNITUDE = 0.2;
+export const MAX_NORMALIZED_FRAME_STEP = 0.22;
 
 export interface TransitionAuditOptions {
   fps?: number;
   duration?: number;
+  startTime?: number;
 }
 
 export interface TransitionAuditResult {
@@ -34,6 +36,10 @@ function safeDuration(value: number | undefined): number {
   return Number.isFinite(value) ? Math.max(0.1, Math.min(5, value ?? 0.8)) : 0.8;
 }
 
+function safeStartTime(value: number | undefined): number {
+  return Number.isFinite(value) ? Math.max(0, value ?? 37.25) : 37.25;
+}
+
 /**
  * Samples one named-state transition at a fixed cadence and returns machine-checkable continuity
  * evidence. This is development tooling only; it never enters the published runtime bundle.
@@ -45,9 +51,10 @@ export function auditStateTransition(
 ): TransitionAuditResult {
   const fps = safeFps(options.fps);
   const duration = safeDuration(options.duration);
+  const startTime = safeStartTime(options.startTime);
   const frameCount = Math.floor(duration * fps) + 1;
-  const controller = new StateTransitionController(from, 0);
-  if (to !== from) controller.setTargetState(to, 0);
+  const controller = new StateTransitionController(from, startTime);
+  if (to !== from) controller.setTargetState(to, startTime);
 
   let startDiscontinuity = 0;
   let endpointError = 0;
@@ -60,9 +67,9 @@ export function auditStateTransition(
   const previousExpression = new Float64Array(EXPRESSION_KEYS.length);
 
   for (let frame = 0; frame < frameCount; frame++) {
-    const time = frame / fps;
+    const time = startTime + frame / fps;
     const sample = controller.advance(time);
-    if (settledAt === null && sample.settled) settledAt = time;
+    if (settledAt === null && sample.settled) settledAt = time - startTime;
 
     for (let index = 0; index < MOTION_KEYS.length; index++) {
       const key = MOTION_KEYS[index];
@@ -127,6 +134,7 @@ export function auditStateTransition(
     finite &&
     startDiscontinuity <= VALUE_EPSILON &&
     endpointError <= ENDPOINT_EPSILON &&
+    maxNormalizedStep <= MAX_NORMALIZED_FRAME_STEP &&
     overshootCount === 0 &&
     minimumDirectionMagnitude >= MIN_DIRECTION_MAGNITUDE &&
     settledAt !== null;
