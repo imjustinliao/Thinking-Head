@@ -13,10 +13,10 @@ Updated at every session and step boundary.
 | | |
 |---|---|
 | **Phase** | Phase 1 — "Thinking Head", hand-authored mascot head |
-| **Step** | **Large sculpt approved; rebuilt optical masters now serve every size below 96px.** Awaiting Justin's small-size review |
-| **Last implementation commit** | `7b4a5e7` — v11.2 - Rebuild optical LOD for readable small faces |
+| **Step** | **Feature-balanced surfel masters now serve every size below 96px.** Independent visual audit approved; awaiting Justin's review |
+| **Last implementation commit** | `28b8622` — v11.6 - Rebuild small faces as feature-balanced surfels |
 | **Dev server** | Running at **http://localhost:5173** (`npm run dev` from repo root) |
-| **Blocked on** | Justin's review of the sub-96px optical masters before state-transition implementation |
+| **Blocked on** | Justin's review before integrating the already-built transition controller into the demo |
 
 ---
 
@@ -844,6 +844,51 @@ pixels.
 This is **ready for Justin's visual review, not yet visually approved**. The approved large head
 path is unchanged from 96px upward.
 
+### Interruptible transition foundation (v11.4)
+
+The core transition machinery is implemented but deliberately not wired into `HeadSlot` yet.
+
+- Added one allocation-free critically damped controller that blends every motion and expression
+  scalar from its current presentation value, preserving velocity through rapid retargets.
+- Integrated oscillator phase from the exact area under each changing speed. State changes and
+  playback-rate changes therefore cannot multiply the page's elapsed time into a visual jump.
+- Added semantic response values per state plus Done's 900ms completion hold and return to Idle.
+- Canvas 2D and WebGL2 both accept the same integrated motion phases.
+- All 90 directed state pairs, random interruptions, frame-partition independence, Done lifecycle,
+  stable object identity and legacy constant-speed equivalence are covered by tests.
+
+The next transition step is demo integration plus deterministic frame-by-frame capture. Do not
+rebuild this controller or hard-cut the existing state vectors.
+
+### Feature-balanced small-face surfels (v11.5–v11.6)
+
+Justin approved the large head but found every previous small-size strategy too sparse and vague.
+The failure was a data-budget and rasterisation mismatch: the r17 master had only two samples per
+eye, three for the mouth and no brows, while dark feature particles disappeared into holes.
+
+- Added deterministic `?size=16` through `?size=256` demo deep links for repeatable browser
+  comparison.
+- Replaced raw progressive prefixes at tiny resolutions with landmark-balanced subsets of the
+  same canonical human anatomy. Eye, brow, nose and mouth quotas are reserved first; the remaining
+  budget comes from the canonical progressive skin order.
+- Raised the optical ladder one density rung: 16px→r24/255, 24px→r34/512, 32px→r48/1,020,
+  48px→r68/2,048, 64–80px→r96/4,082 and 96px+→r136/8,192.
+- Reconstructed tiny skin with overlapping support discs plus brighter circular cores. The face
+  stays continuous without hiding the particle medium.
+- At ≤32px, omitted neck particles and used a tighter face crop. The key light remains frontal
+  through 32px, rotates into the approved raking angle through 64px, then leaves the large renderer
+  unchanged.
+- Lifted tiny feature material so sockets, nose and mouth read as planes rather than black holes.
+- Implemented the same optical rules in WebGL2 and Canvas 2D. Browser checks found no shader or
+  console errors and retained one shared WebGL context.
+- Browser-reviewed 16, 24, 32, steady-state 48, 64 and 320px. Independent visual audit approved
+  the final spectrum: 16px satisfies the glyph contract, 32px reads immediately as human, 48/64px
+  retain visible particle anatomy, and the approved 320px sculpt is unregressed.
+- All 161 tests, typecheck, lint and build pass.
+
+This is **ready for Justin's visual review**. The 16px tier is intentionally an optical face glyph;
+individual circular particles become physically distinguishable as the available pixels increase.
+
 ### Local showcase redesign brief (requested 2026-07-26)
 
 Justin rejected the existing showcase presentation and requested a complete local-demo redesign.
@@ -908,7 +953,8 @@ the local showcase redesign brief above supersedes it.
 
 1. Geometry: **progressive 8,192-point human surface**, offline-baked from an explicitly CC0
    neutral base. The source mesh and topology do not ship; the runtime decodes compact quantised
-   point data and derives LODs from deterministic prefixes. This supersedes the rejected quadric,
+   point data. Display LODs use deterministic prefixes, while tiny optical masters reserve
+   landmark-balanced subsets from that same identity. This supersedes the rejected quadric,
    radial-atlas and Cartesian-voxel routes while preserving zero runtime dependencies and the
    tagged point-set rig contract.
 2. Renderer: **purpose-built WebGL2, zero runtime dependencies** — chosen over a
@@ -924,11 +970,11 @@ the local showcase redesign brief above supersedes it.
 
 ## Next
 
-1. **Justin reviews the v11.2 optical masters at `http://localhost:5173`.** Check 16px, 24px,
-   32px, 48px, 64px and 80px; 96px and 320px intentionally retain the approved complete sculpt.
-2. **Implement interruptible state transitions after small-size approval.** Blend the complete
-   motion and expression vectors from the current presentation value, preserve continuous
-   oscillator phase, and record representative transitions frame by frame.
+1. **Justin reviews the v11.6 surfel masters at `http://localhost:5173`.** Check 16px, 24px,
+   32px, 48px and 64px; 96px and 320px intentionally retain the approved complete sculpt.
+2. **Integrate the v11.4 transition controller after small-size approval.** Drive `HeadSlot` from
+   the current presentation value, preserve oscillator phase, and record representative
+   transitions frame by frame.
 3. **Implement cursor-drag 360° orbit as a separate interaction checkpoint.** Use direct Pointer
    Events, capture, immediate one-to-one tracking and bounded pitch while preserving continuous
    state motion.
