@@ -1249,6 +1249,44 @@ body {
   border: 1px solid #2d2d2d;
 }
 
+.transition-lab__endpoint-row + .transition-lab__endpoint-row {
+  margin-top: 28px;
+}
+
+.transition-lab__endpoint-row h3 {
+  margin: 0 0 10px;
+  color: #777;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.transition-lab__endpoints {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(var(--endpoint-size), 1fr));
+  gap: 1px;
+  overflow-x: auto;
+  background: #2d2d2d;
+  border: 1px solid #2d2d2d;
+}
+
+.transition-lab__endpoint {
+  display: grid;
+  place-items: center;
+  min-width: var(--endpoint-size);
+  min-height: calc(var(--endpoint-size) + 30px);
+  margin: 0;
+  background: #090909;
+}
+
+.transition-lab__endpoint figcaption {
+  color: #8a8a8a;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .transition-lab__frame,
 .transition-lab__matrix-frame {
   display: grid;

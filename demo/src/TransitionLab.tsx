@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { THINKING_HEAD_STATES, type ThinkingHeadState } from "thinking-head";
 import {
   auditAllStateTransitions,
+  type Camera,
   HeadModel,
   minimumResolutionForSize,
   type RenderStyle,
@@ -19,6 +20,14 @@ const LAB_STYLE: RenderStyle = {
   featureBoost: DEFAULT_TUNING.style.featureBoost,
   lighting: DEFAULT_TUNING.style.lighting,
 };
+
+const FACIAL_CAMERA: Camera = {
+  ...DEFAULT_TUNING.camera,
+  yaw: 0,
+  pitch: 0,
+};
+
+const ENDPOINT_SIZES = [48, 96, 320] as const;
 
 function stateFromQuery(value: string | null, fallback: ThinkingHeadState): ThinkingHeadState {
   return THINKING_HEAD_STATES.includes(value as ThinkingHeadState)
@@ -92,6 +101,18 @@ export function TransitionLab() {
       ),
     [dpr, model],
   );
+  const endpointPointSets = useMemo(
+    () =>
+      ENDPOINT_SIZES.map((endpointSize) => ({
+        size: endpointSize,
+        pointSet: model.levelForSize(
+          endpointSize * dpr,
+          DEFAULT_TUNING.sampling.targetCellCss * dpr,
+          minimumResolutionForSize(endpointSize),
+        ),
+      })),
+    [dpr, model],
+  );
 
   return (
     <main className="transition-lab">
@@ -157,9 +178,50 @@ export function TransitionLab() {
         </form>
       </header>
 
-      <section className="transition-lab__section" aria-labelledby="frames-heading">
+      <section className="transition-lab__section" aria-labelledby="endpoints-heading">
         <div className="transition-lab__section-heading">
           <span>01</span>
+          <div>
+            <h2 id="endpoints-heading">Facial endpoint gallery</h2>
+            <p>
+              Fixed camera, neutral white material, and local facial motion only. Head sway,
+              shimmer, and semantic tint are removed so the expression must carry the state.
+            </p>
+          </div>
+        </div>
+        {endpointPointSets.map(({ size: endpointSize, pointSet }) => (
+          <div className="transition-lab__endpoint-row" key={endpointSize}>
+            <h3>{endpointSize}px</h3>
+            <div
+              className="transition-lab__endpoints"
+              style={{ "--endpoint-size": `${endpointSize}px` } as React.CSSProperties}
+            >
+              {THINKING_HEAD_STATES.map((state) => (
+                <TransitionFrame
+                  key={state}
+                  from={state}
+                  to={state}
+                  time={0}
+                  startTime={startTime}
+                  fps={fps}
+                  size={endpointSize}
+                  dpr={dpr}
+                  pointSet={pointSet}
+                  camera={FACIAL_CAMERA}
+                  style={LAB_STYLE}
+                  facialOnly
+                  caption={state}
+                  className="transition-lab__endpoint"
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="transition-lab__section" aria-labelledby="frames-heading">
+        <div className="transition-lab__section-heading">
+          <span>02</span>
           <div>
             <h2 id="frames-heading">Frame recording</h2>
             <p>
@@ -193,7 +255,7 @@ export function TransitionLab() {
 
       <section className="transition-lab__section" aria-labelledby="matrix-heading">
         <div className="transition-lab__section-heading">
-          <span>02</span>
+          <span>03</span>
           <div>
             <h2 id="matrix-heading">Directed-pair matrix</h2>
             <p>
@@ -237,7 +299,7 @@ export function TransitionLab() {
 
       <section className="transition-lab__section" aria-labelledby="analysis-heading">
         <div className="transition-lab__section-heading">
-          <span>03</span>
+          <span>04</span>
           <div>
             <h2 id="analysis-heading">Frame analysis</h2>
             <p>Scalar and oscillator continuity at {fps} fps across all 90 directed state pairs.</p>

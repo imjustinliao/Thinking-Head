@@ -6,6 +6,7 @@ import {
   type HeadPointSet,
   type RenderFrame,
   type RenderStyle,
+  STILL_MOTION,
   StateTransitionController,
 } from "thinking-head/dev";
 
@@ -21,6 +22,8 @@ interface TransitionFrameProps {
   camera: Camera;
   style: RenderStyle;
   className?: string;
+  facialOnly?: boolean;
+  caption?: string;
 }
 
 /**
@@ -42,6 +45,8 @@ export function TransitionFrame({
   camera,
   style,
   className,
+  facialOnly = false,
+  caption,
 }: TransitionFrameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sample = useMemo(() => {
@@ -55,6 +60,11 @@ export function TransitionFrame({
     }
     return controller.advance(startTime + time);
   }, [fps, from, startTime, time, to]);
+  const facialMotion = useMemo(
+    () =>
+      facialOnly ? { ...STILL_MOTION, facialSpeed: sample.motion.facialSpeed } : sample.motion,
+    [facialOnly, sample],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -68,13 +78,13 @@ export function TransitionFrame({
       style,
       time: startTime + time,
       phase: sample.phase,
-      motion: sample.motion,
+      motion: facialMotion,
       expression: sample.expression,
-      accent: sample.accent,
     };
+    if (!facialOnly) frame.accent = sample.accent;
     renderer.draw(frame);
     return () => renderer.dispose();
-  }, [camera, dpr, pointSet, sample, size, startTime, style, time]);
+  }, [camera, dpr, facialMotion, facialOnly, pointSet, sample, size, startTime, style, time]);
 
   return (
     <figure className={className}>
@@ -82,7 +92,7 @@ export function TransitionFrame({
         ref={canvasRef}
         aria-label={`${from} to ${to} transition at ${Math.round(time * 1000)} milliseconds`}
       />
-      <figcaption>{Math.round(time * 1000)}ms</figcaption>
+      <figcaption>{caption ?? `${Math.round(time * 1000)}ms`}</figcaption>
     </figure>
   );
 }
