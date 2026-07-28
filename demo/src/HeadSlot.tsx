@@ -2,17 +2,19 @@ import { useEffect, useMemo, useRef } from "react";
 import type { ThinkingHeadState } from "thinking-head";
 import {
   type Camera,
+  clockTime,
   createRenderer,
   type ExpressionParams,
   type HeadModel,
   type HeadRenderer,
   minimumResolutionForSize,
   type RenderBackend,
+  type RenderFrame,
   type RenderStyle,
   resolveTier,
-  STATE_EXPRESSION,
   STATE_MOTION,
   STILL_MOTION,
+  StateTransitionController,
   subscribeToClock,
 } from "thinking-head/dev";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
@@ -59,8 +61,15 @@ export function HeadSlot({
 }: HeadSlotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<HeadRenderer | null>(null);
+  const controllerRef = useRef<StateTransitionController | null>(null);
+  const drawRef = useRef<((time: number) => void) | null>(null);
+  const refreshClockRef = useRef<(() => void) | null>(null);
+  const speedRef = useRef(speed);
   const reducedMotion = usePrefersReducedMotion();
-  const expression = expressionOverride ?? STATE_EXPRESSION[state];
+
+  if (!controllerRef.current) {
+    controllerRef.current = new StateTransitionController(state, clockTime(), speed);
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -89,9 +98,42 @@ export function HeadSlot({
   }, [state, style]);
 
   useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    const now = clockTime();
+    const previousSpeed = speedRef.current;
+
+    if (reducedMotion) {
+      if (expressionOverride) {
+        controller.setTarget(state, STATE_MOTION[state], expressionOverride, now, previousSpeed);
+        controller.snapToTarget(now, previousSpeed);
+      } else {
+        controller.snapToState(state, now, previousSpeed);
+      }
+    } else if (expressionOverride) {
+      controller.setTarget(state, STATE_MOTION[state], expressionOverride, now, previousSpeed);
+    } else {
+      controller.setTargetState(state, now, previousSpeed);
+    }
+
+    drawRef.current?.(now);
+    refreshClockRef.current?.();
+  }, [expressionOverride, reducedMotion, state]);
+
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    const now = clockTime();
+    controller.advance(now, speedRef.current);
+    speedRef.current = speed;
+    drawRef.current?.(now);
+  }, [speed]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const renderer = rendererRef.current;
-    if (!canvas || !renderer) return;
+    const controller = controllerRef.current;
+    if (!canvas || !renderer || !controller) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     renderer.resize(size, dpr);
@@ -103,43 +145,68 @@ export function HeadSlot({
       minimumResolutionForSize(size),
     );
 
-    // Reduced motion simplifies rather than removes: the head still renders, fully shaded, it
-    // simply holds still. Deleting the indicator would delete the status signal with it.
-    const motion = reducedMotion ? STILL_MOTION : STATE_MOTION[state];
-
-    const draw = (time: number) => {
-      renderer.draw({
-        pointSet,
-        count: pointSet.count,
-        camera: effectiveCamera,
-        style: effectiveStyle,
-        time,
-        motion,
-        expression,
-      });
+    // Reuse one frame object. Animation changes only its scalar/vector references, so the live
+    // path adds no per-frame garbage for the collector to clean up.
+    const frame: RenderFrame = {
+      pointSet,
+      count: pointSet.count,
+      camera: effectiveCamera,
+      style: effectiveStyle,
+      time: clockTime(),
+      phase: controller.sample.phase,
+      motion: reducedMotion ? STILL_MOTION : controller.sample.motion,
+      expression: controller.sample.expression,
     };
 
-    if (reducedMotion) {
-      draw(0);
-      return;
-    }
+    const draw = (time: number): void => {
+      let sample = controller.advance(time, speedRef.current);
+      if (
+        reducedMotion &&
+        sample.requestedState === "done" &&
+        sample.targetState === "idle" &&
+        !sample.settled
+      ) {
+        sample = controller.snapToTarget(time, speedRef.current);
+      }
+      frame.time = time;
+      frame.phase = sample.phase;
+      frame.motion = reducedMotion ? STILL_MOTION : sample.motion;
+      frame.expression = sample.expression;
+      renderer.draw(frame);
+    };
+    drawRef.current = draw;
 
     let unsubscribe: (() => void) | null = null;
-    const start = () => {
-      if (!unsubscribe) unsubscribe = subscribeToClock((t) => draw(t * speed));
-    };
-    const stop = () => {
+    let visible = false;
+    const needsClock = (): boolean =>
+      !reducedMotion ||
+      (controller.sample.requestedState === "done" && controller.sample.targetState === "done");
+
+    const stop = (): void => {
       unsubscribe?.();
       unsubscribe = null;
     };
 
+    const start = () => {
+      if (unsubscribe || !visible || !needsClock()) return;
+      unsubscribe = subscribeToClock((time) => {
+        draw(time);
+        if (!needsClock()) stop();
+      });
+    };
+    const refreshClock = (): void => {
+      if (!visible || !needsClock()) stop();
+      else start();
+    };
+    refreshClockRef.current = refreshClock;
+
     // Draw once immediately so a head that mounts offscreen is already correct when scrolled to.
-    draw(0);
+    draw(clockTime());
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) start();
-        else stop();
+        visible = entry?.isIntersecting ?? false;
+        refreshClock();
       },
       { rootMargin: "64px" },
     );
@@ -148,18 +215,10 @@ export function HeadSlot({
     return () => {
       observer.disconnect();
       stop();
+      if (drawRef.current === draw) drawRef.current = null;
+      if (refreshClockRef.current === refreshClock) refreshClockRef.current = null;
     };
-  }, [
-    size,
-    model,
-    effectiveCamera,
-    effectiveStyle,
-    expression,
-    targetCellCss,
-    state,
-    speed,
-    reducedMotion,
-  ]);
+  }, [size, model, effectiveCamera, effectiveStyle, targetCellCss, reducedMotion]);
 
   return (
     <span
