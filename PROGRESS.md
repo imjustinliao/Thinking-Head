@@ -8,10 +8,40 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 | --- | --- |
 | Product direction | Renamed the demo product to Thinking TF and reset all visual design |
 | States | Thinking, executing, listening, searching, and reading are semantic placeholders only |
-| Animation language | Removed pending the next original 2D system |
-| Frame plans | Cleared; the next implementation brief is local-only at `research-local/claude-code-handoff.md` |
-| Local showcase | Unstyled content at `http://localhost:5173` for handoff to Claude Code |
-| Next review | Claude Code implementation against the approved handoff brief |
+| Animation language | Rig part list and two canonical forms defined; motion still to be designed |
+| Frame plans | Cleared; the next implementation brief is local-only and never committed |
+| Local showcase | Milestone 1 composition at `http://localhost:5173` |
+| Next review | Milestone 1 sign-off, then library-backed glass |
+
+## Milestone 1 — page composition and controls, 2026-08-02
+
+Built the structural pass of the new direction before any material work:
+
+- One design-token layer: 12-column grid rails, a single spacing scale, one radius family,
+  and one cool key light from the upper left with a faint reflected fill.
+- Navigation: three circular controls centred at the top. The middle control expands from
+  the centre on hover and keyboard focus to reveal **Thinking TF** with its mark pinned
+  left, which pushes the outer circles outward by the same distance. Touch devices get the
+  control already open rather than a state they cannot reach.
+- A single state stage as the focal object, with a five-option segmented selector built on
+  native radios so arrow-key roving and single-selection semantics are not re-implemented.
+- Temporary rig outlines establishing the part list and both canonical silhouettes.
+- Original brand mark: an open block with a solid core beyond its edge.
+
+Deliberately not done yet: liquid glass, ambient state motion, and the staged
+vehicle/upright transition.
+
+### Verified
+
+`lint`, `typecheck`, `test`, and `build` all pass. State switching was exercised in the
+running page: each option repositions every rig part to the correct canonical form and
+updates the caption.
+
+### Not yet verified
+
+Hover and keyboard-focus expansion of the navigation, and full-page visual review, still
+need a visible browser. Reference images for material and proportion have not been
+supplied yet, so no final visual detail is fixed.
 
 ## What was deliberately removed
 

@@ -1,54 +1,92 @@
-const states = ["Thinking", "Executing", "Listening", "Searching", "Reading"] as const;
+import { useState } from "react";
+import { type MechState, STATE_FRAME_PLANS } from "thinking-head";
+import { BrandMark } from "./components/BrandMark.js";
+import { RigOutline, STATE_FORMS } from "./components/RigOutline.js";
+import { SiteNav } from "./components/SiteNav.js";
+import { StateSelector } from "./components/StateSelector.js";
+
+const INSTALL_SNIPPET = "npm install /path/to/Thinking-Head";
+
+const REACT_SNIPPET = `import { MechIndicator } from "thinking-head/react";
+
+<MechIndicator state="thinking" />`;
 
 export function App() {
+  const [state, setState] = useState<MechState>("thinking");
+  const plan = STATE_FRAME_PLANS[state];
+
   return (
-    <main id="top">
-      <header>
-        <nav aria-label="Primary navigation">
-          <a href="https://github.com/">GitHub</a>
-          <a href="#top">Thinking TF</a>
-          <a href="https://x.com/">X</a>
-        </nav>
-      </header>
+    <div className="page" id="top">
+      <SiteNav />
 
-      <section aria-labelledby="thinking-tf-title">
-        <p>Logo placeholder</p>
-        <h1 id="thinking-tf-title">Thinking TF</h1>
-        <p>Every model lies beyond the transformer.</p>
-        <p>An open-sourced UI component for each state of your AI agent.</p>
-      </section>
+      <main>
+        <section aria-labelledby="thinking-tf-title" className="hero">
+          <div className="rails rails--drawn">
+            <BrandMark className="hero__mark" size={40} />
 
-      <section aria-labelledby="states-title">
-        <h2 id="states-title">States</h2>
-        <ul>
-          {states.map((state) => (
-            <li key={state}>
-              <h3>{state}</h3>
-              <p aria-label={`${state} appearance placeholder`} role="img">
-                [Temporary {state.toLowerCase()} appearance placeholder]
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
+            <h1 className="hero__title" id="thinking-tf-title">
+              Thinking TF
+            </h1>
 
-      <section aria-labelledby="guide-title">
-        <h2 id="guide-title">Guide</h2>
-        <h3>Install</h3>
-        <pre>
-          <code>npm install /path/to/Thinking-Head</code>
-        </pre>
-        <h3>React</h3>
-        <pre>
-          <code>
-            {
-              'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'
-            }
-          </code>
-        </pre>
-      </section>
+            <p className="hero__tagline">Every model lies beyond the transformer.</p>
 
-      <footer>@ Justin Liao</footer>
-    </main>
+            <p className="hero__description">
+              An open-sourced UI component for each state of your AI agent.
+            </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="states-title" className="states">
+          <div className="rails">
+            <h2 className="section-mark" id="states-title">
+              States
+            </h2>
+
+            <div className="stage">
+              <figure className="stage__figure">
+                <RigOutline label={plan.label} state={state} />
+              </figure>
+            </div>
+
+            <p className="stage__caption">
+              <span className="stage__state">{plan.label}</span>
+              <span className="stage__form">
+                {STATE_FORMS[state] === "vehicle" ? "Low vehicle" : "Upright machine"}
+              </span>
+            </p>
+
+            <StateSelector onChange={setState} value={state} />
+          </div>
+        </section>
+
+        <section aria-labelledby="guide-title" className="guide">
+          <div className="rails">
+            <h2 className="section-mark" id="guide-title">
+              Guide
+            </h2>
+
+            <div className="guide__step">
+              <h3 className="guide__heading">Install</h3>
+              <pre className="guide__code">
+                <code>{INSTALL_SNIPPET}</code>
+              </pre>
+            </div>
+
+            <div className="guide__step">
+              <h3 className="guide__heading">React</h3>
+              <pre className="guide__code">
+                <code>{REACT_SNIPPET}</code>
+              </pre>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="footer">
+        <div className="rails">
+          <p className="footer__inner">@ Justin Liao</p>
+        </div>
+      </footer>
+    </div>
   );
 }
