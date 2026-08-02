@@ -1,8 +1,9 @@
-# Thinking Head
+# Thinking TF
 
-A lightweight, original modular-mech status indicator for AI and agent interfaces.
+A client-side AI activity indicator currently undergoing a complete visual redesign.
 
-The component turns five common activities into small, readable machine motions: thinking, executing, listening, searching, and reading. It uses inline SVG and CSS only—no images, downloads, server calls, or JavaScript animation loop.
+The five supported semantic states are thinking, executing, listening, searching, and
+reading. Their current visual output is intentionally a temporary placeholder.
 
 ```tsx
 import { MechIndicator } from "thinking-head/react";
@@ -10,7 +11,7 @@ import { MechIndicator } from "thinking-head/react";
 <MechIndicator state="searching" size={44} />;
 ```
 
-The first implementation is under active visual review. See `docs/animation-system.md` for the pose plans and `demo/` for the local inspection showcase.
+See [the handoff brief](docs/claude-code-handoff.md) for the pending visual-system work.
 
 ## License
 

@@ -6,12 +6,12 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 
 | Item | Status |
 | --- | --- |
-| Product direction | Replaced the particle-head experiment with an original modular-mech activity indicator |
-| States | First implementation: thinking, executing, listening, searching, reading |
-| Animation language | SVG/CSS pose rig with no JavaScript frame loop |
-| Frame plans | Written for every state in `docs/animation-system.md` and exported as data |
-| Local showcase | Reference-led centered state-stage pass in progress at `http://localhost:5173` |
-| Next review | Justin to judge the rebuilt frosted selector, its alignment, and the less predictable glitch treatment |
+| Product direction | Renamed the demo product to Thinking TF and reset all visual design |
+| States | Thinking, executing, listening, searching, and reading are semantic placeholders only |
+| Animation language | Removed pending the next original 2D system |
+| Frame plans | Cleared; the next implementation brief is `docs/claude-code-handoff.md` |
+| Local showcase | Unstyled content at `http://localhost:5173` for handoff to Claude Code |
+| Next review | Claude Code implementation against the approved handoff brief |
 
 ## What was deliberately removed
 
@@ -24,14 +24,18 @@ The prior source tree implemented a particle-based human head, its geometry baki
 - Reduced motion must leave an understandable static status symbol.
 - The project stays deliberately small, high-performance, and easy to inspect locally.
 
-## Marketing prototype direction — 2026-08-02
+## Marketing prototype reset — 2026-08-02
 
-Justin explicitly brought a local marketing prototype into scope. The space composition and state-specific image backdrops were rejected and deleted on 2026-08-02. A reference review then established the active direction: one full-screen black stage; compact navigation at the edge; a readable, left-aligned tagline aligned with the control rail; one centered state indicator as the only large object; and one five-part frosted selector below it as the sole visible frame. The tagline briefly mutates only 3–5 letters at independently sampled intervals and immediately restores, so it never develops a readable rhythm. The control surfaces now use one restrained frosted recipe: a pale translucent layer, soft top catch-light, subtle inner boundary, controlled backdrop blur, and a solid accessibility fallback. The selected segment is vertically centered inside the rail, with equal padding on every side; it uses a pale state tint and black text. Apple’s Human Interface Guidelines are the ongoing design baseline. This local page is not approved for public deployment yet.
+Justin rejected every prior marketing-page treatment, including the glass CSS, background
+imagery, state SVGs, colour choices, selector, navigation, and motion. They were removed from
+the working tree. The showcase now keeps only the requested content and temporary state
+appearance placeholders. `docs/claude-code-handoff.md` is the single actionable design and
+implementation brief for the next agent. This local page is not approved for public deployment.
 
 ## Remaining plan
 
-1. **Redesign all five state frames.** The current SVG mechanism and motion paths are functional placeholders only; replace their silhouettes, components, and micro-motion after visual direction is approved.
-2. **Run the state distinction pass.** Check each redesigned state at inline and stage sizes, with rapid switching, reduced motion, grayscale, keyboard interaction, and 200% zoom.
+1. **Implement the new marketing design and navigation** exactly from the Claude Code handoff.
+2. **Design and implement the original 2D state rig**, then check state distinction at inline and stage sizes, rapid switching, reduced motion, grayscale, keyboard interaction, and 200% zoom.
 3. **Prepare publishing.** Choose and register a final npm package name, publish a versioned package, then replace the local-path guide with the verified registry command.
-4. **Finish public documentation.** Write the final README/API reference only after the frame redesign and package-publishing flow are signed off.
+4. **Finish public documentation.** Replace this interim README only after the state design and package-publishing flow are signed off.
 5. **Decide on public deployment.** The showcase remains local-only until Justin explicitly authorizes hosting.

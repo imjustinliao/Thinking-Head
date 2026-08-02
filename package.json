@@ -1,7 +1,7 @@
 {
   "name": "thinking-head",
   "version": "0.0.0",
-  "description": "A lightweight animated modular-mech status indicator for AI products.",
+  "description": "A client-side AI activity indicator undergoing a visual redesign.",
   "type": "module",
   "license": "MIT",
   "author": "Justin Liao",
