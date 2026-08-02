@@ -3,6 +3,9 @@
  *
  * One grid, one spacing scale, one radius family, one light direction. Every
  * rule here should trace back to one of those four decisions.
+ *
+ * The page is two parts: a scroll-driven reel that holds the identity and the
+ * state slides on one pinned stage, then the guide.
  */
 
 :root {
@@ -10,8 +13,7 @@
 
   /* Field and material. Near-black blue-black ground, off-white type,
      one cool blue source colour plus darker desaturated blue depth values. */
-  --field: #05070c;
-  --field-raised: #090d15;
+  --field: #04060a;
   --field-sunk: #03050a;
   --ink: #eef1f6;
   --ink-dim: rgb(238 241 246 / 0.62);
@@ -19,14 +21,11 @@
   --ink-ghost: rgb(238 241 246 / 0.12);
   --blue: #5b93ff;
   --blue-soft: rgb(91 147 255 / 0.5);
-  --blue-deep: #14213c;
-  --blue-shadow: #060b18;
 
-  /* Light. One dominant cool key from the upper left, faint reflected fill
-     from the lower right. Surfaces reuse these, never invent a new angle. */
+  /* Light. One dominant cool key from above and slightly left, faint
+     reflected fill. Surfaces reuse these, never invent a new angle. */
   --key-tilt: 155deg;
   --lit-edge: linear-gradient(var(--key-tilt), rgb(255 255 255 / 0.14), rgb(255 255 255 / 0) 46%);
-  --lit-face: linear-gradient(var(--key-tilt), rgb(120 160 255 / 0.08), rgb(6 11 24 / 0.4));
 
   /* Spacing scale. 4px base with editorial jumps at the top end. */
   --s-1: 0.25rem;
@@ -39,7 +38,6 @@
   --s-8: 4rem;
   --s-9: 6rem;
   --s-10: 9rem;
-  --s-11: 12.5rem;
 
   /* One radius family. */
   --r-s: 0.25rem;
@@ -56,6 +54,7 @@
   --ease-mech: cubic-bezier(0.32, 0.72, 0.24, 1);
   --dur-control: 340ms;
   --dur-quick: 180ms;
+  --dur-slide: 640ms;
 
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -83,33 +82,19 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/*
- * The key light. One bright cool source off-axis at the upper left and a much
- * fainter reflected fill opposite it. Fixed so the page reads as one lit room
- * rather than a per-section decoration.
- */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(62rem 48rem at 18% -8%, rgb(91 147 255 / 0.16), transparent 62%),
-    radial-gradient(48rem 40rem at 92% 108%, rgb(91 147 255 / 0.05), transparent 60%);
-}
-
 h1,
 h2,
 h3,
 p,
 ul,
+ol,
 figure,
 pre {
   margin: 0;
 }
 
-ul {
+ul,
+ol {
   padding: 0;
   list-style: none;
 }
@@ -135,6 +120,202 @@ a {
   white-space: nowrap;
 }
 
+/* -------------------------------------------------------------- backdrop */
+
+/*
+ * The room. One overhead key, a floor receding to a horizon, and a lit void
+ * sitting on that horizon as the source everything else is lit by. Fixed, so
+ * the page reads as one space instead of a stack of decorated sections.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--field);
+}
+
+.backdrop__cone {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(78% 52% at 50% -12%, rgb(150 190 255 / 0.17), transparent 70%),
+    radial-gradient(42% 30% at 16% 2%, rgb(91 147 255 / 0.13), transparent 72%);
+}
+
+/* Floor. Same perforated language as the object's own stage, page-wide. */
+.backdrop__floor {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  top: 76%;
+  height: 120%;
+  transform-origin: center top;
+  transform: perspective(340px) rotateX(75deg);
+  background-image: radial-gradient(circle, rgb(176 205 255 / 0.26) 0.8px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(40% 40% at 66% 0%, #000 3%, transparent 72%);
+  mask-image: radial-gradient(40% 40% at 66% 0%, #000 3%, transparent 72%);
+}
+
+.backdrop__horizon {
+  position: absolute;
+  left: 40%;
+  right: 8%;
+  top: 76%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgb(226 238 255 / 0.34) 46%,
+    rgb(214 232 255 / 0.18) 66%,
+    transparent
+  );
+}
+
+/* The void. Its rim is the brightest thing on the page, which is what makes
+   the floor and the object in front of it read as lit from behind. */
+/*
+ * The void sits on the right, where the object stands, so the left-aligned
+ * type never has to compete with it.
+ */
+.backdrop__void {
+  position: absolute;
+  left: 68%;
+  top: 62%;
+  width: min(60vw, 34rem);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  transition:
+    translate 900ms var(--ease-mech),
+    width 900ms var(--ease-mech),
+    opacity 900ms var(--ease-mech);
+}
+
+/* Soft-edged mass: the rim defines it, not an outline. */
+.backdrop__core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #000 0%,
+    #000 44%,
+    rgb(2 4 9 / 0.86) 56%,
+    rgb(3 5 11 / 0.4) 66%,
+    transparent 74%
+  );
+}
+
+/*
+ * The bright arc stays in the upper left, agreeing with the page key light,
+ * and only breathes a few degrees. A full rotation would read as the light
+ * source orbiting, which contradicts every other lit edge on the page.
+ */
+.backdrop__rim {
+  position: absolute;
+  inset: -1.5%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 268deg,
+    transparent 0deg,
+    rgb(206 230 255 / 0.85) 44deg,
+    rgb(110 165 255 / 0.3) 104deg,
+    transparent 156deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 48.6%, #000 50% 51.4%, transparent 52.8%);
+  mask: radial-gradient(circle, transparent 48.6%, #000 50% 51.4%, transparent 52.8%);
+  animation: rim-drift 18s ease-in-out infinite alternate;
+}
+
+/* Light bending around the mass, kept cool rather than the reference's warm. */
+.backdrop__arc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 188%;
+  height: 27%;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    transparent 33%,
+    rgb(160 200 255 / 0.26) 47%,
+    rgb(120 170 255 / 0.08) 61%,
+    transparent 78%
+  );
+  animation: arc-tilt 30s ease-in-out infinite alternate;
+}
+
+/* A specular sweep, the way light crosses a curved panel as you move past it. */
+.backdrop__glint {
+  position: absolute;
+  inset: -25%;
+  opacity: 0;
+  background: linear-gradient(
+    102deg,
+    transparent 42%,
+    rgb(214 232 255 / 0.035) 48%,
+    rgb(255 255 255 / 0.07) 50%,
+    rgb(214 232 255 / 0.035) 52%,
+    transparent 58%
+  );
+  animation: glint-sweep 13s ease-in-out infinite;
+}
+
+/* Fine grain so the gradients read as a photographed surface, not banding.
+   Generated inline: no downloaded asset, rasterised once. */
+.backdrop__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* Moving to the state slide brings the void forward and opens it up. */
+.backdrop[data-slide="0"] .backdrop__void {
+  width: min(48vw, 27rem);
+  translate: -50% -40%;
+  opacity: 0.6;
+}
+
+@keyframes rim-drift {
+  from {
+    rotate: -7deg;
+    opacity: 0.78;
+  }
+  to {
+    rotate: 7deg;
+    opacity: 1;
+  }
+}
+
+@keyframes arc-tilt {
+  from {
+    transform: rotate(-7deg) scaleX(0.96);
+  }
+  to {
+    transform: rotate(7deg) scaleX(1.04);
+  }
+}
+
+@keyframes glint-sweep {
+  0%,
+  62% {
+    opacity: 0;
+    transform: translate3d(-24%, 0, 0);
+  }
+  74% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(24%, 0, 0);
+  }
+}
+
 /* ---------------------------------------------------------------- layout */
 
 .page {
@@ -149,29 +330,6 @@ a {
   column-gap: var(--gutter);
   width: min(100% - var(--margin) * 2, var(--measure));
   margin-inline: auto;
-}
-
-/*
- * Faint column rails. Not decoration: they are the actual grid the type and
- * controls sit on, drawn so the structure is visible in the lit sections.
- */
-.rails--drawn {
-  position: relative;
-}
-
-.rails--drawn::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline: calc(var(--gutter) / -2);
-  z-index: -1;
-  pointer-events: none;
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--ink-ghost) 0 1px,
-    transparent 1px calc((100% + var(--gutter)) / 12)
-  );
-  opacity: 0.55;
 }
 
 .section-mark {
@@ -200,9 +358,10 @@ a {
  * The library's material sits behind the real control rather than wrapping it,
  * so semantics, focus, and touch stay on our own elements. `data-surface` is
  * the single switch between the refracted material and the opaque fallback.
+ *
+ * Grid, not flex: the content must fill the surface in both axes, otherwise
+ * the material is sized to a box the control does not actually occupy.
  */
-/* Grid, not flex: the content must fill the surface in both axes, otherwise
-   the material is sized to a box the control does not actually occupy. */
 .surface {
   position: relative;
   display: grid;
@@ -245,9 +404,11 @@ a {
 /* ------------------------------------------------------------ navigation */
 
 .nav {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   justify-content: center;
   padding-block: var(--s-5);
@@ -352,66 +513,260 @@ a {
   }
 }
 
-/* ------------------------------------------------------------------ hero */
+/* ------------------------------------------------------------------ reel */
 
-.hero {
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-block: var(--s-9) var(--s-10);
+/*
+ * Part one. The track is one viewport taller than the pin, and each slide owns
+ * an equal share of the pinned scroll. Marks sit at the centre of their share
+ * so the observer's centre band reports them in order.
+ */
+.reel {
+  --pin: 100svh;
+  --step: calc(var(--pin) / var(--slides));
+  position: relative;
 }
 
-.hero__mark {
-  grid-column: 1 / -1;
-  margin-bottom: var(--s-7);
+.reel__track {
+  position: relative;
+  height: calc(100svh + var(--pin));
+}
+
+/*
+ * Each mark spans the whole scroll range its slide owns, so the observer's
+ * centre band is always inside exactly one of them. Single-pixel marks would
+ * be skipped by a flicked wheel or a programmatic jump and leave the wrong
+ * slide showing.
+ */
+.reel__mark {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  top: calc(50svh + var(--index) * var(--step));
+  height: var(--step);
+}
+
+/* The first slide also owns everything above the track. */
+.reel__mark[data-index="0"] {
+  top: 0;
+  height: calc(50svh + var(--step));
+}
+
+.reel__stage {
+  position: sticky;
+  top: 0;
+  display: grid;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.reel__rails {
+  position: absolute;
+  top: var(--s-9);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.reel__slide {
+  grid-area: 1 / 1;
+  display: grid;
+  align-content: center;
+  /* Clears the fixed nav and the progress indicator above it. */
+  padding-block: var(--s-10) var(--s-8);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-slide) var(--ease-mech),
+    visibility 0s linear var(--dur-slide);
+}
+
+.reel__slide[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--dur-slide) var(--ease-mech),
+    visibility 0s;
+}
+
+/* Intro: content settles up into place as its slide takes over. */
+.reel__slide .slide > * {
+  opacity: 0;
+  transform: translate3d(0, 1.5rem, 0);
+  transition:
+    opacity var(--dur-slide) var(--ease-mech),
+    transform var(--dur-slide) var(--ease-mech);
+}
+
+.reel__slide[data-active="true"] .slide > * {
+  opacity: 1;
+  transform: none;
+}
+
+.reel__slide[data-active="true"] .slide > *:nth-child(1) {
+  transition-delay: 60ms;
+}
+.reel__slide[data-active="true"] .slide > *:nth-child(2) {
+  transition-delay: 130ms;
+}
+.reel__slide[data-active="true"] .slide > *:nth-child(3) {
+  transition-delay: 200ms;
+}
+.reel__slide[data-active="true"] .slide > *:nth-child(4) {
+  transition-delay: 270ms;
+}
+.reel__slide[data-active="true"] .slide > *:nth-child(5) {
+  transition-delay: 340ms;
+}
+
+/* -------------------------------------------------------------- progress */
+
+.progress {
+  grid-column: 9 / -1;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  pointer-events: auto;
+}
+
+.progress__button {
+  display: grid;
+  grid-template-columns: auto auto 1px;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-1) 0;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--dur-quick) var(--ease-mech);
+}
+
+.progress__button:hover,
+.progress__button[aria-current="true"] {
   color: var(--ink);
 }
 
-.hero__title {
+.progress__index {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  transition: color var(--dur-quick) var(--ease-mech);
+}
+
+.progress__button[aria-current="true"] .progress__index {
+  color: var(--blue);
+}
+
+.progress__rail {
+  width: 1px;
+  height: 1.75rem;
+  background: var(--ink-ghost);
+  transition:
+    background-color var(--dur-control) var(--ease-mech),
+    box-shadow var(--dur-control) var(--ease-mech);
+}
+
+.progress__button[aria-current="true"] .progress__rail {
+  background: var(--blue);
+  box-shadow: 0 0 12px var(--blue-soft);
+}
+
+/* ---------------------------------------------------------------- slides */
+
+.slide {
+  align-content: center;
+}
+
+.slide__eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.slide--identity {
+  grid-column: 1 / -1;
+}
+
+.slide--identity .slide__mark {
+  grid-column: 1 / -1;
+  margin-bottom: var(--s-6);
+  color: var(--ink);
+}
+
+.slide--identity .slide__eyebrow {
+  grid-column: 1 / -1;
+  margin-bottom: var(--s-4);
+}
+
+.slide__title {
   grid-column: 1 / span 8;
-  font-size: clamp(3.25rem, 10.5vw, 8.5rem);
+  font-size: clamp(3rem, 9.5vw, 7.5rem);
   font-weight: 600;
   line-height: 0.92;
   letter-spacing: -0.04em;
-  margin-bottom: var(--s-6);
+  margin-bottom: var(--s-5);
 }
 
-.hero__tagline {
+.slide__tagline {
   grid-column: 1 / span 7;
-  font-size: clamp(1.125rem, 2.2vw, 1.625rem);
-  font-weight: 400;
+  font-size: clamp(1.0625rem, 2vw, 1.5rem);
   line-height: 1.25;
   letter-spacing: -0.01em;
-  color: var(--ink);
   text-wrap: balance;
 }
 
-.hero__description {
+.slide__description {
   grid-column: 8 / span 5;
   align-self: end;
-  font-size: 1rem;
   color: var(--ink-dim);
   border-top: 1px solid var(--ink-ghost);
   padding-top: var(--s-4);
-  margin-top: var(--s-7);
+  margin-top: var(--s-6);
+}
+
+/* The state name is the loudest type on the page after the product name. */
+.slide--states {
+  grid-column: 1 / -1;
+  align-items: center;
+}
+
+.slide__text {
+  grid-column: 1 / span 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+
+.slide__state {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+}
+
+.slide__form {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
 }
 
 /* ----------------------------------------------------------------- stage */
 
-.states {
-  padding-block: var(--s-10);
-  /* The receding plane is deliberately wider than the grid; clip its bleed
-     rather than letting it add a horizontal scrollbar. */
-  overflow-x: clip;
-}
-
 .stage {
-  grid-column: 1 / -1;
-  position: relative;
+  grid-column: 7 / -1;
   display: grid;
   place-items: center;
-  padding-block: var(--s-8) var(--s-10);
 }
 
 /*
@@ -422,7 +777,7 @@ a {
 .stage__scene {
   --ground: 88.69%; /* y=149 of the rig's 168-unit viewBox */
   position: relative;
-  width: min(100%, 34rem);
+  width: min(100%, 30rem);
   aspect-ratio: 240 / 168;
   color: var(--ink);
 }
@@ -433,11 +788,6 @@ a {
   pointer-events: none;
 }
 
-/*
- * A perforated floor in perspective. Dots compress toward the horizon, which
- * is what makes the object read as standing in a space rather than floating
- * on a flat panel. Static transform: nothing animates, nothing allocates.
- */
 .stage__plane {
   position: absolute;
   left: -55%;
@@ -452,11 +802,6 @@ a {
   mask-image: radial-gradient(42% 40% at 50% 0%, #000 4%, transparent 72%);
 }
 
-/*
- * Rim light behind the object. The upper-left key stays dominant; this is the
- * reflected fill made structural, so it is dim and biased left to agree with
- * the key rather than reading as a second, competing source.
- */
 .stage__horizon {
   position: absolute;
   top: var(--ground);
@@ -486,27 +831,6 @@ a {
   position: absolute;
   inset: 0;
   margin: 0;
-}
-
-.stage__caption {
-  grid-column: 1 / span 6;
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-4);
-  margin-top: var(--s-7);
-}
-
-.stage__state {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.stage__form {
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
 }
 
 /*
@@ -539,15 +863,10 @@ a {
 /* -------------------------------------------------------------- selector */
 
 .selector {
-  grid-column: 1 / span 8;
-  margin-top: var(--s-6);
+  width: 100%;
   border: 0;
   padding: 0;
   min-inline-size: 0;
-}
-
-.selector__legend {
-  padding: 0;
 }
 
 .selector__track {
@@ -567,12 +886,11 @@ a {
   align-items: center;
   justify-content: center;
   min-height: 2.75rem;
-  padding-inline: var(--s-3);
+  padding-inline: var(--s-2);
   border-radius: var(--r-m);
   color: var(--ink-dim);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
   cursor: pointer;
   transition:
     color var(--dur-quick) var(--ease-mech),
@@ -614,7 +932,12 @@ a {
 /* ----------------------------------------------------------------- guide */
 
 .guide {
-  padding-block: var(--s-10);
+  position: relative;
+  padding-block: var(--s-10) var(--s-8);
+}
+
+.guide .rails {
+  row-gap: var(--s-7);
 }
 
 .guide__step {
@@ -637,7 +960,7 @@ a {
   padding: var(--s-5);
   border: 1px solid var(--ink-ghost);
   border-radius: var(--r-m);
-  background-color: var(--field-sunk);
+  background-color: rgb(3 5 10 / 0.72);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   line-height: 1.7;
@@ -645,14 +968,9 @@ a {
   overflow-x: auto;
 }
 
-/* ---------------------------------------------------------------- footer */
-
-.footer {
-  padding-block: var(--s-7) var(--s-8);
-}
-
 .footer__inner {
   grid-column: 1 / -1;
+  margin-top: var(--s-9);
   border-top: 1px solid var(--ink-ghost);
   padding-top: var(--s-4);
   font-size: 0.8125rem;
@@ -661,55 +979,77 @@ a {
 
 /* ------------------------------------------------------------ responsive */
 
-@media (max-width: 60rem) {
-  .hero__title {
+@media (max-width: 64rem) {
+  .slide__title,
+  .slide__tagline,
+  .slide__description {
     grid-column: 1 / -1;
   }
 
-  .hero__tagline,
-  .hero__description {
+  .slide__description {
+    margin-top: var(--s-5);
+  }
+
+  .slide--states {
+    align-content: center;
+    row-gap: var(--s-6);
+  }
+
+  .slide__text,
+  .stage {
     grid-column: 1 / -1;
   }
 
-  .hero__description {
-    margin-top: var(--s-6);
+  .stage {
+    order: -1;
   }
 
-  .stage__caption,
-  .selector {
+  .stage__scene {
+    width: min(100%, 24rem);
+  }
+
+  .progress {
     grid-column: 1 / -1;
   }
 
   .guide__step {
     grid-column: 1 / -1;
   }
-
-  .rails--drawn::before {
-    display: none;
-  }
 }
 
 @media (max-width: 40rem) {
+  /* Clear the fixed nav, which is 48px of control plus its own padding. */
+  .reel__rails {
+    top: 6.75rem;
+  }
+
+  .progress {
+    flex-direction: row;
+    gap: var(--s-5);
+  }
+
+  .progress__button {
+    grid-template-columns: auto auto;
+  }
+
+  .progress__rail {
+    display: none;
+  }
+
   .selector__track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* The editorial spacing scale is tuned for a wide field; close it up so the
-     stage and its controls stay in one view on a phone. */
-  .states,
+  .stage__scene {
+    width: min(100%, 18rem);
+  }
+
   .guide {
     padding-block: var(--s-8);
   }
-
-  .stage {
-    padding-block: var(--s-5) var(--s-7);
-  }
-
-  .hero {
-    padding-block: var(--s-8) var(--s-9);
-  }
 }
 
+/* Reduced motion keeps the composition and drops the movement. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -717,5 +1057,6 @@ a {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
   }
 }

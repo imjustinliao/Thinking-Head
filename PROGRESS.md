@@ -143,6 +143,64 @@ seen moving; the geometry was confirmed by measurement and the keyboard path ins
 Safari, Firefox, and `prefers-reduced-transparency` fallback was confirmed by forcing the
 `data-surface="off"` branch, not on those engines.
 
+## Milestone 4 — two-part page and the room, 2026-08-02
+
+Justin asked for less height, a scroll-driven reel instead of stacked sections, a clearer
+state heading, and a three-dimensional backdrop. The page is now two parts.
+
+### Part one: the reel
+
+A track one viewport taller than its pin, holding a sticky stage. Identity and States each
+own half the pinned scroll; a progress indicator sits top-right on the same grid rails as
+the content, showing `01 IDENTITY` / `02 STATES` with the active step lit.
+
+- Slide changes cost two IntersectionObserver callbacks for the whole section — no scroll
+  handler and no frame loop.
+- Each mark spans the entire scroll range its slide owns rather than being a single pixel.
+  A one-pixel mark is skipped by a flicked wheel or a programmatic jump, which left the
+  wrong slide showing; this was found and fixed by jumping the scroll position directly.
+- The progress steps are real buttons. Inactive slides are `visibility: hidden` and so are
+  out of the tab order, which would strand a keyboard user — the steps are how they reach
+  a slide without scrolling. Verified: the inactive slide's five radios are unreachable,
+  and the step button scrolls to its slide and makes them focusable again.
+- The state name is now the loudest type after the product name: large, light, uppercase,
+  with an `AGENT STATE` eyebrow above and the form below.
+
+Total height went from about 3.2 viewports to 2.65, and the whole page is two sections.
+
+### Part two: the guide
+
+Unchanged in content; the footer now closes it rather than standing alone.
+
+### The room
+
+A fixed backdrop behind everything: one overhead key, a floor receding to a horizon, and a
+lit void on that horizon acting as the source the floor and the object are lit by. Moving
+to the state slide brings the void forward and opens it up.
+
+- The void sits at 68% width, where the object stands, so the left-aligned type never
+  competes with it. Its mass is defined by a soft edge and its rim, not by an outline.
+- The rim arc holds the upper left and only breathes seven degrees. A full rotation was
+  tried first and rejected: it reads as the light source orbiting, which contradicts every
+  other lit edge on the page.
+- A specular glint sweeps periodically, and an inline-generated grain keeps the gradients
+  reading as a photographed surface rather than banding. No downloaded asset.
+- Everything that moves animates transform or opacity only.
+
+### Verified
+
+`lint`, `typecheck`, `test`, `build` pass; published bundle unchanged. Checked at 1360x860,
+779x796, and 375x812: no horizontal scroll at any size, the active slide fits the viewport
+exactly, text sits on rails 1–5 with the stage on 7–12 at desktop and stacked below 64rem,
+and the progress indicator right-aligns to the rails. Two collisions were found and fixed:
+the horizon cut through the hero description, and the mobile progress row overlapped the
+fixed nav. No console errors.
+
+### Not verified
+
+The reel was driven by programmatic scrolling and direct clicks, not by a real wheel or
+trackpad, so the feel of the transition under natural scrolling is unconfirmed.
+
 ## What was deliberately removed
 
 The prior source tree implemented a particle-based human head, its geometry baking scripts, WebGL/Canvas renderer, and a dedicated demo. Justin asked for a clean directional reset. Those files were removed from the working tree; their historical commits remain recoverable in Git. `README.md` and `LICENSE` were retained and rewritten/kept for the new scope.
