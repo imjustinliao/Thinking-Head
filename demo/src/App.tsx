@@ -1,16 +1,16 @@
-import { Fragment, useEffect, useState } from "react";
+import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { type MechState, STATE_FRAME_PLANS } from "thinking-head";
 import { MechIndicator } from "thinking-head/react";
 
 const tagline = "Every model lies beyond the transformer.";
 const scramble = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&?<>/";
 const states: readonly MechState[] = ["thinking", "executing", "listening", "searching", "reading"];
-const stateBackdrops: Record<MechState, string> = {
-  thinking: "/state-backdrops/thinking.jpg",
-  executing: "/state-backdrops/executing.jpg",
-  listening: "/state-backdrops/listening.jpg",
-  searching: "/state-backdrops/searching.jpg",
-  reading: "/state-backdrops/reading.jpg",
+const stateAccents: Record<MechState, string> = {
+  thinking: "#dce8ff",
+  executing: "#ffe0bd",
+  listening: "#d8fff4",
+  searching: "#fff3ad",
+  reading: "#eadbff",
 };
 const taglineSlots = [...tagline].map((letter, order) => ({
   letter,
@@ -18,50 +18,52 @@ const taglineSlots = [...tagline].map((letter, order) => ({
 }));
 
 function GlitchTagline() {
-  const [letters, setLetters] = useState(() =>
-    taglineSlots.map(({ letter }) =>
-      letter === " " ? " " : scramble[Math.floor(Math.random() * scramble.length)],
-    ),
-  );
+  const [letters, setLetters] = useState(() => taglineSlots.map(({ letter }) => letter));
+  const [isGlitching, setIsGlitching] = useState(false);
 
   useEffect(() => {
-    const timers: number[] = [];
-    taglineSlots.forEach(({ letter }, index) => {
-      if (letter === " ") return;
-      const start = 90 + Math.random() * 620 + index * 17;
-      const steps = 2 + Math.floor(Math.random() * 5);
-      const cadence = 34 + Math.random() * 48;
-      for (let step = 0; step <= steps; step += 1) {
-        timers.push(
-          window.setTimeout(
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let glitchTimer: number;
+    let settleTimer: number;
+    const eligible = taglineSlots.flatMap(({ letter }, index) => (letter === " " ? [] : [index]));
+
+    const schedule = () => {
+      glitchTimer = window.setTimeout(
+        () => {
+          const selected = [...eligible]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3 + Math.floor(Math.random() * 3));
+          setIsGlitching(true);
+          setLetters((current) => {
+            const next = [...current];
+            selected.forEach((index) => {
+              next[index] = scramble[Math.floor(Math.random() * scramble.length)];
+            });
+            return next;
+          });
+          settleTimer = window.setTimeout(
             () => {
-              setLetters((current) => {
-                const next = [...current];
-                next[index] =
-                  step === steps ? letter : scramble[Math.floor(Math.random() * scramble.length)];
-                return next;
-              });
+              setLetters(taglineSlots.map(({ letter }) => letter));
+              setIsGlitching(false);
+              schedule();
             },
-            start + step * cadence,
-          ),
-        );
-      }
-    });
-    // A final deterministic pass makes the temporary cipher impossible to linger.
-    timers.push(
-      window.setTimeout(() => {
-        setLetters(taglineSlots.map(({ letter }) => letter));
-      }, 1320),
-    );
+            72 + Math.random() * 120,
+          );
+        },
+        900 + Math.random() * 2500,
+      );
+    };
+
+    schedule();
     return () => {
-      timers.forEach((timer) => {
-        window.clearTimeout(timer);
-      });
+      window.clearTimeout(glitchTimer);
+      window.clearTimeout(settleTimer);
     };
   }, []);
 
   return (
-    <h1 aria-label={tagline} className="glitch-title">
+    <h1 aria-label={tagline} className={`glitch-title${isGlitching ? " is-glitching" : ""}`}>
       {tagline.split(" ").map((word, wordIndex, words) => {
         const start = words.slice(0, wordIndex).join(" ").length + (wordIndex ? 1 : 0);
         return (
@@ -156,26 +158,24 @@ export function App() {
     <main className="site-shell" id="top">
       <LiquidNavigation />
       <section aria-label="TF Thinks" className="hero">
-        <div
-          aria-hidden="true"
-          className="state-backdrop"
-          key={activeState}
-          style={{ backgroundImage: `url(${stateBackdrops[activeState]})` }}
-        />
-        <div aria-hidden="true" className="hero-scrim" />
         <div className="content-frame hero-frame">
           <GlitchTagline />
           <section aria-label="Selected state" aria-live="polite" className="state-stage">
-            <div className="stage-portal">
+            <div className="state-display">
               <MechIndicator key={activeState} size={160} speed={0.82} state={activeState} />
             </div>
             <p>{activePlan.label}</p>
           </section>
-          <nav aria-label="Choose a state" className="state-ribbon">
+          <nav
+            aria-label="Choose a state"
+            className="state-ribbon"
+            style={{ "--state-accent": stateAccents[activeState] } as CSSProperties}
+          >
             {states.map((state) => (
               <button
                 aria-pressed={state === activeState}
                 className="state-choice"
+                data-state={state}
                 key={state}
                 onClick={() => setActiveState(state)}
                 type="button"
