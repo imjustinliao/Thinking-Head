@@ -1,6 +1,6 @@
-export type { ModalityAccent, ThinkingHeadState } from "./core/states.js";
+export type { KeyPose, MechForm, MechState, StateFramePlan } from "./core/states.js";
 export {
   DEFAULT_STATE_LABELS,
-  MODALITY_ACCENTS,
-  THINKING_HEAD_STATES,
+  MECH_STATES,
+  STATE_FRAME_PLANS,
 } from "./core/states.js";
