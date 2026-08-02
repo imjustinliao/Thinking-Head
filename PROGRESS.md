@@ -10,8 +10,8 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 | States | First implementation: thinking, executing, listening, searching, reading |
 | Animation language | SVG/CSS pose rig with no JavaScript frame loop |
 | Frame plans | Written for every state in `docs/animation-system.md` and exported as data |
-| Local showcase | First space-marketing visual milestone complete at `http://localhost:5173` |
-| Next review | Justin to judge the space hero, mechanical world, and five-state constellation before further visual refinement |
+| Local showcase | Editorial marketing reset complete at `http://localhost:5173` |
+| Next review | Justin to judge the sparse type-led hero, state spaces, and installation section |
 
 ## What was deliberately removed
 
@@ -26,4 +26,4 @@ The prior source tree implemented a particle-based human head, its geometry baki
 
 ## Marketing prototype direction — 2026-08-02
 
-Justin explicitly brought a local marketing prototype into scope. The prior utilitarian showcase styling is replaced rather than incrementally restyled. The new page is an original high-contrast space composition: a primary star, small distant planets, orbital guide marks, and a large partially revealed mechanical world with a bright atmospheric rim and dark plated surface. It uses CSS/SVG layers only—no third-party image, asset, character name, or network request—and respects reduced-motion, reduced-transparency, and increased-contrast settings. This local page is not approved for public deployment yet.
+Justin explicitly brought a local marketing prototype into scope. The space composition was rejected and deleted on 2026-08-02. The active direction is a sparse black-and-white editorial page: strict margins and alignment, Space Grotesk display type, DM Sans body type, one randomized one-time glitch reveal for the tagline, five spacious state studies, a compact installation/usage guide, and a single glass nav. The nav uses the locally installed MIT `liquid-gl` package with a CSS fallback; no CDN request is made. The WebGL lens is intentionally desktop-only because the library's own guidance cautions against large mobile panes; narrow screens use the same visual material without the lens. The product still uses an original TF monogram, not a third-party character mark. This local page is not approved for public deployment yet.
