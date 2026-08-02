@@ -1,5 +1,5 @@
 import liquidGL from "liquid-gl";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { type MechState, STATE_FRAME_PLANS } from "thinking-head";
 import { MechIndicator } from "thinking-head/react";
 
@@ -41,6 +41,12 @@ function GlitchTagline() {
         );
       }
     });
+    // A final deterministic pass makes the temporary cipher impossible to linger.
+    timers.push(
+      window.setTimeout(() => {
+        setLetters(taglineSlots.map(({ letter }) => letter));
+      }, 1320),
+    );
     return () => {
       timers.forEach((timer) => {
         window.clearTimeout(timer);
@@ -50,11 +56,20 @@ function GlitchTagline() {
 
   return (
     <h1 aria-label={tagline} className="glitch-title">
-      {letters.map((letter, index) => (
-        <span aria-hidden="true" key={taglineSlots[index]?.id}>
-          {letter}
-        </span>
-      ))}
+      {tagline.split(" ").map((word, wordIndex, words) => {
+        const start = words.slice(0, wordIndex).join(" ").length + (wordIndex ? 1 : 0);
+        return (
+          <Fragment key={`${word}-${start}`}>
+            <span aria-hidden="true" className="glitch-word">
+              {[...word].map((_, letterIndex) => {
+                const index = start + letterIndex;
+                return <span key={taglineSlots[index]?.id}>{letters[index]}</span>;
+              })}
+            </span>
+            {wordIndex < words.length - 1 ? " " : null}
+          </Fragment>
+        );
+      })}
     </h1>
   );
 }
@@ -136,41 +151,47 @@ export function App() {
   return (
     <main className="site-shell" id="top">
       <LiquidNavigation />
+      <div aria-hidden="true" className="editorial-geometry" />
       <section className="hero" aria-labelledby="hero-title">
-        <p className="folio">01 / 03</p>
-        <GlitchTagline />
-        <p className="hero-index" id="hero-title">
-          TF Thinks
-        </p>
-      </section>
-
-      <section className="states-section" aria-label="Five states">
-        {states.map((state, index) => (
-          <article className="state-space" key={state}>
-            <p>0{index + 1}</p>
-            <MechIndicator size={index === 1 ? 82 : 68} speed={0.78} state={state} />
-            <h2>{STATE_FRAME_PLANS[state].label}</h2>
-          </article>
-        ))}
+        <div className="content-frame hero-frame">
+          <p className="folio">01 / 02</p>
+          <GlitchTagline />
+          <p className="hero-index" id="hero-title">
+            TF Thinks
+          </p>
+          <section className="states-section" aria-label="Five states">
+            {states.map((state, index) => (
+              <article className="state-space" key={state}>
+                <p>0{index + 1}</p>
+                <MechIndicator size={index === 1 ? 48 : 42} speed={0.78} state={state} />
+                <h2>{STATE_FRAME_PLANS[state].label}</h2>
+              </article>
+            ))}
+          </section>
+        </div>
       </section>
 
       <section className="guide" aria-labelledby="guide-title">
-        <p className="folio">02 / 03</p>
-        <h2 id="guide-title">Installation Guide</h2>
-        <CopyBlock value="npm install thinking-head">npm install thinking-head</CopyBlock>
-        <h3>Usage</h3>
-        <CopyBlock
-          value={
-            'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'
-          }
-        >
-          {
-            'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'
-          }
-        </CopyBlock>
+        <div className="content-frame guide-frame">
+          <p className="folio">02 / 02</p>
+          <h2 id="guide-title">Installation Guide</h2>
+          <CopyBlock value="npm install thinking-head">npm install thinking-head</CopyBlock>
+          <h3>Usage</h3>
+          <CopyBlock
+            value={
+              'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'
+            }
+          >
+            {
+              'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'
+            }
+          </CopyBlock>
+        </div>
       </section>
 
-      <footer>by Justin Liao</footer>
+      <footer>
+        <div className="content-frame">@ Justin Liao</div>
+      </footer>
     </main>
   );
 }
