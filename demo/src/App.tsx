@@ -28,31 +28,41 @@ function GlitchTagline() {
     let settleTimer: number;
     const eligible = taglineSlots.flatMap(({ letter }, index) => (letter === " " ? [] : [index]));
 
+    const nextGlitchDelay = () => {
+      // An exponential gap avoids a clock-like cadence while keeping the effect occasional.
+      const gap = 1250 + -Math.log(1 - Math.random()) * 2400;
+      return Math.min(gap, 10_500);
+    };
+
+    const chooseLetters = (count: number) => {
+      const pool = [...eligible];
+      for (let index = pool.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
+      }
+      return pool.slice(0, count);
+    };
+
     const schedule = () => {
-      glitchTimer = window.setTimeout(
-        () => {
-          const selected = [...eligible]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3 + Math.floor(Math.random() * 3));
-          setIsGlitching(true);
-          setLetters((current) => {
-            const next = [...current];
-            selected.forEach((index) => {
-              next[index] = scramble[Math.floor(Math.random() * scramble.length)];
-            });
-            return next;
+      glitchTimer = window.setTimeout(() => {
+        const selected = chooseLetters(3 + Math.floor(Math.random() * 3));
+        setIsGlitching(true);
+        setLetters((current) => {
+          const next = [...current];
+          selected.forEach((index) => {
+            next[index] = scramble[Math.floor(Math.random() * scramble.length)];
           });
-          settleTimer = window.setTimeout(
-            () => {
-              setLetters(taglineSlots.map(({ letter }) => letter));
-              setIsGlitching(false);
-              schedule();
-            },
-            72 + Math.random() * 120,
-          );
-        },
-        900 + Math.random() * 2500,
-      );
+          return next;
+        });
+        settleTimer = window.setTimeout(
+          () => {
+            setLetters(taglineSlots.map(({ letter }) => letter));
+            setIsGlitching(false);
+            schedule();
+          },
+          56 + Math.random() * 184,
+        );
+      }, nextGlitchDelay());
     };
 
     schedule();

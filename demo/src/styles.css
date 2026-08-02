@@ -46,31 +46,30 @@ a { color: inherit; }
   align-items: center;
   justify-content: center;
   height: 46px;
-  border: 1px solid #ffffff4d;
+  border: 1px solid #ffffff61;
   border-radius: 999px;
   background:
-    radial-gradient(120% 84% at 18% -12%, #ffffff40 0%, transparent 42%),
-    linear-gradient(145deg, #e3f1ff2b 0%, #94a7bd16 47%, #10171e36 100%);
+    linear-gradient(125deg, #ffffff25 0%, #dff3ff18 42%, #b8c9d213 100%),
+    #dceeff14;
   box-shadow:
-    inset 0 1px 0 #ffffff8c,
-    inset 0 -1px 0 #00000080,
-    inset 1px 0 0 #ffffff1f,
-    0 10px 28px #0008;
+    inset 0 1px 0 #ffffffa8,
+    inset 0 -1px 0 #ffffff14,
+    0 10px 24px #00000073;
   color: #fff;
   isolation: isolate;
   overflow: hidden;
   text-decoration: none;
-  backdrop-filter: blur(24px) saturate(1.45) contrast(1.05);
+  backdrop-filter: blur(24px) saturate(1.25);
 }
 
 .nav-control::before,
 .brand-control::before {
   position: absolute;
   z-index: -1;
-  inset: 1px;
-  border: 1px solid #ffffff1a;
+  inset: 2px;
+  border: 1px solid #ffffff22;
   border-radius: inherit;
-  background: linear-gradient(112deg, #ffffff28 0%, transparent 26%, transparent 74%, #91c4ff1c 100%);
+  background: linear-gradient(108deg, #ffffff1b, transparent 36%, #bde2ff12 100%);
   content: "";
   pointer-events: none;
 }
@@ -78,13 +77,13 @@ a { color: inherit; }
 .nav-control::after,
 .brand-control::after {
   position: absolute;
-  top: 2px;
-  left: 18%;
-  width: 52%;
+  top: 1px;
+  left: 20%;
+  width: 46%;
   height: 1px;
   background: linear-gradient(90deg, transparent, #ffffffc9, transparent);
   content: "";
-  opacity: .72;
+  opacity: .54;
   pointer-events: none;
 }
 
@@ -115,8 +114,8 @@ a { color: inherit; }
 .brand-control:focus-visible {
   width: 176px;
   background:
-    radial-gradient(120% 84% at 18% -12%, #ffffff4f 0%, transparent 42%),
-    linear-gradient(145deg, #e8f6ff3e 0%, #a9d2ff1b 47%, #121b243d 100%);
+    linear-gradient(125deg, #ffffff38 0%, #e7f7ff25 42%, #b8d8e119 100%),
+    #dceeff1d;
 }
 
 .masthead:has(.brand-control:hover) .github-control,
@@ -149,8 +148,8 @@ a { color: inherit; }
 .tf-mark i:nth-child(3) { top: 8px; left: 7px; width: 8px; height: 4px; }
 .nav-control:hover {
   background:
-    radial-gradient(120% 84% at 18% -12%, #ffffff52 0%, transparent 42%),
-    linear-gradient(145deg, #eff9ff40 0%, #a5c8ec26 47%, #16212b46 100%);
+    linear-gradient(125deg, #ffffff3b 0%, #e7f7ff26 42%, #b8d8e11a 100%),
+    #dceeff20;
 }
 
 .hero {
@@ -223,55 +222,59 @@ a { color: inherit; }
 
 .state-ribbon {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
   width: 100%;
-  min-height: 68px;
+  height: 74px;
   padding: 6px;
-  border: 1px solid #ffffff52;
-  border-radius: 20px 20px 26px 26px / 24px 24px 30px 30px;
+  border: 1px solid #ffffff65;
+  border-radius: 22px;
   background:
-    radial-gradient(86% 130% at 17% -46%, #ffffff4d 0%, transparent 47%),
-    linear-gradient(180deg, #d5ecff2c 0%, #1017203d 18%, #05080aa1 100%);
+    linear-gradient(135deg, #edf9ff2d 0%, #d7edff20 44%, #b7d4e71b 100%),
+    #e9f7ff14;
   box-shadow:
-    inset 0 1px 0 #ffffff9c,
-    inset 0 -1px 0 #0000009e,
-    inset 0 -8px 16px #0008,
-    0 22px 50px #0008;
+    inset 0 1px 0 #ffffffb3,
+    inset 0 -1px 0 #ffffff12,
+    0 14px 34px #00000070;
   isolation: isolate;
   overflow: hidden;
-  backdrop-filter: blur(28px) saturate(1.5) contrast(1.07);
+  backdrop-filter: blur(28px) saturate(1.3);
 }
 
 .state-ribbon::before {
   position: absolute;
   inset: 2px;
-  border: 1px solid #ffffff24;
-  border-radius: 16px 16px 22px 22px / 20px 20px 26px 26px;
-  background: linear-gradient(112deg, #ffffff19 0%, transparent 31%, transparent 71%, #a1cfff19 100%);
+  border: 1px solid #ffffff28;
+  border-radius: 18px;
+  background: linear-gradient(108deg, #ffffff1e, transparent 35%, #bbe4ff12 100%);
   content: "";
   pointer-events: none;
 }
 
 .state-ribbon::after {
   position: absolute;
-  top: 2px;
-  left: 11%;
-  width: 76%;
+  top: 1px;
+  left: 14%;
+  width: 72%;
   height: 1px;
   background: linear-gradient(90deg, transparent, #ffffffd4, transparent);
   content: "";
-  opacity: .75;
+  opacity: .5;
   pointer-events: none;
 }
 
 .state-choice {
   position: relative;
   z-index: 1;
-  flex: 1;
-  min-height: 54px;
-  padding: 10px 14px;
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 12px;
+  place-items: center;
   border: 0;
-  border-radius: 14px 14px 18px 18px / 16px 16px 20px 20px;
+  border-radius: 16px;
   background: transparent;
   color: #d9d9d6;
   cursor: pointer;
@@ -279,7 +282,8 @@ a { color: inherit; }
   font-size: clamp(.86rem, 1.2vw, 1.02rem);
   font-weight: 500;
   letter-spacing: -.035em;
-  transition: color 180ms ease, background 220ms ease, box-shadow 220ms ease, transform 220ms cubic-bezier(.2, .8, .2, 1);
+  text-align: center;
+  transition: color 180ms ease, background 220ms ease, box-shadow 220ms ease;
 }
 
 .state-choice:hover,
@@ -288,14 +292,12 @@ a { color: inherit; }
 .state-choice[aria-pressed="true"] {
   border: 1px solid #ffffffc9;
   background:
-    radial-gradient(80% 92% at 26% -26%, #fff 0%, transparent 52%),
-    linear-gradient(145deg, #fff 0%, var(--state-accent) 62%, #fff 100%);
+    linear-gradient(145deg, #ffffff 0%, var(--state-accent) 56%, #ffffff 100%);
   box-shadow:
-    inset 0 2px 2px #fff,
-    inset 0 -5px 9px #0002,
-    0 5px 12px #0007;
+    inset 0 1px 0 #ffffff,
+    inset 0 -1px 0 #00000012,
+    0 4px 10px #0000004f;
   color: #08090a;
-  transform: translateY(-2px);
 }
 
 .guide { border-top: 1px solid #ffffff1e; background: #050607; }
@@ -387,8 +389,8 @@ footer .content-frame { display: grid; min-height: 78px; place-items: center; co
   .state-stage { gap: 14px; padding: 18px 0; }
   .state-display { width: min(220px, 54vw); }
   .state-display .thm-indicator { transform: scale(.84); }
-  .state-ribbon { flex-wrap: wrap; min-height: 0; padding: 5px; border-radius: 18px 18px 24px 24px; }
-  .state-choice { flex: 1 1 30%; min-height: 43px; padding: 8px 10px; font-size: .86rem; }
+  .state-ribbon { grid-template-columns: repeat(3, minmax(0, 1fr)); height: auto; min-height: 110px; padding: 5px; border-radius: 18px; }
+  .state-choice { min-height: 47px; padding: 0 10px; font-size: .86rem; }
   .guide-frame { display: block; padding: 76px 0; }
   .guide-intro { max-width: 400px; margin-bottom: 34px; }
   .guide h3 { margin-top: 30px; }

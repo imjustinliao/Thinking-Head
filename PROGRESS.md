@@ -11,7 +11,7 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 | Animation language | SVG/CSS pose rig with no JavaScript frame loop |
 | Frame plans | Written for every state in `docs/animation-system.md` and exported as data |
 | Local showcase | Reference-led centered state-stage pass in progress at `http://localhost:5173` |
-| Next review | Justin to judge the new focal hierarchy, glass selector, and continuous glitch treatment |
+| Next review | Justin to judge the rebuilt frosted selector, its alignment, and the less predictable glitch treatment |
 
 ## What was deliberately removed
 
@@ -26,7 +26,7 @@ The prior source tree implemented a particle-based human head, its geometry baki
 
 ## Marketing prototype direction — 2026-08-02
 
-Justin explicitly brought a local marketing prototype into scope. The space composition and state-specific image backdrops were rejected and deleted on 2026-08-02. A reference review then established the active direction: one full-screen black stage; compact navigation at the edge; a readable, left-aligned tagline aligned with the control rail; one centered state indicator as the only large object; and one five-part glass selector below it as the sole visible frame. The tagline briefly mutates only 3–5 letters at irregular intervals and immediately restores. The selector has a raised outer rim and an inset inner rim; its active segment uses a pale state tint with black text. The navigation and selector now use the same material recipe: translucent content-aware tint, high-contrast text, bright catching edge, recessed lower edge, controlled blur/saturation, and an explicit solid fallback for reduced transparency. Apple’s Human Interface Guidelines are the ongoing design baseline. This local page is not approved for public deployment yet.
+Justin explicitly brought a local marketing prototype into scope. The space composition and state-specific image backdrops were rejected and deleted on 2026-08-02. A reference review then established the active direction: one full-screen black stage; compact navigation at the edge; a readable, left-aligned tagline aligned with the control rail; one centered state indicator as the only large object; and one five-part frosted selector below it as the sole visible frame. The tagline briefly mutates only 3–5 letters at independently sampled intervals and immediately restores, so it never develops a readable rhythm. The control surfaces now use one restrained frosted recipe: a pale translucent layer, soft top catch-light, subtle inner boundary, controlled backdrop blur, and a solid accessibility fallback. The selected segment is vertically centered inside the rail, with equal padding on every side; it uses a pale state tint and black text. Apple’s Human Interface Guidelines are the ongoing design baseline. This local page is not approved for public deployment yet.
 
 ## Remaining plan
 
