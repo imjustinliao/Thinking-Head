@@ -1,4 +1,5 @@
 import { MECH_STATES, type MechState, STATE_FRAME_PLANS } from "thinking-head";
+import { GlassRegion, GlassSurface } from "./GlassSurface.js";
 
 export interface StateSelectorProps {
   value: MechState;
@@ -14,21 +15,25 @@ export function StateSelector({ value, onChange }: StateSelectorProps) {
   return (
     <fieldset className="selector">
       <legend className="visually-hidden">Agent state</legend>
-      <div className="selector__track">
-        {MECH_STATES.map((state) => (
-          <label className="selector__option" key={state}>
-            <input
-              checked={value === state}
-              className="selector__input"
-              name="agent-state"
-              onChange={() => onChange(state)}
-              type="radio"
-              value={state}
-            />
-            <span className="selector__label">{STATE_FRAME_PLANS[state].label}</span>
-          </label>
-        ))}
-      </div>
+      <GlassRegion>
+        <GlassSurface cornerRadius={18} mode="shader" settleMs={160}>
+          <div className="selector__track">
+            {MECH_STATES.map((state) => (
+              <label className="selector__option" key={state}>
+                <input
+                  checked={value === state}
+                  className="selector__input"
+                  name="agent-state"
+                  onChange={() => onChange(state)}
+                  type="radio"
+                  value={state}
+                />
+                <span className="selector__label">{STATE_FRAME_PLANS[state].label}</span>
+              </label>
+            ))}
+          </div>
+        </GlassSurface>
+      </GlassRegion>
     </fieldset>
   );
 }

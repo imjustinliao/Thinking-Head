@@ -194,6 +194,54 @@ a {
   background: var(--ink-ghost);
 }
 
+/* ----------------------------------------------------------- glass layer */
+
+/*
+ * The library's material sits behind the real control rather than wrapping it,
+ * so semantics, focus, and touch stay on our own elements. `data-surface` is
+ * the single switch between the refracted material and the opaque fallback.
+ */
+/* Grid, not flex: the content must fill the surface in both axes, otherwise
+   the material is sized to a box the control does not actually occupy. */
+.surface {
+  position: relative;
+  display: grid;
+  flex: none;
+}
+
+.surface__material {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.surface__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+}
+
+/* With the material present the control contributes only its lit edge. */
+.surface[data-surface="on"] .nav__control,
+.surface[data-surface="on"] .selector__track {
+  background-color: transparent;
+  background-image: none;
+  border-color: rgb(238 241 246 / 0.22);
+}
+
+/*
+ * Firefox, Safari, and prefers-reduced-transparency get an honest opaque
+ * surface. It is a material simplification, not a degraded filter: contrast
+ * goes up rather than down.
+ */
+.surface[data-surface="off"] .nav__control,
+.surface[data-surface="off"] .selector__track {
+  background-color: rgb(15 21 33 / 0.94);
+  background-image: var(--lit-edge);
+  border-color: rgb(238 241 246 / 0.24);
+}
+
 /* ------------------------------------------------------------ navigation */
 
 .nav {
@@ -203,6 +251,11 @@ a {
   display: flex;
   justify-content: center;
   padding-block: var(--s-5);
+}
+
+.nav__region {
+  display: flex;
+  justify-content: center;
 }
 
 .nav__row {

@@ -84,9 +84,64 @@ repositions every rig part to the correct form.
 
 ### Not yet done
 
-Liquid glass, rig material, and all state motion. The pane's synthetic pointer events do
-not reach the page, so click and hover were confirmed through the keyboard path and direct
-measurement instead.
+Rig material and all state motion.
+
+## Milestone 3 — library-backed liquid glass, 2026-08-02
+
+`liquid-glass-react@1.1.1` (MIT, peer React >=19) is installed in the **demo workspace
+only**. The published `thinking-head` bundle is unchanged and does not reference it.
+
+### What the library actually does
+
+Auditing it before wiring changed the integration:
+
+- It renders **three siblings** and centres itself with `top`/`left: 50%` plus a `-50%`
+  translate. It is built for floating panels; dropped into an in-flow flex row it breaks
+  the layout.
+- It ships **Tailwind class names** (`bg-black`, `text-white`) that are inert here, and its
+  inner element uses the class `glass`, so our wrapper is namespaced `surface`.
+- `blurAmount` is multiplied by 32 internally, so the documented default of `12` is a
+  388px blur. We pass `0.09` for roughly a 7px frost.
+- It handles mouse enter/leave/down/up only — **no focus, no touch**.
+- It re-measures itself only on mount and on `window.resize`, so a control that reflows
+  leaves the SVG filter region stale and the frosted layer gets clipped to the old box.
+- There is **no `requestAnimationFrame` loop**, which the brief required us to avoid.
+
+### How it is used
+
+- The glass is a material layer sized to each control and sitting **behind** the real
+  semantic markup, so focus, press, and touch keep working on our own elements.
+- One shared pointer listener per region (`GlassRegion`) feeds every surface inside it, so
+  a group of controls refracts against the same pointer. Passing both `globalMousePos` and
+  `mouseOffset` also stops the library attaching its own listener per instance.
+- Stale filter regions are fixed by committing the settled size and remounting on it. The
+  settle window is per-surface: 16ms for the nav, whose brand control animates its own
+  width, and 160ms for the selector, where resizes only come from the viewport.
+- `shader` mode is used on the selector as the brief asks. The nav uses `standard`: shader
+  is the only mode that regenerates a displacement map on every resize, which is the wrong
+  trade for a control that animates its width.
+- Glass is on the three nav controls and the five-state selector, nowhere else.
+
+### Verified
+
+`lint`, `typecheck`, `test`, `build` pass, and the published bundle is still 0.14kB/0.45kB.
+In the running page: all four surfaces report material on; the selector track and its
+material agree exactly at 682x54 desktop and 331x150 mobile; a live viewport resize settles
+with the material matching the control again; and the nav brand control's material tracks
+its expansion from 52px to 184px. 40 synthetic pointer moves with a forced style and layout
+flush after each cost 1.7ms total (0.04ms per move) at a 375px viewport. No console errors.
+
+Two bugs were found and fixed here: the track's surface was 682px while the track itself
+shrank to 484px (a flex child that would not fill, now grid), and the stale filter region
+was drawing seams across the selector on mobile.
+
+### Not verified
+
+GPU-side filter rasterisation cost is not captured by the timing above. The pane does not
+deliver synthetic hover or click to the page, so pointer-driven refraction has not been
+seen moving; the geometry was confirmed by measurement and the keyboard path instead. The
+Safari, Firefox, and `prefers-reduced-transparency` fallback was confirmed by forcing the
+`data-surface="off"` branch, not on those engines.
 
 ## What was deliberately removed
 

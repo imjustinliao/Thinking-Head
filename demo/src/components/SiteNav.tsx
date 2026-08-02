@@ -1,4 +1,5 @@
 import { BrandMark } from "./BrandMark.js";
+import { GlassRegion, GlassSurface } from "./GlassSurface.js";
 
 /**
  * Three circular controls centred at the top. Hovering or focusing the middle
@@ -11,26 +12,34 @@ import { BrandMark } from "./BrandMark.js";
 export function SiteNav() {
   return (
     <header className="nav">
-      <nav aria-label="Primary" className="nav__row">
-        <a className="nav__control" href="https://github.com/" rel="noreferrer" target="_blank">
-          <span aria-hidden="true" className="nav__glyph">
-            GH
-          </span>
-          <span className="visually-hidden">GitHub</span>
-        </a>
+      <GlassRegion className="nav__region">
+        <nav aria-label="Primary" className="nav__row">
+          <GlassSurface cornerRadius={999} settleMs={16}>
+            <a className="nav__control" href="https://github.com/" rel="noreferrer" target="_blank">
+              <span aria-hidden="true" className="nav__glyph">
+                GH
+              </span>
+              <span className="visually-hidden">GitHub</span>
+            </a>
+          </GlassSurface>
 
-        <a className="nav__control nav__control--brand" href="#top">
-          <BrandMark className="nav__mark" />
-          <span className="nav__wordmark">Thinking TF</span>
-        </a>
+          <GlassSurface cornerRadius={999} settleMs={16}>
+            <a className="nav__control nav__control--brand" href="#top">
+              <BrandMark className="nav__mark" />
+              <span className="nav__wordmark">Thinking TF</span>
+            </a>
+          </GlassSurface>
 
-        <a className="nav__control" href="https://x.com/" rel="noreferrer" target="_blank">
-          <span aria-hidden="true" className="nav__glyph">
-            X
-          </span>
-          <span className="visually-hidden">X</span>
-        </a>
-      </nav>
+          <GlassSurface cornerRadius={999} settleMs={16}>
+            <a className="nav__control" href="https://x.com/" rel="noreferrer" target="_blank">
+              <span aria-hidden="true" className="nav__glyph">
+                X
+              </span>
+              <span className="visually-hidden">X</span>
+            </a>
+          </GlassSurface>
+        </nav>
+      </GlassRegion>
     </header>
   );
 }
