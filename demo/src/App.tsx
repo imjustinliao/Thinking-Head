@@ -1,4 +1,3 @@
-import liquidGL from "liquid-gl";
 import { Fragment, useEffect, useState } from "react";
 import { type MechState, STATE_FRAME_PLANS } from "thinking-head";
 import { MechIndicator } from "thinking-head/react";
@@ -93,80 +92,71 @@ function CopyBlock({ children, value }: { children: string; value: string }) {
 }
 
 function LiquidNavigation() {
-  useEffect(() => {
-    if (
-      window.innerWidth < 681 ||
-      window.matchMedia("(prefers-reduced-transparency: reduce)").matches
-    ) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      if (document.documentElement.dataset.tfLiquidNavReady === "true") return;
-      document.documentElement.dataset.tfLiquidNavReady = "true";
-      liquidGL({
-        target: ".liquidGL",
-        snapshot: ".hero",
-        resolution: 0.75,
-        refraction: 0.008,
-        bevelDepth: 0.06,
-        bevelWidth: 0.18,
-        frost: 0.4,
-        shadow: false,
-        specular: true,
-        reveal: "fade",
-        tilt: false,
-      });
-    }, 180);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
-    <>
-      <div aria-hidden="true" className="liquidGL masthead-surface" />
-      <nav className="masthead" aria-label="Primary navigation">
-        <a className="brand" href="#top">
-          <span className="tf-mark" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <span>TF Thinks</span>
-        </a>
-        <div className="social-links">
-          <a aria-label="GitHub placeholder" href="https://github.com/">
-            <span aria-hidden="true">GH</span>
-            <span className="sr-only">GitHub</span>
-          </a>
-          <a aria-label="X placeholder" href="https://x.com/">
-            <span aria-hidden="true">𝕏</span>
-            <span className="sr-only">X</span>
-          </a>
-        </div>
-      </nav>
-    </>
+    <nav className="masthead" aria-label="Primary navigation">
+      <a
+        className="nav-control social-control github-control"
+        aria-label="GitHub placeholder"
+        href="https://github.com/"
+      >
+        <span aria-hidden="true">GH</span>
+        <span className="sr-only">GitHub</span>
+      </a>
+      <a className="brand-control" aria-label="TF Thinks" href="#top">
+        <span className="sr-only">TF Thinks</span>
+        <span aria-hidden="true" className="brand-word brand-word-left">
+          TF
+        </span>
+        <span className="tf-mark" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span aria-hidden="true" className="brand-word brand-word-right">
+          Thinks
+        </span>
+      </a>
+      <a
+        className="nav-control social-control x-control"
+        aria-label="X placeholder"
+        href="https://x.com/"
+      >
+        <span aria-hidden="true">𝕏</span>
+        <span className="sr-only">X</span>
+      </a>
+    </nav>
   );
 }
 
 export function App() {
+  const [activeState, setActiveState] = useState<MechState>("thinking");
+  const activePlan = STATE_FRAME_PLANS[activeState];
+
   return (
     <main className="site-shell" id="top">
       <LiquidNavigation />
-      <div aria-hidden="true" className="editorial-geometry" />
-      <section className="hero" aria-labelledby="hero-title">
+      <section aria-label="TF Thinks" className="hero">
         <div className="content-frame hero-frame">
           <p className="folio">01 / 02</p>
           <GlitchTagline />
-          <p className="hero-index" id="hero-title">
-            TF Thinks
-          </p>
           <section className="states-section" aria-label="Five states">
             {states.map((state, index) => (
-              <article className="state-space" key={state}>
-                <p>0{index + 1}</p>
-                <MechIndicator size={index === 1 ? 48 : 42} speed={0.78} state={state} />
-                <h2>{STATE_FRAME_PLANS[state].label}</h2>
-              </article>
+              <button
+                aria-pressed={state === activeState}
+                className="state-choice"
+                key={state}
+                onClick={() => setActiveState(state)}
+                type="button"
+              >
+                <span>0{index + 1}</span>
+                <span>{STATE_FRAME_PLANS[state].label}</span>
+              </button>
             ))}
+          </section>
+          <section aria-live="polite" className="state-stage">
+            <p>0{states.indexOf(activeState) + 1} / 05</p>
+            <MechIndicator key={activeState} size={152} speed={0.82} state={activeState} />
+            <h2>{activePlan.label}</h2>
           </section>
         </div>
       </section>
@@ -174,9 +164,11 @@ export function App() {
       <section className="guide" aria-labelledby="guide-title">
         <div className="content-frame guide-frame">
           <p className="folio">02 / 02</p>
-          <h2 id="guide-title">Installation Guide</h2>
-          <CopyBlock value="npm install thinking-head">npm install thinking-head</CopyBlock>
-          <h3>Usage</h3>
+          <h2 id="guide-title">Use it locally</h2>
+          <CopyBlock value="npm install /path/to/Thinking-Head">
+            npm install /path/to/Thinking-Head
+          </CopyBlock>
+          <h3>React</h3>
           <CopyBlock
             value={
               'import { MechIndicator } from "thinking-head/react";\n\n<MechIndicator state="thinking" />'

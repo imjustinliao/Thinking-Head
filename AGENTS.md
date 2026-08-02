@@ -24,7 +24,7 @@ Do not use character names, logos, visual assets, code, or structural imitation 
 3. Performance matters. The inline default must be small and cheap: no JavaScript animation loop, no per-frame allocations, no filter stacks, no external font dependency.
 4. Support `prefers-reduced-motion` with a recognisable static pose. The SVG itself is decorative; the wrapper needs an accessible state label.
 5. Keep the core data (`src/core/states.ts`) framework-free. React is an optional wrapper exported from `thinking-head/react`.
-6. The local Vite showcase runs on `http://localhost:5173`. It now doubles as an original, local-only marketing prototype. It is editorial black/white by default, uses locally bundled Space Grotesk and DM Sans, and has one local liquid-gl WebGL lens for the fixed nav only. Do not publish or deploy it without Justin explicitly asking.
+6. The local Vite showcase runs on `http://localhost:5173`. It now doubles as an original, local-only marketing prototype. It is editorial black/white by default, uses locally bundled Space Grotesk and DM Sans, and has compact CSS glass navigation controls. Do not publish or deploy it without Justin explicitly asking.
 7. Keep code clean and small. Comments should explain non-obvious product or performance decisions only.
 8. Each user-authorized change is its own commit, formatted `v#.# - Message` (1–15 words, no trailing period), then pushed to `main`. Never force-push, reset hard, or rewrite history without explicit permission.
 

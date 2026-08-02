@@ -10,8 +10,8 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 | States | First implementation: thinking, executing, listening, searching, reading |
 | Animation language | SVG/CSS pose rig with no JavaScript frame loop |
 | Frame plans | Written for every state in `docs/animation-system.md` and exported as data |
-| Local showcase | Compact editorial marketing pass in progress at `http://localhost:5173` |
-| Next review | Justin to judge the single-screen hero, smaller state studies, and shared grid |
+| Local showcase | Interactive state-stage pass in progress at `http://localhost:5173` |
+| Next review | Justin to judge the selector, enlarged state stage, and expanding nav controls |
 
 ## What was deliberately removed
 
@@ -26,4 +26,12 @@ The prior source tree implemented a particle-based human head, its geometry baki
 
 ## Marketing prototype direction — 2026-08-02
 
-Justin explicitly brought a local marketing prototype into scope. The space composition was rejected and deleted on 2026-08-02. The active direction is a sparse black-and-white editorial page: one fixed-width editorial frame across navigation, hero, state studies, guide, and footer; Space Grotesk display type; DM Sans body type; a randomized one-time glitch reveal that deterministically resolves to the exact tagline; five compact state studies within the first screen; a compact installation/usage guide; and a single glass nav. The nav uses the locally installed MIT `liquid-gl` package with a CSS fallback; no CDN request is made. The WebGL lens is intentionally desktop-only because the library's own guidance cautions against large mobile panes; narrow screens use the same visual material without the lens. The product still uses an original TF monogram, not a third-party character mark. This local page is not approved for public deployment yet.
+Justin explicitly brought a local marketing prototype into scope. The space composition was rejected and deleted on 2026-08-02. The active direction is a sparse black-and-white editorial page: compact headings; a randomized one-time glitch reveal that deterministically resolves to the exact tagline; five small selectable state controls near the top; one larger live state stage in the hero; a compact local-development guide; and separate CSS glass navigation controls. The center logo control expands symmetrically to reveal the name on hover or keyboard focus, while the social controls move outward. The product still uses an original TF monogram, not a third-party character mark. This local page is not approved for public deployment yet.
+
+## Remaining plan
+
+1. **Redesign all five state frames.** The current SVG mechanism and motion paths are functional placeholders only; replace their silhouettes, components, and micro-motion after visual direction is approved.
+2. **Run the state distinction pass.** Check each redesigned state at inline and stage sizes, with rapid switching, reduced motion, grayscale, keyboard interaction, and 200% zoom.
+3. **Prepare publishing.** Choose and register a final npm package name, publish a versioned package, then replace the local-path guide with the verified registry command.
+4. **Finish public documentation.** Write the final README/API reference only after the frame redesign and package-publishing flow are signed off.
+5. **Decide on public deployment.** The showcase remains local-only until Justin explicitly authorizes hosting.
