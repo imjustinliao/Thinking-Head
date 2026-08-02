@@ -37,11 +37,56 @@ vehicle/upright transition.
 running page: each option repositions every rig part to the correct canonical form and
 updates the caption.
 
-### Not yet verified
+### Verified after review
 
-Hover and keyboard-focus expansion of the navigation, and full-page visual review, still
-need a visible browser. Reference images for material and proportion have not been
-supplied yet, so no final visual detail is fixed.
+Keyboard-focus expansion of the navigation measured in the running page: the brand control
+grows 52px to 184px and both outer circles move outward by exactly 66px each, with the mark
+pinned at a constant 15px inset. Hover uses the same declaration as focus.
+
+## Reference reading — 2026-08-02
+
+Justin supplied nine references (two architecture, three abstract, three Rams/industrial,
+one glass). They are not in the repository, so the decisions taken from them are recorded
+here:
+
+| Source | What was taken |
+| --- | --- |
+| Swept-surface architecture | Seam lines that follow curvature rather than cut across it; one strong silhouette in large quiet space |
+| Finned facade | Repeated structural ribs with progressive rhythm, sweeping into a curve |
+| Sphere over a perforated plane | The stage: a receding dot floor converging to a horizon, with the light source behind the object |
+| Rim-lit ring | Bright edge only where the surface faces the light, dark core |
+| Lensed disc | Bloom falloff and arc behaviour only — its warm hue is rejected, the field stays cool per the brief |
+| Braun products | Rows of identical circular controls, flat off-white field, tight alignment, one accent |
+| Device concept | A plate with a single primary control |
+| Frosted system panel | Glass belongs on controls, not the page; selected segment is a lighter raised plate |
+
+## Milestone 2 — stage light and space, 2026-08-02
+
+- Rebuilt the stage as a lit space: a perforated floor in perspective whose dots compress
+  toward a horizon, plus a rim light behind the object with bloom falloff.
+- The scene box now matches the rig's viewBox aspect exactly, so the horizon, the floor,
+  and the object's feet are placed from one number (`--ground: 88.69%`) rather than being
+  eyeballed across two coordinate systems. Both canonical forms sit on it correctly.
+- The rim light is biased left so it agrees with the upper-left key instead of reading as a
+  competing source; the key stays dominant.
+- Removed the duplicated ground line, and moved the ground out of the rig entirely — the
+  environment belongs to the page, not the shipped component.
+- Selector pulled onto the caption's rails (8 of 12 columns) so it reads as subordinate.
+- Tightened the spacing scale on narrow viewports so the stage and its controls stay in one
+  view on a phone.
+
+### Verified
+
+`lint`, `typecheck`, `test`, and `build` pass. Checked in the running page at 1280x800 and
+375x812: no horizontal scroll at either size, 44px tap targets, selector wraps to two
+columns on mobile. Arrow-key selection moves through the radio group natively and
+repositions every rig part to the correct form.
+
+### Not yet done
+
+Liquid glass, rig material, and all state motion. The pane's synthetic pointer events do
+not reach the page, so click and hover were confirmed through the keyboard path and direct
+measurement instead.
 
 ## What was deliberately removed
 

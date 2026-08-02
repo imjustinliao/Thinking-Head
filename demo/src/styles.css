@@ -348,6 +348,9 @@ a {
 
 .states {
   padding-block: var(--s-10);
+  /* The receding plane is deliberately wider than the grid; clip its bleed
+     rather than letting it add a horizontal scrollbar. */
+  overflow-x: clip;
 }
 
 .stage {
@@ -355,31 +358,81 @@ a {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: min(56vh, 30rem);
-  padding-block: var(--s-8);
+  padding-block: var(--s-8) var(--s-10);
 }
 
-/* The ground plane. It explains where the object sits and where light falls. */
-.stage::after {
-  content: "";
+/*
+ * The scene box is exactly the rig's viewBox aspect, so the horizon, the
+ * receding plane, and the object's feet are all placed from one number
+ * instead of being eyeballed into alignment across two coordinate systems.
+ */
+.stage__scene {
+  --ground: 88.69%; /* y=149 of the rig's 168-unit viewBox */
+  position: relative;
+  width: min(100%, 34rem);
+  aspect-ratio: 240 / 168;
+  color: var(--ink);
+}
+
+.stage__ground {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--s-8);
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * A perforated floor in perspective. Dots compress toward the horizon, which
+ * is what makes the object read as standing in a space rather than floating
+ * on a flat panel. Static transform: nothing animates, nothing allocates.
+ */
+.stage__plane {
+  position: absolute;
+  left: -55%;
+  right: -55%;
+  top: var(--ground);
+  height: 200%;
+  transform-origin: center top;
+  transform: perspective(300px) rotateX(74deg);
+  background-image: radial-gradient(circle, rgb(176 205 255 / 0.42) 0.85px, transparent 1px);
+  background-size: 14px 14px;
+  -webkit-mask-image: radial-gradient(42% 40% at 50% 0%, #000 4%, transparent 72%);
+  mask-image: radial-gradient(42% 40% at 50% 0%, #000 4%, transparent 72%);
+}
+
+/*
+ * Rim light behind the object. The upper-left key stays dominant; this is the
+ * reflected fill made structural, so it is dim and biased left to agree with
+ * the key rather than reading as a second, competing source.
+ */
+.stage__horizon {
+  position: absolute;
+  top: var(--ground);
+  left: 18%;
+  right: 18%;
   height: 1px;
   background: linear-gradient(
     to right,
     transparent,
-    rgb(238 241 246 / 0.22) 22%,
-    rgb(238 241 246 / 0.22) 78%,
+    rgb(226 238 255 / 0.95) 44%,
+    rgb(214 232 255 / 0.55) 64%,
     transparent
   );
 }
 
+.stage__horizon::before {
+  content: "";
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: 0;
+  height: 8rem;
+  background: radial-gradient(50% 100% at 44% 100%, rgb(110 165 255 / 0.2), transparent 72%);
+}
+
 .stage__figure {
-  position: relative;
-  width: min(100%, 34rem);
-  color: var(--ink);
+  position: absolute;
+  inset: 0;
+  margin: 0;
 }
 
 .stage__caption {
@@ -411,7 +464,7 @@ a {
 .rig {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
 }
 
@@ -430,17 +483,10 @@ a {
   stroke: none;
 }
 
-.rig__ground {
-  stroke: var(--ink-ghost);
-  stroke-width: 1;
-  fill: none;
-  vector-effect: non-scaling-stroke;
-}
-
 /* -------------------------------------------------------------- selector */
 
 .selector {
-  grid-column: 1 / -1;
+  grid-column: 1 / span 8;
   margin-top: var(--s-6);
   border: 0;
   padding: 0;
@@ -576,7 +622,8 @@ a {
     margin-top: var(--s-6);
   }
 
-  .stage__caption {
+  .stage__caption,
+  .selector {
     grid-column: 1 / -1;
   }
 
@@ -592,6 +639,21 @@ a {
 @media (max-width: 40rem) {
   .selector__track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The editorial spacing scale is tuned for a wide field; close it up so the
+     stage and its controls stay in one view on a phone. */
+  .states,
+  .guide {
+    padding-block: var(--s-8);
+  }
+
+  .stage {
+    padding-block: var(--s-5) var(--s-7);
+  }
+
+  .hero {
+    padding-block: var(--s-8) var(--s-9);
   }
 }
 

@@ -43,9 +43,16 @@ export function App() {
             </h2>
 
             <div className="stage">
-              <figure className="stage__figure">
-                <RigOutline label={plan.label} state={state} />
-              </figure>
+              <div className="stage__scene">
+                <div aria-hidden="true" className="stage__ground">
+                  <div className="stage__plane" />
+                  <div className="stage__horizon" />
+                </div>
+
+                <figure className="stage__figure">
+                  <RigOutline label={plan.label} state={state} />
+                </figure>
+              </div>
             </div>
 
             <p className="stage__caption">

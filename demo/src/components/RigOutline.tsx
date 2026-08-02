@@ -97,8 +97,6 @@ export function RigOutline({ state, label }: RigOutlineProps) {
         <ellipse cx="0" cy="0" rx="60" ry="4.5" />
       </g>
 
-      <line className="rig__ground" x1="8" x2="232" y1="149" y2="149" />
-
       <g {...part("legLeft")}>
         <rect height="32" rx="3" width="13" x="-6.5" y="-16" />
       </g>
