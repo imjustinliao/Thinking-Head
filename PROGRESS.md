@@ -10,8 +10,8 @@ Read `AGENTS.md` first, then this file. Update it at each meaningful checkpoint.
 | States | First implementation: thinking, executing, listening, searching, reading |
 | Animation language | SVG/CSS pose rig with no JavaScript frame loop |
 | Frame plans | Written for every state in `docs/animation-system.md` and exported as data |
-| Local showcase | Interactive state-stage pass in progress at `http://localhost:5173` |
-| Next review | Justin to judge the selector, enlarged state stage, and expanding nav controls |
+| Local showcase | Cinematic full-screen state-stage pass in progress at `http://localhost:5173` |
+| Next review | Justin to judge the state-specific backdrops, fluid selector, and expanded logo control |
 
 ## What was deliberately removed
 
@@ -26,7 +26,7 @@ The prior source tree implemented a particle-based human head, its geometry baki
 
 ## Marketing prototype direction — 2026-08-02
 
-Justin explicitly brought a local marketing prototype into scope. The space composition was rejected and deleted on 2026-08-02. The active direction is a sparse black-and-white editorial page: compact headings; a randomized one-time glitch reveal that deterministically resolves to the exact tagline; five small selectable state controls near the top; one larger live state stage in the hero; a compact local-development guide; and separate CSS glass navigation controls. The center logo control expands symmetrically to reveal the name on hover or keyboard focus, while the social controls move outward. The product still uses an original TF monogram, not a third-party character mark. This local page is not approved for public deployment yet.
+Justin explicitly brought a local marketing prototype into scope. The space composition was rejected and deleted on 2026-08-02. The active direction is a cinematic full-screen state stage: user-supplied background images map in order to the five selectable states, each selection changes the backdrop and the central live indicator; the tagline is left aligned, light weight, and deliberately secondary to the active state; and the selection ribbon uses fluid, asymmetrical geometry. The center logo control expands with its mark on the left, while the GitHub and X controls use larger recognizable marks. These images are prototype-only and are never part of the published component. This local page is not approved for public deployment yet.
 
 ## Remaining plan
 
