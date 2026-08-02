@@ -6,7 +6,7 @@ Read this file and `PROGRESS.md` before making changes. Keep both current at eve
 
 `thinking-head` is an installable UI component for AI activity. The product name shown in the
 demo is **Thinking TF**. Its visual system is intentionally reset while the next direction is
-implemented from `docs/claude-code-handoff.md`.
+implemented from the local-only `research-local/claude-code-handoff.md`.
 
 The five Phase 1 states are `thinking`, `executing`, `listening`, `searching`, and `reading`.
 
@@ -25,7 +25,8 @@ Do not use character names, logos, visual assets, code, or structural imitation 
 4. Support `prefers-reduced-motion` with a recognisable static pose. The SVG itself is decorative; the wrapper needs an accessible state label.
 5. Keep the core data (`src/core/states.ts`) framework-free. React is an optional wrapper exported from `thinking-head/react`.
 6. The local Vite showcase runs on `http://localhost:5173`. It is currently deliberately
-   unstyled content only. Do not reintroduce styling except through the approved handoff plan.
+   unstyled content only. Do not reintroduce styling except through the approved local handoff
+   plan, which must never be committed.
    Do not publish or deploy it without Justin explicitly asking.
 7. Keep code clean and small. Comments should explain non-obvious product or performance decisions only.
 8. Each user-authorized change is its own commit, formatted `v#.# - Message` (1–15 words, no trailing period), then pushed to `main`. Never force-push, reset hard, or rewrite history without explicit permission.
@@ -33,12 +34,13 @@ Do not use character names, logos, visual assets, code, or structural imitation 
 ## Current architecture
 
 ```
-src/core/states.ts      public state names and animation storyboards
-src/react/              optional React wrapper and scoped SVG animation styles
+src/core/states.ts      public state names and temporary placeholders
+src/react/              optional React placeholder wrapper
 src/index.ts            framework-free exports
 src/react.ts            React entrypoint
 demo/                   local live inspection showcase
-docs/animation-system.md key-pose plans and visual rules
+docs/animation-system.md reset record for state appearances
 ```
 
-The outer component supplies only CSS variables (`size`, loop duration, pause state). The browser performs animation natively, so a page with many indicators does not accumulate requestAnimationFrame work.
+The current outer component is a semantic placeholder. The next implementation must preserve a
+small client-side footprint and avoid a JavaScript animation loop.

@@ -11,7 +11,7 @@ import { MechIndicator } from "thinking-head/react";
 <MechIndicator state="searching" size={44} />;
 ```
 
-See [the handoff brief](docs/claude-code-handoff.md) for the pending visual-system work.
+The next visual-system implementation is currently in private handoff review.
 
 ## License
 
